@@ -96,3 +96,95 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+# Oak Commerce - Backend API SETUP ⚙️
+
+This is the core API engine for **Oak Commerce**, a multi-tenant e-commerce platform. The application is built using the **NestJS** framework, powered by **Prisma v7** as the ORM, and uses **PostgreSQL** for data persistence.
+
+## ⚙️ Prerequisites
+
+Ensure you have the following installed on your local machine before starting setup:
+* **Node.js** (v20 or higher)
+* **pnpm** (v10 or higher)
+* **Docker Desktop** (Required for the local PostgreSQL instance)
+
+---
+
+## 🚀 Local Setup & Installation
+
+Follow these steps precisely to configure your local database and initialize the Prisma client.
+
+### 1. Environment Configuration
+Create a `.env` file in the root of the `backend/` directory:
+```env
+DATABASE_URL="postgresql://postgres:local_password_123@localhost:5433/oak_commerce?schema=public"
+```
+
+> **Port conflict note:** If another local PostgreSQL instance is using port `5432`, this setup uses `5433` so Docker can run consistently across machines.
+
+### 2. Start the Database Engine
+Ensure Docker Desktop is open and running, then execute the following command to spin up the PostgreSQL container in the background:
+```bash
+docker compose up -d
+```
+> **Port Conflict Note:** If you experience connection access errors (e.g., Prisma Error `P1010`), ensure local system instances of PostgreSQL are stopped (`brew services stop postgresql`) so that Docker can claim port `5432`.
+
+### 3. Run Database Migrations
+Prisma v7 does not automatically read environment variables in monorepos. Ensure your configuration utilizes absolute path resolution for `.env`. To apply the initial schema blueprint to your active container, run:
+```bash
+pnpm exec prisma migrate dev --name init_database
+```
+
+### 4. Generate the Prisma Client
+Generate the type-safe definitions for your TypeScript compilation context:
+```bash
+pnpm exec prisma generate
+```
+
+---
+
+## 🏃‍♂️ Running the Development Server
+
+You can run the backend server in isolation or via the monorepo root workspace helper.
+
+**Option A: Running from the Monorepo Root (Recommended)**
+```bash
+# Execute from the root directory of the workspace
+pnpm dev:backend
+```
+
+**Option B: Running directly in the Backend Directory**
+```bash
+# Execute from inside the /backend directory
+pnpm run start:dev
+```
+Once initialized, the local gateway instance will be active at: `http://localhost:4000`
+
+---
+
+## 🏗 System Architecture Rules
+
+To maintain scalability across the multi-tenant architecture, adhere to the following layout patterns:
+
+### Domain-Driven Design (DDD) Layout
+* **`src/modules/`**: Encapsulate distinct domain contexts inside isolated feature modules (e.g., `src/modules/users`, `src/modules/stores`, `src/modules/products`). Each module must strictly govern its own Controllers, Services, and data transfer layers.
+* **`src/common/`**: Place only universally shared implementations here (e.g., Global Authorization Guards, Tenant Identification Interceptors, Custom Decorators).
+
+### Database Interaction
+* **No Direct Imports:** Never instantiate or import the `PrismaClient` directly inside your domain files.
+* **Dependency Injection:** Always utilize constructor injection to access the shared database instance:
+```typescript
+constructor(private readonly prisma: PrismaService) {}
+```
+
+---
+
+## 🛠 Command Reference Manual
+
+| Command | Operational Context |
+| :--- | :--- |
+| `docker compose up -d` | Spins up the local PostgreSQL container. |
+| `docker compose down` | Stops the running database container without deleting volume data. |
+| `pnpm exec prisma migrate dev` | Tracks schema alterations, updates raw tables, and builds a migration history file. |
+| `pnpm exec prisma generate` | Syncs local node module typings with the database model structure. |
+| `pnpm exec prisma studio` | Launches a visual GUI utility to inspect or modify operational rows at `http://localhost:5555`. |
