@@ -1,0 +1,81 @@
+# -----------------------------------------------------------------------------
+# Node & Package Managers
+# -----------------------------------------------------------------------------
+node_modules/
+.pnpm-store/
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# -----------------------------------------------------------------------------
+# Framework Builds & Outputs
+# -----------------------------------------------------------------------------
+# Next.js (storefront-live, merchant-dashboard, super-admin)
+.next/
+out/
+build/
+
+# NestJS (backend) & TypeScript shared packages
+dist/
+*.tsbuildinfo
+
+# -----------------------------------------------------------------------------
+# Turborepo & Caching
+# -----------------------------------------------------------------------------
+.turbo/
+
+# -----------------------------------------------------------------------------
+# Testing & Coverage (NestJS / Jest)
+# -----------------------------------------------------------------------------
+coverage/
+.nyc_output/
+
+# -----------------------------------------------------------------------------
+# Environment Variables & Secrets
+# -----------------------------------------------------------------------------
+# NEVER commit your database strings or Stripe keys!
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# -----------------------------------------------------------------------------
+# Prisma
+# -----------------------------------------------------------------------------
+# Ignore generated SQLite files if testing locally, but keep schema.prisma
+*.sqlite
+*.sqlite3
+
+# -----------------------------------------------------------------------------
+# Hosting Platforms (Vercel, AWS, etc.)
+# -----------------------------------------------------------------------------
+.vercel/
+
+# -----------------------------------------------------------------------------
+# Runtime Data, Temp & Diagnostics
+# -----------------------------------------------------------------------------
+.temp/
+.tmp/
+pids/
+*.pid
+*.seed
+*.pid.lock
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# -----------------------------------------------------------------------------
+# OS & Editor Files
+# -----------------------------------------------------------------------------
+.DS_Store
+.idea/
+*.pem
+
+# VS Code - Ignore local workspace history, but KEEP shared team settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

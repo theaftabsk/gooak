@@ -1,0 +1,7 @@
+packages:
+  - 'backend'
+  - 'merchant-dashboard'
+  - 'storefront-live'
+  - 'super-admin'
+  - 'shared-database'
+  - 'shared-ui'
