@@ -22,7 +22,7 @@ const getApiBaseUrl = (): string => {
   }
 
   // 3. Fallback for local development
-  return 'http://127.0.0.1:5000/api/v1';
+  return 'http://localhost:5000/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();
