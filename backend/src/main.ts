@@ -1,16 +1,23 @@
+import 'dotenv/config';
+import dns from 'dns';
+dns.setDefaultResultOrder('ipv4first');
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+  });
   
-  // Enable CORS so your frontends on 3000, 3001, and 3002 can talk to the API
+  // Enable CORS to allow multi-tenant dynamic origins (localhost:3000, localhost:3001, and custom domains)
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+    origin: true,
     credentials: true,
   });
 
-  // Default to 4000 for local development
-  await app.listen(process.env.PORT ?? 4000);
+  // Default to 5000 for local development (matching frontend API requests)
+  const port = process.env.PORT ?? 5000;
+  await app.listen(port);
+  console.log(`OakSol Commerce backend running on port: ${port}`);
 }
 bootstrap();

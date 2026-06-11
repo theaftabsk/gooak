@@ -1,0 +1,89 @@
+import { Injectable, NestMiddleware, NotFoundException } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
+import { PrismaService } from '../../database/prisma.service';
+
+@Injectable()
+export class TenantMiddleware implements NestMiddleware {
+  constructor(private prisma: PrismaService) {}
+
+  async use(req: Request & { shopId?: string }, res: Response, next: NextFunction) {
+    const tenantDomain = (req.headers['x-tenant-domain'] as string) || req.headers.host;
+
+    if (!tenantDomain) {
+      throw new NotFoundException('Host header or X-Tenant-Domain header missing');
+    }
+
+    // Extract hostname (remove port if exists)
+    const hostname = tenantDomain.split(':')[0];
+
+    // If it is the platform admin or API subdomain, bypass tenant verification
+    if (
+      hostname === 'admin.localhost' || 
+      hostname.startsWith('admin.') ||
+      hostname === 'api.localhost' ||
+      hostname.startsWith('api.')
+    ) {
+      next();
+      return;
+    }
+
+    const platformDomain = process.env.PLATFORM_DOMAIN || 'posix.digital';
+
+    // SaaS platform landing page domains bypass tenant checks (public endpoints)
+    if (
+      hostname === platformDomain ||
+      hostname === `www.${platformDomain}` ||
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === 'www.localhost'
+    ) {
+      next();
+      return;
+    }
+
+    let shopId: string | undefined;
+
+    // 1. Try to match the exact domain hostname in shop_domains (works for custom domains and exact matches)
+    const domainRecord = await this.prisma.shopDomain.findUnique({
+      where: { domain: hostname },
+      select: { shop_id: true },
+    });
+
+    if (domainRecord) {
+      shopId = domainRecord.shop_id;
+    } else {
+      // 2. If no exact match, check if it's a subdomain slug
+      const isSubdomain = hostname.endsWith(`.${platformDomain}`) || hostname.endsWith('.localhost');
+      
+      if (isSubdomain) {
+        // Extract the subdomain slug (e.g., "nature-glow" from "nature-glow.posix.digital" or "nature-glow.localhost")
+        const slug = hostname.split('.')[0];
+        const shop = await this.prisma.shop.findUnique({
+          where: { slug },
+          select: { id: true }
+        });
+        if (shop) {
+          shopId = shop.id;
+        }
+      }
+    }
+
+    // Local development fallback: if domain registry not matched, fallback to first active shop
+    if (!shopId && (hostname === 'localhost' || hostname === '127.0.0.1')) {
+      const fallbackShop = await this.prisma.shop.findFirst({
+        where: { status: 'active' },
+        select: { id: true },
+      });
+      if (fallbackShop) {
+        shopId = fallbackShop.id;
+      }
+    }
+
+    if (!shopId) {
+      throw new NotFoundException(`Store domain mapping for '${hostname}' not found`);
+    }
+
+    req.shopId = shopId;
+    next();
+  }
+}

@@ -3,5 +3,5 @@ packages:
   - 'merchant-dashboard'
   - 'storefront-live'
   - 'super-admin'
-  - 'shared-database'
+  - 'shared-types'
   - 'shared-ui'
