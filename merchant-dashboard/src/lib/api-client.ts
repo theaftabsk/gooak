@@ -76,14 +76,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       if (isMissingTenant && typeof window !== 'undefined') {
         const host = window.location.host;
         const protocol = window.location.protocol;
+        let targetHost = '';
         if (host.includes('localhost') || host.includes('127.0.0.1')) {
           const port = host.split(':')[1] ? `:${host.split(':')[1]}` : '';
-          window.location.href = `${protocol}//localhost${port}`;
+          targetHost = `localhost${port}`;
         } else {
-          window.location.href = `${protocol}//${PLATFORM_DOMAIN}`;
+          targetHost = PLATFORM_DOMAIN;
         }
-        // Return a promise that never resolves/rejects to prevent component from executing further logic while redirecting
-        return new Promise<T>(() => {});
+
+        if (host !== targetHost) {
+          window.location.href = `${protocol}//${targetHost}`;
+          // Return a promise that never resolves/rejects to prevent component from executing further logic while redirecting
+          return new Promise<T>(() => {});
+        }
+        console.warn(`[api-client] Tenant mapping missing, but already on fallback host '${host}'. Preventing infinite reload loop.`);
       }
 
       const err = new Error(errorJson.message || `HTTP error! Status: ${response.status}`) as any;
