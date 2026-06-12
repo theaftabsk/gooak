@@ -404,6 +404,13 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
   const [newSlug, setNewSlug] = useState('');
   const [iframeKey, setIframeKey] = useState(0);
 
+  const [navbarMenu, setNavbarMenu] = useState<any[]>([]);
+  const [footerMenu, setFooterMenu] = useState<any[]>([]);
+  const [newNavTitle, setNewNavTitle] = useState('');
+  const [newNavUrl, setNewNavUrl] = useState('');
+  const [newFootTitle, setNewFootTitle] = useState('');
+  const [newFootUrl, setNewFootUrl] = useState('');
+
   // storefront_url is always set by VisualBuilderPage as http://slug.localhost:3001
   const slug = shopInfo?.slug || 'store';
   const storefront = shopInfo?.storefront_url || `http://${slug}.localhost:3001`;
@@ -443,12 +450,43 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
         const [dbPages, cats, stdPages] = await Promise.all([
           pageBuilderApi.getPages(),
           catalogApi.getCategories(),
-          customerApi.getPages().catch(() => ({ content: {} })),
+          customerApi.getPages().catch(() => ({ content: {} })) as Promise<any>,
         ]);
         
         setCategories(cats || []);
         if (stdPages?.content) {
           setPolicySettings(stdPages.content);
+
+          try {
+            const nav = stdPages.content.navbar_menu 
+              ? JSON.parse(stdPages.content.navbar_menu) 
+              : [
+                  { title: 'Home', url: '/' },
+                  { title: 'Products', url: '/products' },
+                  { title: 'Categories', url: '/categories' },
+                  { title: 'About Us', url: '/about' },
+                  { title: 'Contact Us', url: '/contact' }
+                ];
+            setNavbarMenu(nav);
+          } catch(e) {
+            setNavbarMenu([]);
+          }
+
+          try {
+            const foot = stdPages.content.footer_menu 
+              ? JSON.parse(stdPages.content.footer_menu) 
+              : [
+                  { title: 'About Us', url: '/about' },
+                  { title: 'Contact Us', url: '/contact' },
+                  { title: 'Privacy Policy', url: '/privacy' },
+                  { title: 'Terms & Conditions', url: '/terms' },
+                  { title: 'Refund Policy', url: '/refund' },
+                  { title: 'Track Order', url: '/track-order' }
+                ];
+            setFooterMenu(foot);
+          } catch(e) {
+            setFooterMenu([]);
+          }
         }
 
         // Map reserved pages, matching with dbPages by slug
@@ -560,10 +598,8 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     if (!selectedPage) return;
     setSaving(true);
     try {
-      // 1. If it's a policy page, save text content first
-      if (selectedPage.isReserved && selectedPage.reservedType.startsWith('POLICY')) {
-        await customerApi.savePages(policySettings);
-      }
+      // 1. Save all page settings (menus, logo, policy text)
+      await customerApi.savePages(policySettings);
 
       // 2. Save page builder config (remove virtual prefix if present)
       const savePayload = { ...selectedPage };
@@ -590,10 +626,8 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     if (!selectedPage) return;
     setSaving(true);
     try {
-      // 1. If it's a policy page, save standard fields
-      if (selectedPage.isReserved && selectedPage.reservedType.startsWith('POLICY')) {
-        await customerApi.savePages(policySettings);
-      }
+      // 1. Save all page settings (menus, logo, policy text)
+      await customerApi.savePages(policySettings);
 
       // 2. Save page layout first (handling virtual IDs)
       const savePayload = { ...selectedPage };
@@ -644,6 +678,56 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     } finally { setSaving(false); }
   };
 
+  const handleAddNavItem = () => {
+    if (!newNavTitle.trim() || !newNavUrl.trim()) return;
+    const updated = [...navbarMenu, { title: newNavTitle.trim(), url: newNavUrl.trim() }];
+    setNavbarMenu(updated);
+    setPolicySettings(prev => ({ ...prev, navbar_menu: JSON.stringify(updated) }));
+    setNewNavTitle('');
+    setNewNavUrl('');
+  };
+
+  const handleRemoveNavItem = (idx: number) => {
+    const updated = navbarMenu.filter((_, i) => i !== idx);
+    setNavbarMenu(updated);
+    setPolicySettings(prev => ({ ...prev, navbar_menu: JSON.stringify(updated) }));
+  };
+
+  const handleMoveNavItem = (idx: number, dir: 'up' | 'down') => {
+    const updated = [...navbarMenu];
+    const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= updated.length) return;
+    const [moved] = updated.splice(idx, 1);
+    updated.splice(targetIdx, 0, moved);
+    setNavbarMenu(updated);
+    setPolicySettings(prev => ({ ...prev, navbar_menu: JSON.stringify(updated) }));
+  };
+
+  const handleAddFootItem = () => {
+    if (!newFootTitle.trim() || !newFootUrl.trim()) return;
+    const updated = [...footerMenu, { title: newFootTitle.trim(), url: newFootUrl.trim() }];
+    setFooterMenu(updated);
+    setPolicySettings(prev => ({ ...prev, footer_menu: JSON.stringify(updated) }));
+    setNewFootTitle('');
+    setNewFootUrl('');
+  };
+
+  const handleRemoveFootItem = (idx: number) => {
+    const updated = footerMenu.filter((_, i) => i !== idx);
+    setFooterMenu(updated);
+    setPolicySettings(prev => ({ ...prev, footer_menu: JSON.stringify(updated) }));
+  };
+
+  const handleMoveFootItem = (idx: number, dir: 'up' | 'down') => {
+    const updated = [...footerMenu];
+    const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= updated.length) return;
+    const [moved] = updated.splice(idx, 1);
+    updated.splice(targetIdx, 0, moved);
+    setFooterMenu(updated);
+    setPolicySettings(prev => ({ ...prev, footer_menu: JSON.stringify(updated) }));
+  };
+  
   const addWidget = (type: WidgetType) => {
     if (!selectedPage) return;
     if (selectedPage.isReserved) {
@@ -1099,12 +1183,13 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
             ) : (
               <>
                 <div className="vb-right-header">
-                  <span className="vb-right-header-title">Page settings</span>
+                  <span className="vb-right-header-title">Storefront Settings</span>
                 </div>
-                {selectedPage && (
-                  <div className="vb-field-section">
-                    <div className="vb-field-group">
-                      <label className="vb-label">Theme colors</label>
+                <div className="vb-right-scroll" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {/* Theme Colors */}
+                  {selectedPage && (
+                    <div className="vb-field-section" style={{ borderBottom: '1px solid #334155', paddingBottom: '14px' }}>
+                      <label className="vb-label" style={{ marginBottom: '8px', display: 'block' }}>Theme colors</label>
                       <div className="vb-color-row">
                         {(['primaryColor', 'secondaryColor', 'backgroundColor'] as const).map(key => (
                           <div key={key} className="vb-color-item">
@@ -1117,11 +1202,108 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                         ))}
                       </div>
                     </div>
+                  )}
+
+                  {/* Logo Customization */}
+                  <div className="vb-field-section" style={{ borderBottom: '1px solid #334155', paddingBottom: '14px' }}>
+                    <div className="vb-field-group">
+                      <label className="vb-label">Store Logo Image URL</label>
+                      <input 
+                        className="vb-input" 
+                        value={policySettings.logo_url || ''} 
+                        onChange={e => handlePolicySettingChange('logo_url', e.target.value)} 
+                        placeholder="https://example.com/logo.png" 
+                      />
+                    </div>
                   </div>
-                )}
-                <div className="vb-right-empty">
-                  <div className="vb-right-empty-icon">👆</div>
-                  <p>Select a section on the left to edit its settings</p>
+
+                  {/* Navbar Menu Customization */}
+                  <div className="vb-field-section" style={{ borderBottom: '1px solid #334155', paddingBottom: '14px' }}>
+                    <label className="vb-label" style={{ marginBottom: '10px', display: 'block' }}>Navbar Menu Links</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                      {navbarMenu.map((item, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#0F172A', padding: '6px 10px', borderRadius: '8px', border: '1px solid #334155', gap: '6px' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <strong style={{ fontSize: '0.75rem', color: '#E2E8F0', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</strong>
+                            <span style={{ fontSize: '0.65rem', color: '#64748B', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.url}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '2px' }}>
+                            <button type="button" onClick={() => handleMoveNavItem(idx, 'up')} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Move Up">▲</button>
+                            <button type="button" onClick={() => handleMoveNavItem(idx, 'down')} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Move Down">▼</button>
+                            <button type="button" onClick={() => handleRemoveNavItem(idx)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Remove">✕</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Add Nav Item form */}
+                    <div style={{ background: '#0F172A', padding: '10px', borderRadius: '8px', border: '1px dashed #334155', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <input 
+                        className="vb-input" 
+                        style={{ fontSize: '0.75rem', padding: '4px 8px' }} 
+                        value={newNavTitle} 
+                        onChange={e => setNewNavTitle(e.target.value)} 
+                        placeholder="Link Title (e.g. Offers)" 
+                      />
+                      <input 
+                        className="vb-input" 
+                        style={{ fontSize: '0.75rem', padding: '4px 8px' }} 
+                        value={newNavUrl} 
+                        onChange={e => setNewNavUrl(e.target.value)} 
+                        placeholder="Link URL (e.g. /offers)" 
+                      />
+                      <button 
+                        type="button" 
+                        onClick={handleAddNavItem}
+                        style={{ background: '#38BDF8', color: '#0F172A', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        + Add Navbar Link
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Footer Links Customization */}
+                  <div className="vb-field-section" style={{ paddingBottom: '14px' }}>
+                    <label className="vb-label" style={{ marginBottom: '10px', display: 'block' }}>Footer Menu Links</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                      {footerMenu.map((item, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#0F172A', padding: '6px 10px', borderRadius: '8px', border: '1px solid #334155', gap: '6px' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <strong style={{ fontSize: '0.75rem', color: '#E2E8F0', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</strong>
+                            <span style={{ fontSize: '0.65rem', color: '#64748B', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.url}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '2px' }}>
+                            <button type="button" onClick={() => handleMoveFootItem(idx, 'up')} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Move Up">▲</button>
+                            <button type="button" onClick={() => handleMoveFootItem(idx, 'down')} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Move Down">▼</button>
+                            <button type="button" onClick={() => handleRemoveFootItem(idx)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Remove">✕</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Add Footer Item form */}
+                    <div style={{ background: '#0F172A', padding: '10px', borderRadius: '8px', border: '1px dashed #334155', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <input 
+                        className="vb-input" 
+                        style={{ fontSize: '0.75rem', padding: '4px 8px' }} 
+                        value={newFootTitle} 
+                        onChange={e => setNewFootTitle(e.target.value)} 
+                        placeholder="Link Title (e.g. Terms)" 
+                      />
+                      <input 
+                        className="vb-input" 
+                        style={{ fontSize: '0.75rem', padding: '4px 8px' }} 
+                        value={newFootUrl} 
+                        onChange={e => setNewFootUrl(e.target.value)} 
+                        placeholder="Link URL (e.g. /terms)" 
+                      />
+                      <button 
+                        type="button" 
+                        onClick={handleAddFootItem}
+                        style={{ background: '#38BDF8', color: '#0F172A', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        + Add Footer Link
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </>
             )}

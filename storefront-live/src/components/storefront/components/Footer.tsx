@@ -6,12 +6,44 @@ export const Footer: React.FC = () => {
   const navigate = useNavigate();
   const [shop, setShop] = useState<any>(null);
   const [content, setContent] = useState<Record<string, string>>({});
+  const [footItems, setFootItems] = useState<any[]>([]);
+  const [customLogoUrl, setCustomLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     customerApi.getPages()
-      .then(d => { setShop(d.shop); setContent(d.content || {}); })
+      .then(d => {
+        setShop(d.shop);
+        setContent(d.content || {});
+        if (d.content?.logo_url) {
+          setCustomLogoUrl(d.content.logo_url);
+        }
+        if (d.content?.footer_menu) {
+          try {
+            setFootItems(JSON.parse(d.content.footer_menu));
+          } catch(e) {
+            setFootItems([]);
+          }
+        } else {
+          setFootItems([
+            { title: "About Us", url: "/about" },
+            { title: "Contact Us", url: "/contact" },
+            { title: "Privacy Policy", url: "/privacy" },
+            { title: "Terms & Conditions", url: "/terms" },
+            { title: "Refund Policy", url: "/refund" },
+            { title: "Track Order", url: "/track-order" }
+          ]);
+        }
+      })
       .catch(() => {});
   }, []);
+
+  const handleLinkClick = (url: string) => {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      navigate(url);
+    }
+  };
 
   const year = new Date().getFullYear();
 
@@ -20,7 +52,9 @@ export const Footer: React.FC = () => {
       <div className="sf-footer-inner">
         {/* Brand */}
         <div className="sf-footer-brand">
-          {shop?.logo_url && <img src={shop.logo_url} alt={shop?.name} className="sf-footer-logo" />}
+          {(customLogoUrl || shop?.logo_url) && (
+            <img src={customLogoUrl || shop.logo_url} alt={shop?.name || 'Store Logo'} className="sf-footer-logo" style={{ maxHeight: '40px', width: 'auto', objectFit: 'contain', display: 'block', marginBottom: '12px' }} />
+          )}
           <div className="sf-footer-shop-name">{shop?.name || 'Our Store'}</div>
           <p className="sf-footer-desc">{shop?.description || content.about_tagline || 'Quality products delivered with care.'}</p>
           <div className="sf-footer-socials">
@@ -63,12 +97,16 @@ export const Footer: React.FC = () => {
         <div className="sf-footer-col">
           <h4 className="sf-footer-heading">Information</h4>
           <nav className="sf-footer-nav">
-            <Link to="/about" className="sf-footer-link">About Us</Link>
-            <Link to="/contact" className="sf-footer-link">Contact Us</Link>
-            <Link to="/privacy" className="sf-footer-link">Privacy Policy</Link>
-            <Link to="/terms" className="sf-footer-link">Terms & Conditions</Link>
-            <Link to="/refund" className="sf-footer-link">Refund Policy</Link>
-            <Link to="/track-order" className="sf-footer-link">Track Order</Link>
+            {footItems.map((item: any, idx: number) => (
+              <span 
+                key={idx} 
+                onClick={() => handleLinkClick(item.url)} 
+                className="sf-footer-link"
+                style={{ cursor: 'pointer' }}
+              >
+                {item.title}
+              </span>
+            ))}
           </nav>
         </div>
 

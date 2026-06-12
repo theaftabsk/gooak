@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useCustomer } from '../context/CustomerContext';
 import { useNavigate } from 'react-router-dom';
-import { catalogApi } from '@oaksol/api-client';
+import { catalogApi, customerApi } from '@oaksol/api-client';
 import { Icons } from '../icons';
 import { getWishlistCount } from '../pages/Wishlist/index';
 
@@ -16,6 +16,8 @@ export const Header: React.FC = () => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const [wishCount, setWishCount] = useState(0);
+  const [navItems, setNavItems] = useState<any[]>([]);
+  const [customLogoUrl, setCustomLogoUrl] = useState<string | null>(null);
 
   useEffect(() => { setWishCount(getWishlistCount()); }, []);
 
@@ -27,6 +29,36 @@ export const Header: React.FC = () => {
 
         const homeData = await catalogApi.getHomepage();
         setShop(homeData.shop || null);
+
+        const pageSettings = await customerApi.getPages().catch(() => null);
+        if (pageSettings) {
+          if (pageSettings.content?.logo_url) {
+            setCustomLogoUrl(pageSettings.content.logo_url);
+          }
+          if (pageSettings.content?.navbar_menu) {
+            try {
+              setNavItems(JSON.parse(pageSettings.content.navbar_menu));
+            } catch(e) {
+              setNavItems([]);
+            }
+          } else {
+            setNavItems([
+              { title: 'Home', url: '/' },
+              { title: 'Products', url: '/products' },
+              { title: 'Categories', url: '/categories' },
+              { title: 'About Us', url: '/about' },
+              { title: 'Contact Us', url: '/contact' }
+            ]);
+          }
+        } else {
+          setNavItems([
+            { title: 'Home', url: '/' },
+            { title: 'Products', url: '/products' },
+            { title: 'Categories', url: '/categories' },
+            { title: 'About Us', url: '/about' },
+            { title: 'Contact Us', url: '/contact' }
+          ]);
+        }
       } catch (err: any) {
         console.error('Failed to load categories in header:', err);
         const isMissingTenant = err.status === 404 || (err.message && (err.message.includes('Store domain mapping') || err.message.includes('Tenant-Domain')));
@@ -55,60 +87,123 @@ export const Header: React.FC = () => {
     setOpenDropdown(null);
   };
 
+  const handleLinkClick = (url: string) => {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      goTo(url);
+    }
+  };
+
   return (
     <header className="site-header">
       <div className="header-container">
         {/* Left: Brand */}
         <div className="logo-area" onClick={() => goTo('/')}>
-          <span className="brand-name">{shop?.name || 'STOREFRONT'}</span>
-          <span className="brand-tag">Pure Botanical</span>
+          {customLogoUrl || shop?.logo_url ? (
+            <img src={customLogoUrl || shop.logo_url} alt={shop?.name || 'Store Logo'} className="brand-logo-img" style={{ height: '36px', width: 'auto', objectFit: 'contain', display: 'block' }} />
+          ) : (
+            <>
+              <span className="brand-name">{shop?.name || 'STOREFRONT'}</span>
+              <span className="brand-tag">Pure Botanical</span>
+            </>
+          )}
         </div>
 
         {/* Center: Nav with dropdown subcategories */}
         <nav className="site-nav" onMouseLeave={() => setOpenDropdown(null)}>
-          <span onClick={() => goTo('/')}>Home</span>
-          <span onClick={() => goTo('/categories')}>All Categories</span>
+          {navItems.map((item: any, index: number) => {
+            const isCategories = item.url === '/categories';
+            const hasCategoriesDropdown = isCategories && menuCategories.length > 0;
 
-          {menuCategories.map((cat: any) => {
-            const subs = (cat.children || []).filter((s: any) => s.show_in_menu !== false);
-            const hasDropdown = subs.length > 0;
+            if (hasCategoriesDropdown) {
+              return (
+                <div
+                  key={index}
+                  className="nav-item-wrap has-dropdown"
+                  onMouseEnter={() => setOpenDropdown('categories-nav')}
+                >
+                  <span
+                    className={openDropdown === 'categories-nav' ? 'active' : ''}
+                    onClick={() => goTo('/categories')}
+                  >
+                    {item.title}
+                    <Icons.ChevronDown />
+                  </span>
+
+                  {openDropdown === 'categories-nav' && (
+                    <div className="nav-dropdown">
+                      <div className="nav-dropdown-header" onClick={() => goTo('/categories')}>
+                        <strong>All Categories</strong>
+                        <span className="view-all-link">View All →</span>
+                      </div>
+                      <div className="nav-dropdown-divider" />
+                      <div className="nav-dropdown-grid">
+                        {menuCategories.map((cat: any) => (
+                          <div
+                            key={cat.id}
+                            className="nav-dropdown-item"
+                            onClick={() => goTo(`/categories/${cat.slug}`)}
+                          >
+                            <span className="sub-dot">●</span>
+                            {cat.name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            const matchedCategory = menuCategories.find((cat: any) => `/categories/${cat.slug}` === item.url);
+            const subCategories = matchedCategory ? (matchedCategory.children || []).filter((s: any) => s.show_in_menu !== false) : [];
+            const hasSubDropdown = matchedCategory && subCategories.length > 0;
+
+            if (hasSubDropdown) {
+              return (
+                <div
+                  key={index}
+                  className="nav-item-wrap has-dropdown"
+                  onMouseEnter={() => setOpenDropdown(matchedCategory.id)}
+                >
+                  <span
+                    className={openDropdown === matchedCategory.id ? 'active' : ''}
+                    onClick={() => goTo(item.url)}
+                  >
+                    {item.title}
+                    <Icons.ChevronDown />
+                  </span>
+
+                  {openDropdown === matchedCategory.id && (
+                    <div className="nav-dropdown">
+                      <div className="nav-dropdown-header" onClick={() => goTo(item.url)}>
+                        <strong>All {matchedCategory.name}</strong>
+                        <span className="view-all-link">View All →</span>
+                      </div>
+                      <div className="nav-dropdown-divider" />
+                      <div className="nav-dropdown-grid">
+                        {subCategories.map((sub: any) => (
+                          <div
+                            key={sub.id}
+                            className="nav-dropdown-item"
+                            onClick={() => goTo(`/categories/${sub.slug}`)}
+                          >
+                            <span className="sub-dot">●</span>
+                            {sub.name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }
 
             return (
-              <div
-                key={cat.id}
-                className={`nav-item-wrap ${hasDropdown ? 'has-dropdown' : ''}`}
-                onMouseEnter={() => hasDropdown && setOpenDropdown(cat.id)}
-              >
-                <span
-                  className={openDropdown === cat.id ? 'active' : ''}
-                  onClick={() => goTo(`/categories/${cat.slug}`)}
-                >
-                  {cat.name}
-                  {hasDropdown && <Icons.ChevronDown />}
-                </span>
-
-                {hasDropdown && openDropdown === cat.id && (
-                  <div className="nav-dropdown">
-                    <div className="nav-dropdown-header" onClick={() => goTo(`/categories/${cat.slug}`)}>
-                      <strong>All {cat.name}</strong>
-                      <span className="view-all-link">View All →</span>
-                    </div>
-                    <div className="nav-dropdown-divider" />
-                    <div className="nav-dropdown-grid">
-                      {subs.map((sub: any) => (
-                        <div
-                          key={sub.id}
-                          className="nav-dropdown-item"
-                          onClick={() => goTo(`/categories/${sub.slug}`)}
-                        >
-                          <span className="sub-dot">●</span>
-                          {sub.name}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <span key={index} onClick={() => handleLinkClick(item.url)}>
+                {item.title}
+              </span>
             );
           })}
         </nav>
@@ -177,42 +272,39 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Shop Nav */}
-        <div className="mobile-section-label">Shop</div>
+        <div className="mobile-section-label">Shop Menu</div>
         <nav className="mobile-nav-links">
-          <span onClick={() => goTo('/')}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            Home
-          </span>
-          <span onClick={() => goTo('/products')}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/></svg>
-            All Products
-          </span>
-          <span onClick={() => goTo('/categories')}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            All Categories
-          </span>
+          {navItems.map((item: any, index: number) => {
+            const matchedCategory = menuCategories.find((cat: any) => `/categories/${cat.slug}` === item.url);
+            const subs = matchedCategory ? (matchedCategory.children || []).filter((s: any) => s.show_in_menu !== false) : [];
+            const isExpanded = mobileExpanded === matchedCategory?.id;
 
-          {menuCategories.map((cat: any) => {
-            const subs = (cat.children || []).filter((s: any) => s.show_in_menu !== false);
-            const isExpanded = mobileExpanded === cat.id;
-            return (
-              <div key={cat.id} className="mobile-cat-group">
-                <div className="mobile-cat-header">
-                  <span onClick={() => goTo(`/categories/${cat.slug}`)}>{cat.name}</span>
-                  {subs.length > 0 && (
-                    <button className="mobile-expand-btn" onClick={() => setMobileExpanded(isExpanded ? null : cat.id)}>
+            if (matchedCategory && subs.length > 0) {
+              return (
+                <div key={index} className="mobile-cat-group">
+                  <div className="mobile-cat-header">
+                    <span onClick={() => { goTo(item.url); setMobileMenuOpen(false); }}>{item.title}</span>
+                    <button className="mobile-expand-btn" onClick={() => setMobileExpanded(isExpanded ? null : matchedCategory.id)}>
                       {isExpanded ? '▲' : '▼'}
                     </button>
+                  </div>
+                  {isExpanded && (
+                    <div className="mobile-subcats">
+                      {subs.map((sub: any) => (
+                        <span key={sub.id} className="mobile-subcat-item" onClick={() => { goTo(`/categories/${sub.slug}`); setMobileMenuOpen(false); }}>
+                          ↳ {sub.name}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
-                {subs.length > 0 && isExpanded && (
-                  <div className="mobile-subcats">
-                    {subs.map((sub: any) => (
-                      <span key={sub.id} className="mobile-subcat-item" onClick={() => goTo(`/categories/${sub.slug}`)}>↳ {sub.name}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
+              );
+            }
+
+            return (
+              <span key={index} onClick={() => { handleLinkClick(item.url); setMobileMenuOpen(false); }}>
+                {item.title}
+              </span>
             );
           })}
         </nav>
