@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { catalogApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
 import { useCart } from '../../context/CartContext';
+import { useCustomer } from '../../context/CustomerContext';
 
 export const Checkout: React.FC = () => {
   const { theme, cssVariables } = usePageTheme('checkout');
   const { cartItems, cartTotal, clearCart } = useCart();
+  const { customer } = useCustomer();
   const navigate = useNavigate();
 
   // Contact Info
@@ -24,6 +26,15 @@ export const Checkout: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Pre-fill profile fields if logged in
+  useEffect(() => {
+    if (customer) {
+      setName(prev => prev || customer.name || '');
+      setEmail(prev => prev || customer.email || '');
+      setPhone(prev => prev || customer.phone || '');
+    }
+  }, [customer]);
 
   // Calculate pricing values
   const shippingCharge = cartTotal > 500 ? 0 : 50;
@@ -81,88 +92,172 @@ export const Checkout: React.FC = () => {
 
   if (cartItems.length === 0) {
     return (
-      <div style={cssVariables} className="min-h-screen flex flex-col items-center justify-center text-center p-8 bg-slate-50">
-        <span className="text-4xl mb-4">🛒</span>
-        <h1 className="text-xl font-bold text-slate-800">Your Cart is Empty</h1>
-        <p className="text-slate-400 text-xs mt-1 max-w-sm">Please add some skincare products to your cart before proceeding to checkout.</p>
-        <Link to="/products" className="mt-6 px-6 py-2.5 bg-slate-900 text-white rounded-lg font-bold text-sm">Shop Products</Link>
+      <div style={cssVariables} className="checkout-empty-wrapper">
+        <span className="checkout-empty-icon">🛒</span>
+        <h1 className="checkout-empty-title">Your Cart is Empty</h1>
+        <p className="checkout-empty-desc">Please add some skincare products to your cart before proceeding to checkout.</p>
+        <Link to="/products" className="checkout-empty-action" style={{ background: theme.primaryColor || '#111827' }}>
+          Shop Products
+        </Link>
       </div>
     );
   }
 
   return (
-    <div style={cssVariables} className="min-h-screen bg-slate-50/50 py-12">
-      <div className="max-w-7xl mx-auto px-6">
-        <h1 className="text-3xl font-black text-slate-800 tracking-tight text-left mb-8">Checkout</h1>
+    <div style={cssVariables} className="checkout-wrapper">
+      <div className="checkout-container">
+        <h1 className="checkout-title">Secure Checkout</h1>
         
-        <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 items-start text-left text-sm">
+        <form onSubmit={handleSubmitOrder} className="checkout-form-grid">
           
-          {/* Left Side: Forms */}
-          <div className="flex flex-col gap-6">
+          {/* Left Column: Input Forms */}
+          <div className="checkout-form-column">
             
-            {/* 1. Customer Details */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-              <h3 className="font-bold text-slate-800 text-base mb-4 pb-2 border-b border-slate-50">Contact Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-semibold text-slate-600 text-xs">Full Name</label>
-                  <input type="text" value={name} onChange={e => setName(e.target.value)} required className="p-2.5 border border-slate-200 rounded-lg outline-none focus:border-emerald-500" />
+            {/* 1. Contact Info Card */}
+            <div className="checkout-card">
+              <h3 className="checkout-card-header">Contact Information</h3>
+              <div className="checkout-fields-row">
+                <div className="checkout-field">
+                  <label className="checkout-label">Full Name</label>
+                  <input 
+                    type="text" 
+                    value={name} 
+                    onChange={e => setName(e.target.value)} 
+                    required 
+                    placeholder="Enter your name" 
+                    className="checkout-input" 
+                  />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-semibold text-slate-600 text-xs">Email Address</label>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="p-2.5 border border-slate-200 rounded-lg outline-none focus:border-emerald-500" />
-                </div>
-              </div>
-              <div className="flex flex-col gap-1.5 mt-4">
-                <label className="font-semibold text-slate-600 text-xs">Phone Number</label>
-                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required className="p-2.5 border border-slate-200 rounded-lg outline-none focus:border-emerald-500" />
-              </div>
-            </div>
-
-            {/* 2. Shipping Address */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-              <h3 className="font-bold text-slate-800 text-base mb-4 pb-2 border-b border-slate-50">Shipping Address</h3>
-              <div className="flex flex-col gap-1.5">
-                <label className="font-semibold text-slate-600 text-xs">Street Address</label>
-                <input type="text" value={addressLine} onChange={e => setAddressLine(e.target.value)} required placeholder="House number, apartment, street name" className="p-2.5 border border-slate-200 rounded-lg outline-none focus:border-emerald-500" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-semibold text-slate-600 text-xs">City</label>
-                  <input type="text" value={city} onChange={e => setCity(e.target.value)} required className="p-2.5 border border-slate-200 rounded-lg outline-none focus:border-emerald-500" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-semibold text-slate-600 text-xs">State</label>
-                  <input type="text" value={state} onChange={e => setState(e.target.value)} required className="p-2.5 border border-slate-200 rounded-lg outline-none focus:border-emerald-500" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-semibold text-slate-600 text-xs">PIN Code</label>
-                  <input type="text" value={zip} onChange={e => setZip(e.target.value)} required className="p-2.5 border border-slate-200 rounded-lg outline-none focus:border-emerald-500" />
+                <div className="checkout-field">
+                  <label className="checkout-label">Email Address</label>
+                  <input 
+                    type="email" 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)} 
+                    required 
+                    placeholder="name@example.com" 
+                    className="checkout-input" 
+                  />
                 </div>
               </div>
-              <div className="flex flex-col gap-1.5 mt-4">
-                <label className="font-semibold text-slate-600 text-xs">Order Notes (Optional)</label>
-                <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Special instructions for delivery..." className="p-2.5 border border-slate-200 rounded-lg outline-none focus:border-emerald-500" />
+              <div className="checkout-field mt-4">
+                <label className="checkout-label">Phone Number</label>
+                <input 
+                  type="tel" 
+                  value={phone} 
+                  onChange={e => setPhone(e.target.value)} 
+                  required 
+                  placeholder="+91 98765 43210" 
+                  className="checkout-input" 
+                />
               </div>
             </div>
 
-            {/* 3. Payment Method */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-              <h3 className="font-bold text-slate-800 text-base mb-4 pb-2 border-b border-slate-50">Payment Method</h3>
-              <div className="flex flex-col gap-3 font-semibold text-slate-700">
-                <label className="flex items-center gap-3 p-3.5 border border-slate-100 hover:bg-slate-50 rounded-xl cursor-pointer transition">
-                  <input type="radio" name="payment" value="cod" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} />
-                  <div>
-                    <span>💵 Cash on Delivery (COD)</span>
-                    <span className="block text-xxs text-slate-400 font-medium mt-0.5">Pay in cash when products are delivered</span>
+            {/* 2. Shipping Address Card */}
+            <div className="checkout-card">
+              <h3 className="checkout-card-header">Shipping Address</h3>
+              <div className="checkout-field">
+                <label className="checkout-label">Street Address</label>
+                <input 
+                  type="text" 
+                  value={addressLine} 
+                  onChange={e => setAddressLine(e.target.value)} 
+                  required 
+                  placeholder="House number, apartment, street name" 
+                  className="checkout-input" 
+                />
+              </div>
+              <div className="checkout-fields-three mt-4">
+                <div className="checkout-field">
+                  <label className="checkout-label">City</label>
+                  <input 
+                    type="text" 
+                    value={city} 
+                    onChange={e => setCity(e.target.value)} 
+                    required 
+                    placeholder="City" 
+                    className="checkout-input" 
+                  />
+                </div>
+                <div className="checkout-field">
+                  <label className="checkout-label">State</label>
+                  <input 
+                    type="text" 
+                    value={state} 
+                    onChange={e => setState(e.target.value)} 
+                    required 
+                    placeholder="State" 
+                    className="checkout-input" 
+                  />
+                </div>
+                <div className="checkout-field">
+                  <label className="checkout-label">PIN Code</label>
+                  <input 
+                    type="text" 
+                    value={zip} 
+                    onChange={e => setZip(e.target.value)} 
+                    required 
+                    placeholder="110001" 
+                    className="checkout-input" 
+                  />
+                </div>
+              </div>
+              <div className="checkout-field mt-4">
+                <label className="checkout-label">Order Notes (Optional)</label>
+                <textarea 
+                  rows={3} 
+                  value={notes} 
+                  onChange={e => setNotes(e.target.value)} 
+                  placeholder="Special instructions for delivery, e.g. deliver next to gate..." 
+                  className="checkout-textarea" 
+                />
+              </div>
+            </div>
+
+            {/* 3. Payment Method Card */}
+            <div className="checkout-card">
+              <h3 className="checkout-card-header">Payment Option</h3>
+              <div className="payment-options-list">
+                
+                <label 
+                  className={`payment-option-label ${paymentMethod === 'cod' ? 'active' : ''}`}
+                  style={paymentMethod === 'cod' ? { 
+                    borderColor: theme.primaryColor || '#15803D',
+                    background: `${theme.primaryColor || '#15803D'}05` 
+                  } : {}}
+                >
+                  <input 
+                    type="radio" 
+                    name="payment" 
+                    value="cod" 
+                    checked={paymentMethod === 'cod'} 
+                    onChange={() => setPaymentMethod('cod')} 
+                    className="payment-radio-input"
+                  />
+                  <div className="payment-option-text">
+                    <span className="payment-option-title">💵 Cash on Delivery (COD)</span>
+                    <span className="payment-option-subtitle">Pay with cash upon delivery of your products</span>
                   </div>
                 </label>
                 
-                <label className="flex items-center gap-3 p-3.5 border border-slate-100 hover:bg-slate-50 rounded-xl cursor-pointer transition">
-                  <input type="radio" name="payment" value="razorpay" checked={paymentMethod === 'razorpay'} onChange={() => setPaymentMethod('razorpay')} />
-                  <div>
-                    <span>💳 Pay Online (Razorpay)</span>
-                    <span className="block text-xxs text-slate-400 font-medium mt-0.5">Secure credit card, UPI, netbanking payments</span>
+                <label 
+                  className={`payment-option-label ${paymentMethod === 'razorpay' ? 'active' : ''}`}
+                  style={paymentMethod === 'razorpay' ? { 
+                    borderColor: theme.primaryColor || '#15803D',
+                    background: `${theme.primaryColor || '#15803D'}05` 
+                  } : {}}
+                >
+                  <input 
+                    type="radio" 
+                    name="payment" 
+                    value="razorpay" 
+                    checked={paymentMethod === 'razorpay'} 
+                    onChange={() => setPaymentMethod('razorpay')} 
+                    className="payment-radio-input"
+                  />
+                  <div className="payment-option-text">
+                    <span className="payment-option-title">💳 Pay Online Securely</span>
+                    <span className="payment-option-subtitle">UPI, Netbanking, Credit & Debit Cards (Razorpay)</span>
                   </div>
                 </label>
               </div>
@@ -170,58 +265,59 @@ export const Checkout: React.FC = () => {
 
           </div>
 
-          {/* Right Side: Order Summary */}
-          <div className="flex flex-col gap-6 sticky top-24">
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-              <h3 className="font-bold text-slate-800 text-base mb-4 pb-2 border-b border-slate-50">Order Summary</h3>
+          {/* Right Column: Sticky Order Summary */}
+          <div className="checkout-summary-column">
+            <div className="checkout-summary-card">
+              <h3 className="checkout-card-header">Order Summary</h3>
               
-              {/* Items List */}
-              <div className="flex flex-col gap-4 max-h-[200px] overflow-y-auto mb-6 pr-2">
+              {/* Product items scrolling list */}
+              <div className="checkout-items-list">
                 {cartItems.map((item) => (
-                  <div key={item.variantId} className="flex gap-3 items-center">
-                    <img src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-lg object-cover border border-slate-100 bg-slate-50" />
-                    <div className="flex-1 text-xs">
-                      <h4 className="font-bold text-slate-800 line-clamp-1">{item.name}</h4>
-                      <span className="text-slate-400 font-semibold">{item.variantLabel || 'Standard'} x {item.qty}</span>
+                  <div key={item.variantId} className="checkout-item-row">
+                    <div className="checkout-item-image-wrapper">
+                      <img src={item.imageUrl} alt={item.name} className="checkout-item-image" />
                     </div>
-                    <span className="font-bold text-slate-900 text-xs">₹{item.price * item.qty}</span>
+                    <div className="checkout-item-info">
+                      <h4 className="checkout-item-name">{item.name}</h4>
+                      <span className="checkout-item-variant">{item.variantLabel || 'Standard'} x {item.qty}</span>
+                    </div>
+                    <span className="checkout-item-total-price">₹{item.price * item.qty}</span>
                   </div>
                 ))}
               </div>
 
               {/* Price Calculations */}
-              <div className="flex flex-col gap-2.5 border-t border-slate-50 pt-4 text-xs font-semibold text-slate-500">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span className="text-slate-800">₹{cartTotal}</span>
+              <div className="checkout-calculations">
+                <div className="calc-row">
+                  <span>Cart Subtotal</span>
+                  <span className="calc-value">₹{cartTotal}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Shipping Fee</span>
-                  <span className="text-slate-800">{shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`}</span>
+                <div className="calc-row">
+                  <span>Shipping & Handling</span>
+                  <span className="calc-value">{shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Tax (5% Flat GST)</span>
-                  <span className="text-slate-800">₹{taxAmount}</span>
+                <div className="calc-row">
+                  <span>Flat tax (5% GST)</span>
+                  <span className="calc-value">₹{taxAmount}</span>
                 </div>
-                <div className="flex justify-between border-t border-slate-50 pt-4 text-sm font-black text-slate-800">
-                  <span>Total Amount</span>
-                  <span className="text-slate-900 text-lg">₹{grandTotal}</span>
+                <div className="grand-total-row">
+                  <span>Order Total</span>
+                  <span className="grand-total-price">₹{grandTotal}</span>
                 </div>
               </div>
 
-              {/* Error messages */}
               {errorMsg && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-100 text-red-600 font-bold text-xs rounded-xl">
-                  {errorMsg}
+                <div className="checkout-error-banner">
+                  <span>⚠️</span> {errorMsg}
                 </div>
               )}
 
-              {/* Submit Button */}
+              {/* Form submit CTA */}
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full mt-6 py-3.5 rounded-xl font-bold text-sm text-white shadow-md transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-center"
-                style={{ backgroundColor: theme.primaryColor }}
+                className="checkout-place-order-btn"
+                style={{ background: theme.primaryColor || '#15803D' }}
               >
                 {loading ? 'Processing Order...' : 'Place Order'}
               </button>
@@ -230,9 +326,384 @@ export const Checkout: React.FC = () => {
 
         </form>
       </div>
+
+      <style>{`
+        .checkout-wrapper {
+          background: var(--sf-bg, #FAF7F2);
+          min-height: 90vh;
+          font-family: 'Inter', sans-serif;
+          color: #1F2937;
+        }
+
+        /* Empty state wrapper */
+        .checkout-empty-wrapper {
+          min-height: 80vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 40px 20px;
+          background: var(--sf-bg, #FAF7F2);
+        }
+        .checkout-empty-icon {
+          font-size: 3rem;
+          display: block;
+          margin-bottom: 16px;
+        }
+        .checkout-empty-title {
+          font-family: 'Outfit', sans-serif;
+          font-size: 1.6rem;
+          font-weight: 800;
+          color: #111827;
+          margin: 0 0 10px;
+        }
+        .checkout-empty-desc {
+          font-size: 0.9rem;
+          color: #6B7280;
+          max-width: 380px;
+          margin: 0 auto 28px;
+          line-height: 1.5;
+        }
+        .checkout-empty-action {
+          display: inline-block;
+          padding: 12px 32px;
+          color: #ffffff;
+          border-radius: 12px;
+          font-weight: 700;
+          text-decoration: none;
+          font-size: 0.88rem;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+          transition: all 0.2s;
+        }
+        .checkout-empty-action:hover {
+          filter: brightness(1.08);
+          transform: translateY(-1px);
+        }
+
+        /* Checkout workspace */
+        .checkout-container {
+          max-width: 1300px;
+          margin: 0 auto;
+          padding: 48px 24px 80px;
+          box-sizing: border-box;
+        }
+        .checkout-title {
+          font-family: 'Outfit', sans-serif;
+          font-size: 2.3rem;
+          font-weight: 800;
+          color: #111827;
+          text-align: left;
+          margin: 0 0 36px;
+          letter-spacing: -0.02em;
+        }
+
+        .checkout-form-grid {
+          display: grid;
+          grid-template-columns: 1.4fr 1fr;
+          gap: 48px;
+          align-items: start;
+        }
+
+        /* Card panels */
+        .checkout-card {
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.03);
+          border-radius: 24px;
+          padding: 32px;
+          margin-bottom: 24px;
+          box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.02);
+          text-align: left;
+        }
+        .checkout-card-header {
+          font-family: 'Outfit', sans-serif;
+          font-size: 1.05rem;
+          font-weight: 800;
+          color: #111827;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin: 0 0 20px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+          padding-bottom: 12px;
+        }
+
+        /* Fields formatting */
+        .checkout-fields-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+        .checkout-fields-three {
+          display: grid;
+          grid-template-columns: 1.2fr 1.2fr 1fr;
+          gap: 16px;
+        }
+        .checkout-field {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .checkout-label {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #4B5563;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .checkout-input {
+          padding: 12px 16px;
+          border: 1.5px solid rgba(0, 0, 0, 0.08);
+          border-radius: 12px;
+          font-size: 0.92rem;
+          font-family: 'Inter', sans-serif;
+          color: #111827;
+          background: #ffffff;
+          outline: none;
+          transition: all 0.2s ease;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .checkout-input:focus {
+          border-color: var(--sf-accent, #15803D);
+          box-shadow: 0 0 0 4px rgba(21, 128, 61, 0.08);
+        }
+        .checkout-textarea {
+          padding: 12px 16px;
+          border: 1.5px solid rgba(0, 0, 0, 0.08);
+          border-radius: 12px;
+          font-size: 0.92rem;
+          font-family: 'Inter', sans-serif;
+          color: #111827;
+          background: #ffffff;
+          outline: none;
+          transition: all 0.2s ease;
+          width: 100%;
+          box-sizing: border-box;
+          resize: vertical;
+        }
+        .checkout-textarea:focus {
+          border-color: var(--sf-accent, #15803D);
+          box-shadow: 0 0 0 4px rgba(21, 128, 61, 0.08);
+        }
+
+        /* Payment selection */
+        .payment-options-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .payment-option-label {
+          display: flex;
+          align-items: flex-start;
+          gap: 16px;
+          padding: 18px 20px;
+          border: 1.5px solid rgba(0, 0, 0, 0.06);
+          border-radius: 16px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .payment-option-label:hover {
+          background: rgba(0, 0, 0, 0.01);
+          border-color: rgba(0,0,0,0.12);
+        }
+        .payment-radio-input {
+          margin-top: 4px;
+          accent-color: var(--sf-accent, #15803D);
+          width: 16px;
+          height: 16px;
+          cursor: pointer;
+        }
+        .payment-option-text {
+          display: flex;
+          flex-direction: column;
+        }
+        .payment-option-title {
+          font-size: 0.92rem;
+          font-weight: 800;
+          color: #111827;
+        }
+        .payment-option-subtitle {
+          font-size: 0.75rem;
+          color: #6B7280;
+          font-weight: 500;
+          margin-top: 4px;
+        }
+
+        /* Right Column Summary */
+        .checkout-summary-column {
+          position: sticky;
+          top: 110px;
+        }
+        .checkout-summary-card {
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.03);
+          border-radius: 24px;
+          padding: 32px;
+          box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.02);
+          text-align: left;
+        }
+
+        .checkout-items-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          max-height: 240px;
+          overflow-y: auto;
+          margin-bottom: 28px;
+          padding-right: 6px;
+        }
+        .checkout-item-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+        .checkout-item-image-wrapper {
+          width: 52px;
+          height: 52px;
+          border-radius: 10px;
+          overflow: hidden;
+          background: #F9FAFB;
+          border: 1px solid rgba(0, 0, 0, 0.04);
+          flex-shrink: 0;
+        }
+        .checkout-item-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .checkout-item-info {
+          flex: 1;
+        }
+        .checkout-item-name {
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: #111827;
+          margin: 0 0 4px;
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .checkout-item-variant {
+          font-size: 0.75rem;
+          color: #9CA3AF;
+          font-weight: 600;
+        }
+        .checkout-item-total-price {
+          font-size: 0.85rem;
+          font-weight: 800;
+          color: #111827;
+        }
+
+        .checkout-calculations {
+          border-top: 1px solid rgba(0, 0, 0, 0.04);
+          padding-top: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .calc-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #6B7280;
+        }
+        .calc-value {
+          color: #111827;
+          font-weight: 700;
+        }
+        .grand-total-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-top: 1px solid rgba(0, 0, 0, 0.04);
+          padding-top: 18px;
+          margin-top: 8px;
+          font-family: 'Outfit', sans-serif;
+          font-size: 1rem;
+          font-weight: 800;
+          color: #111827;
+        }
+        .grand-total-price {
+          font-size: 1.5rem;
+          font-weight: 900;
+          color: #111827;
+        }
+
+        .checkout-error-banner {
+          margin-top: 20px;
+          padding: 12px 16px;
+          background: #FEF2F2;
+          border: 1px solid #FCA5A5;
+          color: #DC2626;
+          font-size: 0.8rem;
+          font-weight: 700;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .checkout-place-order-btn {
+          width: 100%;
+          margin-top: 24px;
+          height: 50px;
+          border: none;
+          border-radius: 14px;
+          color: #ffffff;
+          font-size: 0.9rem;
+          font-weight: 800;
+          cursor: pointer;
+          box-shadow: 0 8px 20px -4px rgba(21, 128, 61, 0.25);
+          transition: all 0.2s;
+        }
+        .checkout-place-order-btn:hover:not(:disabled) {
+          filter: brightness(1.05);
+          transform: translateY(-1px);
+          box-shadow: 0 12px 25px -4px rgba(21, 128, 61, 0.35);
+        }
+        .checkout-place-order-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+          .checkout-form-grid {
+            grid-template-columns: 1fr;
+            gap: 32px;
+          }
+          .checkout-summary-column {
+            position: static;
+          }
+          .checkout-container {
+            padding: 32px 16px 60px;
+          }
+          .checkout-title {
+            font-size: 1.85rem;
+            margin-bottom: 24px;
+          }
+        }
+        @media (max-width: 640px) {
+          .checkout-fields-row {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+          .checkout-fields-three {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+          .checkout-card {
+            padding: 20px;
+          }
+          .checkout-summary-card {
+            padding: 20px;
+          }
+        }
+      `}</style>
     </div>
   );
 };
 
-// Helper Link fallback import
-import { Link } from 'react-router-dom';

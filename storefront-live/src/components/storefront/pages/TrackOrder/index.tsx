@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { catalogApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
 import { STATIC_PAGE_STYLES } from '../About/index';
@@ -9,6 +10,37 @@ export const TrackOrder: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
+
+  // Auto-search if query parameters are present on load
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const orderNum = searchParams.get('order_number') || (location.state as any)?.orderNumber || '';
+    if (orderNum) {
+      setQuery(orderNum);
+      
+      const triggerAutoTrack = async () => {
+        setLoading(true);
+        setError(null);
+        setOrder(null);
+        try {
+          const data = await catalogApi.getPublicOrder(orderNum);
+          if (data) {
+            setOrder(data);
+          } else {
+            setError('Order not found. Please verify the code.');
+          }
+        } catch (err: any) {
+          console.error(err);
+          setError(err.message || 'Order not found. Please check the order number and try again.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      triggerAutoTrack();
+    }
+  }, [location]);
 
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();

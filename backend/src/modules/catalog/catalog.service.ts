@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 import { PrismaService } from '../../database/prisma.service';
+import { TenantPrismaService } from '../../database/tenant-prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateBannerDto } from './dto/create-banner.dto';
 import { CreateSectionDto } from './dto/create-section.dto';
@@ -11,6 +12,7 @@ export class CatalogService {
   constructor(
     private prisma: PrismaService,
     private paymentService: PaymentService,
+    private tenantPrisma: TenantPrismaService,
   ) {}
 
   // 1. Storefront Homepage
@@ -1032,11 +1034,17 @@ export class CatalogService {
 
     const orderNumber = `ORD-${Date.now().toString().slice(-8)}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    // Link customer if they have an account
+    const customer = await this.tenantPrisma.customer.findFirst({
+      where: { shop_id: shopId, email: dto.customer_email }
+    });
+
     return this.prisma.$transaction(async (tx) => {
       // 1. Create order record
       const order = await tx.order.create({
         data: {
           shop_id: shopId,
+          customer_id: customer?.id || null,
           order_number: orderNumber,
           status: 'pending',
           subtotal: subtotal,
