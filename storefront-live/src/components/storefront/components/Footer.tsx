@@ -67,6 +67,8 @@ export const Footer: React.FC = () => {
             <Link to="/contact" className="sf-footer-link">Contact Us</Link>
             <Link to="/privacy" className="sf-footer-link">Privacy Policy</Link>
             <Link to="/terms" className="sf-footer-link">Terms & Conditions</Link>
+            <Link to="/refund" className="sf-footer-link">Refund Policy</Link>
+            <Link to="/track-order" className="sf-footer-link">Track Order</Link>
           </nav>
         </div>
 

@@ -22,6 +22,8 @@ import { About } from './pages/About/index';
 import { Contact } from './pages/Contact/index';
 import { Privacy } from './pages/Privacy/index';
 import { Terms } from './pages/Terms/index';
+import { Refund } from './pages/Refund/index';
+import { TrackOrder } from './pages/TrackOrder/index';
 import { DynamicPage } from './pages/DynamicPage';
 import AdminDashboardApp from '@oaksol/admin-dashboard';
 import MerchantDashboardApp from '@oaksol/merchant-dashboard';
@@ -422,6 +424,8 @@ function App() {
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/terms" element={<Terms />} />
+                  <Route path="/refund" element={<Refund />} />
+                  <Route path="/track-order" element={<TrackOrder />} />
                 </Routes>
               </main>
               <Footer />

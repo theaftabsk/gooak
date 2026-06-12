@@ -12,8 +12,15 @@ interface WidgetRendererProps {
 }
 
 export const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widgets, theme }) => {
+  const cssVars = {
+    '--sf-accent': theme.primaryColor,
+    '--sf-primary': theme.primaryColor,
+    '--sf-bg': theme.backgroundColor,
+    backgroundColor: theme.backgroundColor,
+  } as React.CSSProperties;
+
   return (
-    <div style={{ backgroundColor: theme.backgroundColor }} className="min-h-screen flex flex-col w-full">
+    <div style={cssVars} className="min-h-screen flex flex-col w-full">
       {widgets.map((w, index) => (
         <WidgetBlock key={w.id || `widget-${index}`} widget={w} theme={theme} />
       ))}

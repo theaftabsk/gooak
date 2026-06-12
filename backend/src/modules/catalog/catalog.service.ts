@@ -1144,8 +1144,11 @@ export class CatalogService {
 
   // Get public order by ID scoped to this shop (for payment page)
   async getPublicOrderById(shopId: string, orderId: string) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
     const order = await this.prisma.order.findFirst({
-      where: { id: orderId, shop_id: shopId },
+      where: isUuid
+        ? { OR: [{ id: orderId }, { order_number: orderId }], shop_id: shopId }
+        : { order_number: orderId, shop_id: shopId },
       include: {
         items: true,
       },

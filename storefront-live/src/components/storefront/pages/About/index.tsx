@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { customerApi } from '../../../../lib/api-client';
+import { usePageTheme } from '../../hooks/usePageTheme';
 
 export const About: React.FC = () => {
   const [data, setData] = useState<{ shop: any; content: Record<string, string> } | null>(null);
+  const { cssVariables } = usePageTheme('about');
 
   useEffect(() => {
     customerApi.getPages().then(setData).catch(() => {});
@@ -12,7 +14,7 @@ export const About: React.FC = () => {
   const c = data?.content || {};
 
   return (
-    <div className="sp-page">
+    <div className="sp-page" style={cssVariables}>
       {/* Hero */}
       <div className="sp-hero about-hero">
         <div className="sp-hero-inner">

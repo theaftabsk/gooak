@@ -3,9 +3,9 @@ import { customerApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
 import { STATIC_PAGE_STYLES } from '../About/index';
 
-export const Privacy: React.FC = () => {
+export const Refund: React.FC = () => {
   const [data, setData] = useState<{ shop: any; content: Record<string, string> } | null>(null);
-  const { cssVariables } = usePageTheme('privacy');
+  const { cssVariables } = usePageTheme('refund');
 
   useEffect(() => {
     customerApi.getPages().then(setData).catch(() => {});
@@ -19,9 +19,9 @@ export const Privacy: React.FC = () => {
       {/* Hero */}
       <div className="sp-hero about-hero">
         <div className="sp-hero-inner">
-          <h1 className="sp-hero-title">Privacy Policy</h1>
+          <h1 className="sp-hero-title">Refund &amp; Return Policy</h1>
           <p className="sp-hero-sub">
-            {c.privacy_updated ? `Last updated: ${c.privacy_updated}` : 'How we safeguard your information'}
+            {c.refund_updated ? `Last updated: ${c.refund_updated}` : 'Our commitment to your satisfaction'}
           </p>
         </div>
       </div>
@@ -29,30 +29,30 @@ export const Privacy: React.FC = () => {
       <div className="sp-body">
         <div className="sp-container">
           <section className="sp-section" style={{ textAlign: 'left' }}>
-            {c.privacy_content ? (
+            {c.refund_content ? (
               <div 
                 className="sp-rich-text" 
-                dangerouslySetInnerHTML={{ __html: c.privacy_content.replace(/\n/g, '<br/>') }} 
+                dangerouslySetInnerHTML={{ __html: c.refund_content.replace(/\n/g, '<br/>') }} 
               />
             ) : (
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--sf-text-main)', marginBottom: '12px' }}>
-                  Information Collection
+                  Returns &amp; Exchanges
                 </h3>
                 <p className="sp-text" style={{ marginBottom: '24px' }}>
-                  We collect personal information that you provide to us when you register, make a purchase, or contact us. This includes your name, email, shipping address, and payment information.
+                  We want you to love your purchase. If you are not completely satisfied, you may return unopened and unused items in their original packaging within 30 days of purchase for a full refund or exchange.
                 </p>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--sf-text-main)', marginBottom: '12px' }}>
-                  How We Use Your Data
+                  Damaged or Defective Items
                 </h3>
                 <p className="sp-text" style={{ marginBottom: '24px' }}>
-                  We use your personal details to process orders, verify payments, manage shipping logistics, and send promotional newsletters or important updates about our services if opted in.
+                  If you receive a product that is damaged or defective, please contact our support team immediately at {c.contact_email || 'support@' + (shop?.slug || 'store') + '.com'} with photos of the issue. We will ship a replacement free of charge.
                 </p>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--sf-text-main)', marginBottom: '12px' }}>
-                  Cookies &amp; Analytics
+                  Processing Your Refund
                 </h3>
                 <p className="sp-text">
-                  We use browser cookies to optimize checkout sessions, retain shopping cart selections, and analyze site traffic patterns. You can choose to disable cookies in your browser settings if preferred.
+                  Once your return is received and inspected, we will notify you of the approval or rejection of your refund. Approved refunds will be processed to your original method of payment within 5-10 business days.
                 </p>
               </div>
             )}

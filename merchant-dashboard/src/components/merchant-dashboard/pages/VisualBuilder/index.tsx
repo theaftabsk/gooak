@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { pageBuilderApi, catalogApi } from '../../../../lib/api-client';
+import { pageBuilderApi, catalogApi, customerApi } from '../../../../lib/api-client';
 import { LivePageData, WidgetLayout, WidgetType } from '@oak-commerce/types';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
@@ -9,6 +9,21 @@ interface VisualBuilderProps {
   shopInfo: any;
   onExit: () => void;
 }
+
+const RESERVED_PAGES = [
+  { slug: 'index', title: 'Homepage', supportsHero: true, type: 'SYSTEM_HERO' },
+  { slug: 'products', title: 'Shop / Product Listing', supportsHero: true, type: 'SYSTEM_HERO' },
+  { slug: 'category', title: 'Category Details', supportsHero: true, type: 'SYSTEM_HERO' },
+  { slug: 'product', title: 'Product Details', supportsHero: true, type: 'SYSTEM_HERO' },
+  { slug: 'cart', title: 'Shopping Cart', supportsHero: false, type: 'SYSTEM' },
+  { slug: 'checkout', title: 'Checkout Details', supportsHero: false, type: 'SYSTEM' },
+  { slug: 'about', title: 'About Us', supportsHero: true, type: 'POLICY_HERO' },
+  { slug: 'contact', title: 'Contact Us', supportsHero: true, type: 'POLICY_HERO' },
+  { slug: 'privacy', title: 'Privacy Policy', supportsHero: false, type: 'POLICY' },
+  { slug: 'terms', title: 'Terms & Conditions', supportsHero: false, type: 'POLICY' },
+  { slug: 'refund', title: 'Refund Policy', supportsHero: false, type: 'POLICY' },
+  { slug: 'track-order', title: 'Track Order', supportsHero: false, type: 'SYSTEM' },
+];
 
 // ─── Inline CSS ───────────────────────────────────────────────────────────────
 const vbStyles = `
@@ -377,7 +392,8 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const [pages, setPages] = useState<any[]>([]);
-  const [selectedPage, setSelectedPage] = useState<LivePageData | null>(null);
+  const [selectedPage, setSelectedPage] = useState<any | null>(null);
+  const [policySettings, setPolicySettings] = useState<Record<string, string>>({});
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -424,15 +440,83 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     const load = async () => {
       setLoading(true);
       try {
-        const [pgs, cats] = await Promise.all([
+        const [dbPages, cats, stdPages] = await Promise.all([
           pageBuilderApi.getPages(),
           catalogApi.getCategories(),
+          customerApi.getPages().catch(() => ({ content: {} })),
         ]);
-        setPages(pgs || []);
+        
         setCategories(cats || []);
-        if (pgs?.length > 0) {
-          const details = await pageBuilderApi.getPageById(pgs[0].id);
-          setSelectedPage(details);
+        if (stdPages?.content) {
+          setPolicySettings(stdPages.content);
+        }
+
+        // Map reserved pages, matching with dbPages by slug
+        const mergedReserved = RESERVED_PAGES.map(rp => {
+          const matched = dbPages?.find((p: any) => p.slug === rp.slug);
+          if (matched) {
+            return {
+              ...matched,
+              supportsHero: rp.supportsHero,
+              isReserved: true,
+              reservedType: rp.type,
+            };
+          }
+          
+          // Create virtual page shell
+          const defaultWidgets = rp.supportsHero ? [
+            {
+              id: `hero-${rp.slug}`,
+              type: 'HERO_BANNER',
+              sort_order: 0,
+              content: {
+                title: rp.title,
+                subtitle: `Welcome to our ${rp.title.toLowerCase()} page.`,
+                backgroundImageUrl: '',
+                buttonText: '',
+                buttonLink: '',
+              },
+              styles: { paddingTop: '2rem', paddingBottom: '2rem' }
+            }
+          ] : [];
+
+          return {
+            id: `virtual-${rp.slug}`,
+            slug: rp.slug,
+            title: rp.title,
+            type: 'NORMAL',
+            is_published: false,
+            theme: {
+              primaryColor: '#15803D',
+              secondaryColor: '#ffffff',
+              backgroundColor: '#ffffff',
+            },
+            widgets: defaultWidgets,
+            supportsHero: rp.supportsHero,
+            isReserved: true,
+            reservedType: rp.type,
+          };
+        });
+
+        // Custom builder pages created by the user (non-reserved slugs)
+        const customPages = dbPages?.filter((p: any) => !RESERVED_PAGES.some(rp => rp.slug === p.slug)) || [];
+        const finalPagesList = [...mergedReserved, ...customPages];
+        setPages(finalPagesList);
+
+        if (finalPagesList.length > 0) {
+          // Select Homepage ('index') or the first page by default
+          const homePage = finalPagesList.find(p => p.slug === 'index') || finalPagesList[0];
+          if (homePage.id.startsWith('virtual-')) {
+            setSelectedPage(homePage);
+          } else {
+            const details = await pageBuilderApi.getPageById(homePage.id);
+            setSelectedPage({
+              ...details,
+              supportsHero: homePage.supportsHero,
+              isReserved: homePage.isReserved,
+              reservedType: homePage.reservedType,
+            });
+          }
         }
       } catch (e) {
         console.error('VB load error:', e);
@@ -445,10 +529,25 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
 
   const handleSelectPage = async (id: string) => {
     if (!id) return;
+    setSelectedWidgetId(null);
+    if (id.startsWith('virtual-')) {
+      const vPage = pages.find(p => p.id === id);
+      if (vPage) {
+        setSelectedPage(vPage);
+        setIframeKey(k => k + 1);
+      }
+      return;
+    }
+    
     try {
       const details = await pageBuilderApi.getPageById(id);
-      setSelectedPage(details);
-      setSelectedWidgetId(null);
+      const originalPage = pages.find(p => p.id === id);
+      setSelectedPage({
+        ...details,
+        supportsHero: originalPage?.supportsHero,
+        isReserved: originalPage?.isReserved,
+        reservedType: originalPage?.reservedType,
+      });
       setIframeKey(k => k + 1);
     } catch (e) { console.error(e); }
   };
@@ -461,9 +560,26 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     if (!selectedPage) return;
     setSaving(true);
     try {
-      const updated = await pageBuilderApi.savePage(selectedPage);
-      setSelectedPage(updated);
-      setPages(prev => prev.map(p => p.id === updated.id ? updated : p));
+      // 1. If it's a policy page, save text content first
+      if (selectedPage.isReserved && selectedPage.reservedType.startsWith('POLICY')) {
+        await customerApi.savePages(policySettings);
+      }
+
+      // 2. Save page builder config (remove virtual prefix if present)
+      const savePayload = { ...selectedPage };
+      if (savePayload.id && savePayload.id.startsWith('virtual-')) {
+        delete savePayload.id;
+      }
+      const updated = await pageBuilderApi.savePage(savePayload);
+      const cleanUpdated = {
+        ...updated,
+        supportsHero: selectedPage.supportsHero,
+        isReserved: selectedPage.isReserved,
+        reservedType: selectedPage.reservedType,
+      };
+      
+      setSelectedPage(cleanUpdated);
+      setPages(prev => prev.map(p => (p.slug === cleanUpdated.slug || p.id === selectedPage.id) ? cleanUpdated : p));
       showToast('✅ Draft saved!');
     } catch (e: any) {
       alert(e.message || 'Save failed');
@@ -474,10 +590,30 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     if (!selectedPage) return;
     setSaving(true);
     try {
-      await pageBuilderApi.savePage(selectedPage);
-      const updated = await pageBuilderApi.publishPage(selectedPage.id);
-      setSelectedPage(prev => prev ? { ...prev, is_published: true } : null);
-      setPages(prev => prev.map(p => p.id === updated.id ? { ...p, is_published: true } : p));
+      // 1. If it's a policy page, save standard fields
+      if (selectedPage.isReserved && selectedPage.reservedType.startsWith('POLICY')) {
+        await customerApi.savePages(policySettings);
+      }
+
+      // 2. Save page layout first (handling virtual IDs)
+      const savePayload = { ...selectedPage };
+      if (savePayload.id && savePayload.id.startsWith('virtual-')) {
+        delete savePayload.id;
+      }
+      const savedPage = await pageBuilderApi.savePage(savePayload);
+
+      // 3. Publish page
+      const updated = await pageBuilderApi.publishPage(savedPage.id);
+      const cleanUpdated = {
+        ...updated,
+        supportsHero: selectedPage.supportsHero,
+        isReserved: selectedPage.isReserved,
+        reservedType: selectedPage.reservedType,
+        is_published: true,
+      };
+      
+      setSelectedPage(cleanUpdated);
+      setPages(prev => prev.map(p => (p.slug === cleanUpdated.slug || p.id === selectedPage.id) ? cleanUpdated : p));
       showToast('🚀 Published to storefront!');
     } catch (e: any) {
       alert(e.message || 'Publish failed');
@@ -510,6 +646,10 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
 
   const addWidget = (type: WidgetType) => {
     if (!selectedPage) return;
+    if (selectedPage.isReserved) {
+      alert('Adding custom sections is disabled for this page layout.');
+      return;
+    }
     const id = `widget-${Date.now()}`;
     const base = { id, type, order: selectedPage.widgets.length, styles: { paddingTop: '2rem', paddingBottom: '2rem' } };
     const content =
@@ -523,12 +663,17 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
 
   const deleteWidget = (id: string) => {
     if (!selectedPage) return;
-    handlePageChange({ ...selectedPage, widgets: selectedPage.widgets.filter(w => w.id !== id) });
+    if (selectedPage.isReserved) {
+      alert('Deleting system sections is disabled for this page layout.');
+      return;
+    }
+    handlePageChange({ ...selectedPage, widgets: selectedPage.widgets.filter((w: any) => w.id !== id) });
     if (selectedWidgetId === id) setSelectedWidgetId(null);
   };
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination || !selectedPage) return;
+    if (selectedPage.isReserved) return;
     const items = [...selectedPage.widgets];
     const [moved] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, moved);
@@ -536,7 +681,11 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     handlePageChange({ ...selectedPage, widgets: items });
   };
 
-  const selectedWidget = selectedPage?.widgets.find(w => w.id === selectedWidgetId) ?? null;
+  const handlePolicySettingChange = (key: string, value: string) => {
+    setPolicySettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const selectedWidget = selectedPage?.widgets.find((w: any) => w.id === selectedWidgetId) ?? null;
   const isPublished = (selectedPage as any)?.is_published;
 
   return (
@@ -554,8 +703,8 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
           </div>
           {selectedPage && (
             isPublished
-              ? <span className="vb-live-badge"><span className="vb-live-dot"/>Live</span>
-              : <span className="vb-draft-badge">○ Draft</span>
+              ? <span className="vb-status-badge vb-status-published">Live</span>
+              : <span className="vb-status-badge vb-status-draft">Draft</span>
           )}
           <div className="vb-topbar-sep"/>
 
@@ -571,7 +720,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                 ? <option value="">— No pages yet —</option>
                 : pages.map(p => (
                   <option key={p.id} value={p.id}>
-                    {p.title} ({p.slug === 'index' ? '/' : `/pages/${p.slug}`})
+                    {p.title} ({p.slug === 'index' ? '/' : p.isReserved ? `/${p.slug}` : `/pages/${p.slug}`})
                   </option>
                 ))
               }
@@ -605,19 +754,28 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
 
           {/* Left: Sections Tree */}
           <div className="vb-left">
-            <div className="vb-left-title">
-              <h2>{(selectedPage as any)?.title || 'No page selected'}</h2>
-              <div className="vb-add-btns">
-                <button className="vb-add-btn" onClick={() => addWidget('HERO_BANNER')}>
-                  <span className="vb-add-btn-icon">+</span> Hero Banner
-                </button>
-                <button className="vb-add-btn" onClick={() => addWidget('PRODUCT_GRID')}>
-                  <span className="vb-add-btn-icon">+</span> Product Grid
-                </button>
-                <button className="vb-add-btn" onClick={() => addWidget('TEXT_BLOCK')}>
-                  <span className="vb-add-btn-icon">+</span> Text Block
-                </button>
-              </div>
+            <div className="vb-left-header">
+              <h3 style={{ fontSize: '0.85rem', color: '#E2E8F0', textTransform: 'none', margin: '0 0 4px', fontWeight: 700 }}>
+                {(selectedPage as any)?.title || 'No page selected'}
+              </h3>
+              {!selectedPage?.isReserved && (
+                <div className="vb-add-btns">
+                  <button className="vb-add-btn" onClick={() => addWidget('HERO_BANNER')}>
+                    <span className="vb-add-btn-icon">+</span> Hero Banner
+                  </button>
+                  <button className="vb-add-btn" onClick={() => addWidget('PRODUCT_GRID')}>
+                    <span className="vb-add-btn-icon">+</span> Product Grid
+                  </button>
+                  <button className="vb-add-btn" onClick={() => addWidget('TEXT_BLOCK')}>
+                    <span className="vb-add-btn-icon">+</span> Text Block
+                  </button>
+                </div>
+              )}
+              {selectedPage?.isReserved && (
+                <p style={{ fontSize: '0.68rem', color: '#94A3B8', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span>🔒</span> Fixed Template Layout
+                </p>
+              )}
             </div>
 
             <div className="vb-sections-scroll">
@@ -625,16 +783,65 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                 <div className="vb-empty-sections">
                   Create or select a page to start editing sections.
                 </div>
+              ) : selectedPage.isReserved ? (
+                // ── Reserved Page Tree View ──
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {/* Hero Banner (if supported) */}
+                  {selectedPage.supportsHero && selectedPage.widgets.map((w: any, idx: number) => {
+                    const meta = WIDGET_META[w.type] || { label: w.type, icon: '📦', iconClass: '' };
+                    return (
+                      <div
+                        key={w.id}
+                        className={`vb-section-item ${selectedWidgetId === w.id ? 'selected' : ''}`}
+                        onClick={() => setSelectedWidgetId(w.id === selectedWidgetId ? null : w.id)}
+                      >
+                        <span style={{ color: '#64748B', fontSize: '10px', marginRight: '6px' }}>🔒</span>
+                        <div className={`vb-section-icon ${meta.iconClass}`}>{meta.icon}</div>
+                        <div className="vb-section-info">
+                          <div className="vb-section-name">{meta.label}</div>
+                          <div className="vb-section-order">Fixed top banner</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Policy Page Content link */}
+                  {selectedPage.reservedType && (selectedPage.reservedType === 'POLICY' || selectedPage.reservedType === 'POLICY_HERO') && (
+                    <div
+                      className={`vb-section-item ${selectedWidgetId === 'policy-content' ? 'selected' : ''}`}
+                      onClick={() => setSelectedWidgetId(selectedWidgetId === 'policy-content' ? null : 'policy-content')}
+                    >
+                      <span style={{ color: '#64748B', fontSize: '10px', marginRight: '6px' }}>🔒</span>
+                      <div className="vb-section-icon icon-text">📝</div>
+                      <div className="vb-section-info">
+                        <div className="vb-section-name">Page Text Content</div>
+                        <div className="vb-section-order">Editable details</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cart/Checkout automated template notice */}
+                  {!selectedPage.supportsHero && selectedPage.reservedType === 'SYSTEM' && (
+                    <div className="vb-empty-sections" style={{ borderStyle: 'solid', borderColor: '#334155', textAlign: 'left', padding: '12px 14px' }}>
+                      <span style={{ fontSize: '1.2rem', display: 'block', marginBottom: '6px' }}>🛍️</span>
+                      <strong style={{ fontSize: '0.8rem', color: '#E2E8F0', display: 'block' }}>System Page Template</strong>
+                      <p style={{ margin: '6px 0 0', fontSize: '0.7rem', color: '#94A3B8', lineHeight: '1.4' }}>
+                        The layout is automated. Customize the active colors and font configurations on the right settings panel.
+                      </p>
+                    </div>
+                  )}
+                </div>
               ) : selectedPage.widgets.length === 0 ? (
                 <div className="vb-empty-sections">
                   No sections yet.<br/>Click a button above to add one.
                 </div>
               ) : (
+                // ── Custom Page Drag-and-Drop Tree View ──
                 <DragDropContext onDragEnd={onDragEnd}>
                   <Droppable droppableId="vb-sections">
                     {(provided) => (
                       <div ref={provided.innerRef} {...provided.droppableProps}>
-                        {selectedPage.widgets.map((w, idx) => {
+                        {selectedPage.widgets.map((w: any, idx: number) => {
                           const meta = WIDGET_META[w.type] || { label: w.type, icon: '📦', iconClass: '' };
                           return (
                             <Draggable key={w.id} draggableId={w.id} index={idx}>
@@ -727,7 +934,128 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
 
           {/* Right: Settings */}
           <div className="vb-right">
-            {selectedWidget ? (
+            {selectedWidgetId === 'policy-content' && selectedPage ? (
+              <>
+                <div className="vb-right-header">
+                  <span className="vb-right-header-title">Page Text Settings</span>
+                </div>
+                <div className="vb-right-scroll">
+                  {/* Theme Colors */}
+                  {selectedPage && (
+                    <div className="vb-field-section">
+                      <div className="vb-field-group">
+                        <label className="vb-label">Theme colors</label>
+                        <div className="vb-color-row">
+                          {(['primaryColor', 'secondaryColor', 'backgroundColor'] as const).map(key => (
+                            <div key={key} className="vb-color-item">
+                              <input type="color" className="vb-color-input"
+                                value={(selectedPage.theme as any)[key]}
+                                onChange={e => handlePageChange({ ...selectedPage, theme: { ...selectedPage.theme, [key]: e.target.value } })}
+                              />
+                              <span className="vb-color-label">{key === 'primaryColor' ? 'Primary' : key === 'secondaryColor' ? 'Accent' : 'BG'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Policy Page Content Fields */}
+                  {selectedPage.slug === 'privacy' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Last Updated Date</label>
+                        <input className="vb-input" value={policySettings.privacy_updated || ''} onChange={e => handlePolicySettingChange('privacy_updated', e.target.value)} placeholder="e.g. October 2026" />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Privacy Policy Content</label>
+                        <textarea className="vb-textarea" rows={12} value={policySettings.privacy_content || ''} onChange={e => handlePolicySettingChange('privacy_content', e.target.value)} placeholder="Enter legal terms..." />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPage.slug === 'terms' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Last Updated Date</label>
+                        <input className="vb-input" value={policySettings.terms_updated || ''} onChange={e => handlePolicySettingChange('terms_updated', e.target.value)} placeholder="e.g. October 2026" />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Terms &amp; Conditions Content</label>
+                        <textarea className="vb-textarea" rows={12} value={policySettings.terms_content || ''} onChange={e => handlePolicySettingChange('terms_content', e.target.value)} placeholder="Enter terms content..." />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPage.slug === 'refund' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Last Updated Date</label>
+                        <input className="vb-input" value={policySettings.refund_updated || ''} onChange={e => handlePolicySettingChange('refund_updated', e.target.value)} placeholder="e.g. October 2026" />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Refund Policy Content</label>
+                        <textarea className="vb-textarea" rows={12} value={policySettings.refund_content || ''} onChange={e => handlePolicySettingChange('refund_content', e.target.value)} placeholder="Enter refund details..." />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPage.slug === 'about' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div className="vb-field-group">
+                        <label className="vb-label">About Page Title</label>
+                        <input className="vb-input" value={policySettings.about_title || ''} onChange={e => handlePolicySettingChange('about_title', e.target.value)} placeholder="e.g. About Our Brand" />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Tagline</label>
+                        <input className="vb-input" value={policySettings.about_tagline || ''} onChange={e => handlePolicySettingChange('about_tagline', e.target.value)} placeholder="Tagline..." />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Story / Description Content</label>
+                        <textarea className="vb-textarea" rows={8} value={policySettings.about_content || ''} onChange={e => handlePolicySettingChange('about_content', e.target.value)} placeholder="Our story..." />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Value: Quality First Description</label>
+                        <input className="vb-input" value={policySettings.value_quality || ''} onChange={e => handlePolicySettingChange('value_quality', e.target.value)} />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Value: Customer Care Description</label>
+                        <input className="vb-input" value={policySettings.value_care || ''} onChange={e => handlePolicySettingChange('value_care', e.target.value)} />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Value: Fast Delivery Description</label>
+                        <input className="vb-input" value={policySettings.value_delivery || ''} onChange={e => handlePolicySettingChange('value_delivery', e.target.value)} />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Value: Secure Shopping Description</label>
+                        <input className="vb-input" value={policySettings.value_security || ''} onChange={e => handlePolicySettingChange('value_security', e.target.value)} />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPage.slug === 'contact' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Contact Email</label>
+                        <input className="vb-input" type="email" value={policySettings.contact_email || ''} onChange={e => handlePolicySettingChange('contact_email', e.target.value)} />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Contact Phone</label>
+                        <input className="vb-input" type="tel" value={policySettings.contact_phone || ''} onChange={e => handlePolicySettingChange('contact_phone', e.target.value)} />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Physical Address</label>
+                        <input className="vb-input" value={policySettings.contact_address || ''} onChange={e => handlePolicySettingChange('contact_address', e.target.value)} />
+                      </div>
+                      <div className="vb-field-group">
+                        <label className="vb-label">Instagram Link</label>
+                        <input className="vb-input" type="url" value={policySettings.social_instagram || ''} onChange={e => handlePolicySettingChange('social_instagram', e.target.value)} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : selectedWidget ? (
               <>
                 <div className="vb-right-header">
                   <span className="vb-right-header-title">{WIDGET_META[selectedWidget.type]?.label || selectedWidget.type}</span>
@@ -758,18 +1086,20 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                     categories={categories}
                     onChange={(updated) => {
                       if (!selectedPage) return;
-                      handlePageChange({ ...selectedPage, widgets: selectedPage.widgets.map(w => w.id === updated.id ? updated : w) as any });
+                      handlePageChange({ ...selectedPage, widgets: selectedPage.widgets.map((w: any) => w.id === updated.id ? updated : w) as any });
                     }}
                   />
-                  <button className="vb-del-widget-btn" onClick={() => deleteWidget(selectedWidget.id)}>
-                    🗑️ Remove section
-                  </button>
+                  {!selectedPage?.isReserved && (
+                    <button className="vb-del-widget-btn" onClick={() => deleteWidget(selectedWidget.id)}>
+                      🗑️ Remove section
+                    </button>
+                  )}
                 </div>
               </>
             ) : (
               <>
                 <div className="vb-right-header">
-                  <span className="vb-right-header-title">Section settings</span>
+                  <span className="vb-right-header-title">Page settings</span>
                 </div>
                 {selectedPage && (
                   <div className="vb-field-section">
