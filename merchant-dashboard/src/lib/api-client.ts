@@ -124,6 +124,13 @@ export const catalogApi = {
   // 5. Brands
   getBrands: async () => request<any>('/catalog/brands'),
 
+  // Merchant Login (Shopify Style)
+  merchantLogin: async (data: { email: string; password: string }) =>
+    request<any>('/catalog/merchant/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   // ─── Merchant Admin (write operations, scoped to current tenant) ───────────
   createProduct: async (productData: any, token?: string) =>
     request<any>('/catalog/admin/products', {
@@ -287,7 +294,7 @@ export const catalogApi = {
   // ─── Platform Super Admin APIs ────────────────────────────────────────────
   // Admin Login
   adminLogin: async (data: { email: string; password: string }) =>
-    request<{ token: string }>('/catalog/admin/login', {
+    request<{ token: string; admin?: { id: string; email: string; name: string; level: number } }>('/catalog/admin/login', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

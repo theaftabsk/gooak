@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
-import { LivePageData, WidgetLayout, WidgetType } from '../../../../lib/types/page-builder';
+import React from 'react';
+import { LivePageData, WidgetLayout, WidgetType } from '@oak-commerce/types';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 interface EditorSidebarProps {
   layout: LivePageData;
   onChange: (layout: LivePageData) => void;
   categories: any[];
+  selectedWidgetId: string | null;
+  onSelectWidget: (id: string | null) => void;
 }
 
-export const EditorSidebar: React.FC<EditorSidebarProps> = ({ layout, onChange, categories }) => {
-  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
-
+export const EditorSidebar: React.FC<EditorSidebarProps> = ({
+  layout,
+  onChange,
+  categories,
+  selectedWidgetId,
+  onSelectWidget,
+}) => {
   const updateTheme = (key: string, value: string) => {
     onChange({
       ...layout,
@@ -50,7 +57,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({ layout, onChange, 
       ...layout,
       widgets: [...layout.widgets, newWidget],
     });
-    setSelectedWidgetId(id);
+    onSelectWidget(id);
   };
 
   const deleteWidget = (id: string, e: React.MouseEvent) => {
@@ -59,53 +66,28 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({ layout, onChange, 
       ...layout,
       widgets: layout.widgets.filter(w => w.id !== id),
     });
-    if (selectedWidgetId === id) setSelectedWidgetId(null);
+    if (selectedWidgetId === id) onSelectWidget(null);
   };
 
-  const moveWidget = (index: number, direction: 'up' | 'down', e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newWidgets = [...layout.widgets];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newWidgets.length) return;
-
-    // Swap widgets
-    const temp = newWidgets[index];
-    newWidgets[index] = newWidgets[targetIndex];
-    newWidgets[targetIndex] = temp;
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const items = [...layout.widgets];
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
 
     // Recalculate order indices
-    newWidgets.forEach((w, idx) => {
+    items.forEach((w, idx) => {
       w.order = idx;
     });
 
     onChange({
       ...layout,
-      widgets: newWidgets,
+      widgets: items,
     });
   };
-
-  const updateWidgetContent = (id: string, key: string, value: any) => {
-    onChange({
-      ...layout,
-      widgets: layout.widgets.map(w => {
-        if (w.id === id) {
-          return {
-            ...w,
-            content: {
-              ...(w.content as any),
-              [key]: value,
-            },
-          };
-        }
-        return w;
-      }) as any,
-    });
-  };
-
-  const selectedWidget = layout.widgets.find(w => w.id === selectedWidgetId);
 
   return (
-    <div className="flex flex-col gap-6 bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div className="flex flex-col h-full min-h-[500px] lg:h-[650px] bg-white border border-slate-200 rounded-xl p-5 shadow-sm overflow-y-auto">
       {/* 1. Global Themes Customizer */}
       <div>
         <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-3">Theme Overrides</h3>
@@ -140,7 +122,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({ layout, onChange, 
         </div>
       </div>
 
-      <hr className="border-slate-100" />
+      <hr className="border-slate-100 my-4" />
 
       {/* 2. Widgets Panel */}
       <div>
@@ -176,163 +158,57 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({ layout, onChange, 
             No widgets added to page layouts yet. Click buttons above to add.
           </div>
         ) : (
-          <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1">
-            {layout.widgets.map((w, idx) => (
-              <div 
-                key={w.id} 
-                onClick={() => setSelectedWidgetId(w.id)}
-                className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors duration-150 ${selectedWidgetId === w.id ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200 hover:bg-slate-50'}`}
-              >
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-bold text-slate-700">
-                    {w.type.replace('_', ' ')}
-                  </span>
-                  <span className="text-[10px] text-slate-400">Order #{idx + 1}</span>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="widgets-list">
+              {(provided) => (
+                <div 
+                  {...provided.droppableProps} 
+                  ref={provided.innerRef}
+                  className="flex flex-col gap-2 max-h-[350px] overflow-y-auto pr-1"
+                >
+                  {layout.widgets.map((w, idx) => (
+                    <Draggable key={w.id} draggableId={w.id} index={idx}>
+                      {(provided, snapshot) => (
+                        <div 
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          onClick={() => onSelectWidget(w.id)}
+                          className={`flex items-center justify-between p-3 border rounded-lg cursor-grab active:cursor-grabbing transition-colors duration-150 ${
+                            selectedWidgetId === w.id 
+                              ? 'border-emerald-500 bg-emerald-50/20' 
+                              : 'border-slate-200 hover:bg-slate-50'
+                          } ${snapshot.isDragging ? 'shadow-md border-emerald-300 bg-emerald-50/10' : ''}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 select-none text-xs">☰</span>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-xs font-bold text-slate-700">
+                                {w.type.replace('_', ' ')}
+                              </span>
+                              <span className="text-[10px] text-slate-400">Order #{idx + 1}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button 
+                              onClick={(e) => deleteWidget(w.id, e)}
+                              className="p-1 hover:bg-red-50 text-red-500 rounded"
+                              title="Remove Widget"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
                 </div>
-                <div className="flex items-center gap-1">
-                  <button 
-                    disabled={idx === 0}
-                    onClick={(e) => moveWidget(idx, 'up', e)}
-                    className="p-1 hover:bg-slate-100 disabled:opacity-30 rounded text-slate-500"
-                    title="Move Up"
-                  >
-                    ▲
-                  </button>
-                  <button 
-                    disabled={idx === layout.widgets.length - 1}
-                    onClick={(e) => moveWidget(idx, 'down', e)}
-                    className="p-1 hover:bg-slate-100 disabled:opacity-30 rounded text-slate-500"
-                    title="Move Down"
-                  >
-                    ▼
-                  </button>
-                  <button 
-                    onClick={(e) => deleteWidget(w.id, e)}
-                    className="p-1 hover:bg-red-50 text-red-500 rounded"
-                    title="Remove Widget"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         )}
       </div>
-
-      {/* 3. Selected Widget Field Configuration */}
-      {selectedWidget && (
-        <>
-          <hr className="border-slate-100" />
-          <div className="flex flex-col gap-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
-            <h4 className="text-xs font-bold text-slate-700 mb-1">
-              Configure {selectedWidget.type.replace('_', ' ')} Settings
-            </h4>
-
-            {selectedWidget.type === 'HERO_BANNER' && (
-              <div className="flex flex-col gap-3 text-xs">
-                <div className="flex flex-col gap-1">
-                  <label className="font-semibold text-slate-600">Heading Title</label>
-                  <input 
-                    type="text" 
-                    value={(selectedWidget.content as any).title || ''} 
-                    onChange={(e) => updateWidgetContent(selectedWidget.id, 'title', e.target.value)}
-                    className="p-2 border border-slate-200 rounded outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="font-semibold text-slate-600">Subtitle</label>
-                  <input 
-                    type="text" 
-                    value={(selectedWidget.content as any).subtitle || ''} 
-                    onChange={(e) => updateWidgetContent(selectedWidget.id, 'subtitle', e.target.value)}
-                    className="p-2 border border-slate-200 rounded outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="font-semibold text-slate-600">Background Image URL</label>
-                  <input 
-                    type="text" 
-                    value={(selectedWidget.content as any).backgroundImageUrl || ''} 
-                    onChange={(e) => updateWidgetContent(selectedWidget.id, 'backgroundImageUrl', e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className="p-2 border border-slate-200 rounded outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="font-semibold text-slate-600">Button CTA Label</label>
-                  <input 
-                    type="text" 
-                    value={(selectedWidget.content as any).buttonText || ''} 
-                    onChange={(e) => updateWidgetContent(selectedWidget.id, 'buttonText', e.target.value)}
-                    className="p-2 border border-slate-200 rounded outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="font-semibold text-slate-600">Button link</label>
-                  <input 
-                    type="text" 
-                    value={(selectedWidget.content as any).buttonLink || ''} 
-                    onChange={(e) => updateWidgetContent(selectedWidget.id, 'buttonLink', e.target.value)}
-                    placeholder="/products or /about"
-                    className="p-2 border border-slate-200 rounded outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-            )}
-
-            {selectedWidget.type === 'PRODUCT_GRID' && (
-              <div className="flex flex-col gap-3 text-xs">
-                <div className="flex flex-col gap-1">
-                  <label className="font-semibold text-slate-600">Category Filter</label>
-                  <select 
-                    value={(selectedWidget.content as any).collectionId || ''}
-                    onChange={(e) => updateWidgetContent(selectedWidget.id, 'collectionId', e.target.value)}
-                    className="p-2 border border-slate-200 rounded outline-none focus:border-emerald-500 bg-white"
-                  >
-                    <option value="">-- All Categories --</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="font-semibold text-slate-600">Items Limit Count</label>
-                  <input 
-                    type="number" 
-                    value={(selectedWidget.content as any).itemsPerPage || 4} 
-                    onChange={(e) => updateWidgetContent(selectedWidget.id, 'itemsPerPage', parseInt(e.target.value) || 4)}
-                    className="p-2 border border-slate-200 rounded outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-            )}
-
-            {selectedWidget.type === 'TEXT_BLOCK' && (
-              <div className="flex flex-col gap-3 text-xs">
-                <div className="flex flex-col gap-1">
-                  <label className="font-semibold text-slate-600">Block Header Title</label>
-                  <input 
-                    type="text" 
-                    value={(selectedWidget.content as any).title || ''} 
-                    onChange={(e) => updateWidgetContent(selectedWidget.id, 'title', e.target.value)}
-                    className="p-2 border border-slate-200 rounded outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="font-semibold text-slate-600">Paragraph Content (HTML allowed)</label>
-                  <textarea 
-                    value={(selectedWidget.content as any).body || ''} 
-                    onChange={(e) => updateWidgetContent(selectedWidget.id, 'body', e.target.value)}
-                    rows={4}
-                    className="p-2 border border-slate-200 rounded outline-none focus:border-emerald-500 bg-white"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </>
-      )}
     </div>
   );
 };

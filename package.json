@@ -12,9 +12,9 @@
     "dev:dashboard": "turbo run dev --filter=merchant-dashboard",
     "dev:storefront": "turbo run dev --filter=storefront-live",
     "dev:admin": "turbo run dev --filter=super-admin",
-    "db:generate": "pnpm --filter backend exec prisma generate",
-    "db:migrate": "pnpm --filter backend exec prisma migrate dev",
-    "db:studio": "pnpm --filter backend exec prisma studio"
+    "db:generate": "pnpm --filter backend run db:generate",
+    "db:migrate": "pnpm --filter backend run db:migrate:central",
+    "db:studio": "pnpm --filter backend exec prisma studio --schema=prisma/central.prisma"
   },
   "packageManager": "pnpm@10.34.1",
   "engines": {

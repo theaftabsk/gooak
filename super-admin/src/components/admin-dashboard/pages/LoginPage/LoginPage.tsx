@@ -3,7 +3,7 @@ import { Icons } from '../../icons';
 import { catalogApi } from '@oaksol/api-client';
 
 interface LoginPageProps {
-  onLogin: (token: string) => void;
+  onLogin: (token: string, admin: any) => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
@@ -19,7 +19,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setLoading(true);
     try {
       const res = await catalogApi.adminLogin({ email, password });
-      onLogin(res.token);
+      onLogin(res.token, res.admin);
     } catch (err: any) {
       setError(err.message || 'Invalid email or password');
     } finally {

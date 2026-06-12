@@ -244,49 +244,7 @@ export class CatalogController {
     return this.catalogService.updateOrderStatus(shopId, id, body.status, body.note);
   }
 
-  // ── Review Management (Admin) ─────────────────────────────────────────────
 
-  @Get('admin/products/:productId/reviews')
-  async getProductReviews(
-    @Req() req: Request & { shopId?: string },
-    @Param('productId') productId: string
-  ) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing');
-    return this.catalogService.getProductReviews(shopId, productId);
-  }
-
-  @Post('admin/products/:productId/reviews')
-  async createReview(
-    @Req() req: Request & { shopId?: string },
-    @Param('productId') productId: string,
-    @Body() dto: { reviewer_name?: string; rating: number; title?: string; body?: string; status?: string }
-  ) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing');
-    return this.catalogService.createReview(shopId, productId, dto);
-  }
-
-  @Patch('admin/reviews/:id/status')
-  async updateReviewStatus(
-    @Req() req: Request & { shopId?: string },
-    @Param('id') id: string,
-    @Body() body: { status: string }
-  ) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing');
-    return this.catalogService.updateReviewStatus(shopId, id, body.status);
-  }
-
-  @Delete('admin/reviews/:id')
-  async deleteReview(
-    @Req() req: Request & { shopId?: string },
-    @Param('id') id: string
-  ) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing');
-    return this.catalogService.deleteReview(shopId, id);
-  }
 
   // ── Variant Management (Admin) ────────────────────────────────────────────
 
@@ -332,33 +290,6 @@ export class CatalogController {
     return this.catalogService.deleteVariant(shopId, id);
   }
 
-  @Post('admin/variants/:id/stock')
-  async adjustStock(
-    @Req() req: Request & { shopId?: string },
-    @Param('id') id: string,
-    @Body() body: { adjustment: number; type?: string; note?: string },
-  ) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing');
-    return this.catalogService.adjustStock(shopId, id, body);
-  }
-
-  @Get('admin/products/:productId/stock-logs')
-  async getStockLogs(
-    @Req() req: Request & { shopId?: string },
-    @Param('productId') productId: string,
-  ) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing');
-    return this.catalogService.getStockLogs(shopId, productId);
-  }
-
-  @Get('admin/inventory')
-  async getInventoryOverview(@Req() req: Request & { shopId?: string }) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing');
-    return this.catalogService.getInventoryOverview(shopId);
-  }
 
   // 6. Public Platform tenant signup request submission
   @Post('tenant-requests')
@@ -368,60 +299,7 @@ export class CatalogController {
     return this.catalogService.createTenantRequest(dto);
   }
 
-  // ─── Customer Auth & Profile ─────────────────────────────────────────────────
 
-  @Post('customer/register')
-  async customerRegister(
-    @Req() req: Request & { shopId?: string },
-    @Body() dto: { name: string; email: string; phone?: string; password: string }
-  ) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing from request');
-    return this.catalogService.customerRegister(shopId, dto);
-  }
-
-  @Post('customer/login')
-  async customerLogin(
-    @Req() req: Request & { shopId?: string },
-    @Body() dto: { email: string; password: string }
-  ) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing from request');
-    return this.catalogService.customerLogin(shopId, dto);
-  }
-
-  @Get('customer/me')
-  async getCustomerMe(@Req() req: Request & { shopId?: string }) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing from request');
-    const token = (req.headers as any)['authorization']?.replace('Bearer ', '');
-    if (!token) throw new BadRequestException('Authorization token required');
-    const { customerId } = await this.catalogService.verifyCustomerToken(token);
-    return this.catalogService.getCustomerMe(shopId, customerId);
-  }
-
-  @Patch('customer/me')
-  async updateCustomerMe(
-    @Req() req: Request & { shopId?: string },
-    @Body() dto: { name?: string; phone?: string; avatar_url?: string; current_password?: string; new_password?: string }
-  ) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing from request');
-    const token = (req.headers as any)['authorization']?.replace('Bearer ', '');
-    if (!token) throw new BadRequestException('Authorization token required');
-    const { customerId } = await this.catalogService.verifyCustomerToken(token);
-    return this.catalogService.updateCustomerMe(shopId, customerId, dto);
-  }
-
-  @Get('customer/orders')
-  async getCustomerOrders(@Req() req: Request & { shopId?: string }) {
-    const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing from request');
-    const token = (req.headers as any)['authorization']?.replace('Bearer ', '');
-    if (!token) throw new BadRequestException('Authorization token required');
-    const { customerId } = await this.catalogService.verifyCustomerToken(token);
-    return this.catalogService.getCustomerOrders(shopId, customerId);
-  }
 
   // ─── Pages Content ────────────────────────────────────────────────────────────
 
@@ -452,6 +330,12 @@ export class CatalogController {
     const shopId = req.shopId;
     if (!shopId) throw new BadRequestException('Shop context missing from request');
     return this.catalogService.submitContactForm(shopId, dto);
+  }
+
+  // Merchant Login Endpoint (Shopify style)
+  @Post('merchant/login')
+  async merchantLogin(@Body() dto: { email: string; password: string }) {
+    return this.catalogService.merchantLogin(dto);
   }
 }
 

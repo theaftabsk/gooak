@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@oaksol/api-client": ["./src/lib/api-client.ts"]
     }
   },
   "include": [

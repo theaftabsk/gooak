@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import * as jwt from 'jsonwebtoken';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateBannerDto } from './dto/create-banner.dto';
@@ -432,46 +433,7 @@ export class CatalogService {
     });
   }
 
-  // ── Review Management (Admin) ─────────────────────────────────────────────
 
-  async getProductReviews(shopId: string, productId: string) {
-    return this.prisma.review.findMany({
-      where: { shop_id: shopId, product_id: productId },
-      orderBy: { created_at: 'desc' },
-    });
-  }
-
-  async createReview(shopId: string, productId: string, dto: {
-    reviewer_name?: string;
-    rating: number;
-    title?: string;
-    body?: string;
-    status?: string;
-  }) {
-    return this.prisma.review.create({
-      data: {
-        shop_id: shopId,
-        product_id: productId,
-        rating: dto.rating,
-        title: dto.title || null,
-        body: dto.body || null,
-        status: dto.status || 'approved',
-      },
-    });
-  }
-
-  async deleteReview(shopId: string, reviewId: string) {
-    return this.prisma.review.delete({
-      where: { id: reviewId, shop_id: shopId },
-    });
-  }
-
-  async updateReviewStatus(shopId: string, reviewId: string, status: string) {
-    return this.prisma.review.update({
-      where: { id: reviewId, shop_id: shopId },
-      data: { status },
-    });
-  }
 
   // ── Variant Management ────────────────────────────────────────────────────
 
@@ -552,104 +514,6 @@ export class CatalogService {
     });
   }
 
-  async adjustStock(
-    shopId: string,
-    variantId: string,
-    dto: { adjustment: number; type?: string; note?: string },
-  ) {
-    const variant = await this.prisma.productVariant.findFirst({
-      where: { id: variantId, shop_id: shopId },
-    });
-    if (!variant) throw new NotFoundException(`Variant not found`);
-
-    const newQty = Math.max(0, variant.stock_qty + dto.adjustment);
-
-    await this.prisma.productVariant.update({
-      where: { id: variantId },
-      data: { stock_qty: newQty },
-    });
-
-    // Optionally create an inventory log (requires a warehouse)
-    const warehouse = await this.prisma.warehouse.findFirst({
-      where: { shop_id: shopId },
-    });
-
-    if (warehouse) {
-      await this.prisma.inventoryLog.create({
-        data: {
-          shop_id: shopId,
-          variant_id: variantId,
-          warehouse_id: warehouse.id,
-          type: dto.type || 'manual',
-          qty_change: dto.adjustment,
-          qty_after: newQty,
-          note: dto.note || null,
-        },
-      });
-    }
-
-    return { variantId, previousQty: variant.stock_qty, newQty, adjustment: dto.adjustment };
-  }
-
-  async getStockLogs(shopId: string, productId: string) {
-    const variants = await this.prisma.productVariant.findMany({
-      where: { shop_id: shopId, product_id: productId },
-      select: { id: true, label: true, sku: true },
-    });
-
-    const variantIds = variants.map((v) => v.id);
-    if (variantIds.length === 0) return [];
-
-    const logs = await this.prisma.inventoryLog.findMany({
-      where: { shop_id: shopId, variant_id: { in: variantIds } },
-      orderBy: { created_at: 'desc' },
-      take: 60,
-    });
-
-    // Attach variant label/sku to each log
-    const variantMap = new Map(variants.map((v) => [v.id, v]));
-    return logs.map((log) => ({
-      ...log,
-      variant: variantMap.get(log.variant_id) || null,
-    }));
-  }
-
-  async getInventoryOverview(shopId: string) {
-    const products = await this.prisma.product.findMany({
-      where: { shop_id: shopId },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        status: true,
-        gallery: { where: { is_cover: true }, select: { url: true }, take: 1 },
-        variants: {
-          orderBy: { sort_order: 'asc' },
-          select: {
-            id: true,
-            label: true,
-            sku: true,
-            price: true,
-            stock_qty: true,
-            low_stock_at: true,
-            is_active: true,
-            sort_order: true,
-          },
-        },
-      },
-      orderBy: { name: 'asc' },
-    });
-
-    // Compute per-product summary
-    return products.map((p) => {
-      const totalStock = p.variants.reduce((sum, v) => sum + v.stock_qty, 0);
-      const outOfStock = p.variants.filter((v) => v.stock_qty === 0).length;
-      const lowStock = p.variants.filter(
-        (v) => v.stock_qty > 0 && v.stock_qty <= v.low_stock_at,
-      ).length;
-      return { ...p, totalStock, outOfStock, lowStock };
-    });
-  }
 
   async createCategory(shopId: string, dto: any) {
     return this.prisma.category.create({
@@ -769,62 +633,7 @@ export class CatalogService {
     });
 
     // 4. Seed basic templates for this shop so it loads beautifully
-    const category = await this.prisma.category.create({
-      data: {
-        shop_id: shop.id,
-        name: 'General Cleansers',
-        slug: 'cleansers',
-        is_active: true
-      }
-    });
-
-    const brand = await this.prisma.brand.create({
-      data: {
-        shop_id: shop.id,
-        name: dto.name.toUpperCase(),
-        slug: dto.slug,
-        is_active: true
-      }
-    });
-
-    await this.prisma.product.create({
-      data: {
-        shop_id: shop.id,
-        category_id: category.id,
-        brand_id: brand.id,
-        name: 'Demo Herbal Cleanser',
-        slug: 'demo-cleanser',
-        short_desc: 'Sample product automatically provisioned for your demo store.',
-        description: 'This is a sample product description seeded automatically to help you test the OakSol Commerce platform.',
-        price: 299.00,
-        compare_price: 399.00,
-        status: 'active',
-        is_featured: true,
-        custom_sections: [
-          {
-            id: 'benefits',
-            title: 'Benefits',
-            type: 'bullets',
-            content: [
-              '100% natural and skin-friendly.',
-              'Cleanses dirt, pollutants, and sebum.',
-              'Restores natural skin hydration.'
-            ]
-          }
-        ]
-      }
-    });
-
-    // Seed default banner
-    await this.prisma.banner.create({
-      data: {
-        shop_id: shop.id,
-        title: `Welcome to ${dto.name}`,
-        image_url: 'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?q=80&w=1000',
-        link_url: `/products/demo-cleanser`,
-        is_active: true
-      }
-    });
+    // Start clean with 0 Products, 0 Categories, 0 Banners, but 1 Homepage Section
 
     // Seed default homepage section
     await this.prisma.productSection.create({
@@ -1101,6 +910,65 @@ export class CatalogService {
     return { message: `Demo data seeded: ${created.join(', ')}`, productsAdded: created.length };
   }
 
+  // Delete/Clear demo data for a shop (Super Admin)
+  async deleteDemoData(shopId: string) {
+    const shop = await this.prisma.shop.findUnique({ where: { id: shopId } });
+    if (!shop) throw new NotFoundException('Shop not found');
+
+    const categories = await this.prisma.category.findMany({
+      where: {
+        shop_id: shopId,
+        slug: { in: ['demo-products', 'cleansers'] }
+      },
+      select: { id: true }
+    });
+    const categoryIds = categories.map(c => c.id);
+
+    const productsToDelete = await this.prisma.product.findMany({
+      where: {
+        shop_id: shopId,
+        OR: [
+          { category_id: { in: categoryIds } },
+          { slug: { startsWith: 'rose-toner-' } },
+          { slug: { startsWith: 'kumkumadi-oil-' } },
+          { slug: { startsWith: 'neem-facewash-' } },
+          { slug: 'demo-cleanser' }
+        ]
+      },
+      select: { id: true }
+    });
+    const productIds = productsToDelete.map(p => p.id);
+
+    await this.prisma.$transaction(async (tx) => {
+      if (productIds.length > 0) {
+        await tx.product.deleteMany({
+          where: { id: { in: productIds } }
+        });
+      }
+
+      if (categoryIds.length > 0) {
+        await tx.category.deleteMany({
+          where: { id: { in: categoryIds } }
+        });
+      }
+
+      await tx.banner.deleteMany({
+        where: {
+          shop_id: shopId,
+          image_url: {
+            in: [
+              'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=1000',
+              'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?q=80&w=1000'
+            ]
+          }
+        }
+      });
+    });
+
+    return { message: 'Demo data deleted successfully', productsDeleted: productIds.length };
+  }
+
+
   // Get dashboard stats for Super Admin overview
   async getDashboardStats() {
     const [totalShops, totalRequests, pendingRequests, totalProducts] = await Promise.all([
@@ -1326,161 +1194,7 @@ export class CatalogService {
     });
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // CUSTOMER AUTH
-  // ─────────────────────────────────────────────────────────────────────────────
 
-  async customerRegister(shopId: string, dto: {
-    name: string;
-    email: string;
-    phone?: string;
-    password: string;
-  }) {
-    const bcrypt = await import('bcryptjs');
-    const jwt = await import('jsonwebtoken');
-
-    // Check if email is already taken
-    const existing = await this.prisma.customer.findFirst({
-      where: { shop_id: shopId, email: dto.email },
-    });
-    if (existing) {
-      throw new BadRequestException('An account with this email already exists.');
-    }
-
-    const password_hash = await bcrypt.hash(dto.password, 10);
-    const customer = await this.prisma.customer.create({
-      data: {
-        shop_id: shopId,
-        name: dto.name,
-        email: dto.email,
-        phone: dto.phone || null,
-        password_hash,
-        is_verified: false,
-      },
-      select: { id: true, name: true, email: true, phone: true, avatar_url: true, created_at: true },
-    });
-
-    const secret = process.env.CUSTOMER_JWT_SECRET || 'customer_secret_oaksol_2026';
-    const token = jwt.sign({ customerId: customer.id, shopId }, secret, { expiresIn: '30d' });
-
-    return { customer, token };
-  }
-
-  async customerLogin(shopId: string, dto: { email: string; password: string }) {
-    const bcrypt = await import('bcryptjs');
-    const jwt = await import('jsonwebtoken');
-
-    const customer = await this.prisma.customer.findFirst({
-      where: { shop_id: shopId, email: dto.email },
-    });
-    if (!customer || !customer.password_hash) {
-      throw new BadRequestException('Invalid email or password.');
-    }
-
-    const valid = await bcrypt.compare(dto.password, customer.password_hash);
-    if (!valid) {
-      throw new BadRequestException('Invalid email or password.');
-    }
-
-    const secret = process.env.CUSTOMER_JWT_SECRET || 'customer_secret_oaksol_2026';
-    const token = jwt.sign({ customerId: customer.id, shopId }, secret, { expiresIn: '30d' });
-
-    return {
-      customer: {
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-        avatar_url: customer.avatar_url,
-        created_at: customer.created_at,
-      },
-      token,
-    };
-  }
-
-  async getCustomerMe(shopId: string, customerId: string) {
-    const customer = await this.prisma.customer.findFirst({
-      where: { id: customerId, shop_id: shopId },
-      select: {
-        id: true, name: true, email: true, phone: true, avatar_url: true,
-        total_orders: true, total_spent: true, created_at: true,
-        addresses: { orderBy: { is_default: 'desc' } },
-      },
-    });
-    if (!customer) throw new NotFoundException('Customer not found.');
-    return customer;
-  }
-
-  async updateCustomerMe(shopId: string, customerId: string, dto: {
-    name?: string;
-    phone?: string;
-    avatar_url?: string;
-    current_password?: string;
-    new_password?: string;
-  }) {
-    const bcrypt = await import('bcryptjs');
-    const data: any = {};
-
-    if (dto.name !== undefined) data.name = dto.name;
-    if (dto.phone !== undefined) data.phone = dto.phone;
-    if (dto.avatar_url !== undefined) data.avatar_url = dto.avatar_url;
-
-    if (dto.new_password) {
-      if (!dto.current_password) {
-        throw new BadRequestException('Current password is required to set a new password.');
-      }
-      const customer = await this.prisma.customer.findUnique({ where: { id: customerId } });
-      const valid = await bcrypt.compare(dto.current_password, customer?.password_hash || '');
-      if (!valid) throw new BadRequestException('Current password is incorrect.');
-      data.password_hash = await bcrypt.hash(dto.new_password, 10);
-    }
-
-    const updated = await this.prisma.customer.update({
-      where: { id: customerId },
-      data,
-      select: { id: true, name: true, email: true, phone: true, avatar_url: true, created_at: true },
-    });
-    return updated;
-  }
-
-  async getCustomerOrders(shopId: string, customerId: string) {
-    const orders = await this.prisma.order.findMany({
-      where: { shop_id: shopId, customer_id: customerId },
-      orderBy: { created_at: 'desc' },
-      include: {
-        items: true,
-      },
-    });
-    return orders.map(o => ({
-      id: o.id,
-      order_number: o.order_number,
-      status: o.status,
-      total: o.total,
-      subtotal: o.subtotal,
-      shipping_amount: o.shipping_amount,
-      discount_amount: o.discount_amount,
-      created_at: o.created_at,
-      items: o.items.map(i => ({
-        id: i.id,
-        qty: i.qty,
-        unit_price: i.unit_price,
-        line_total: i.line_total,
-        product_snap: i.product_snap,
-      })),
-    }));
-  }
-
-  // Validate customer JWT — returns { customerId, shopId } or throws
-  async verifyCustomerToken(token: string): Promise<{ customerId: string; shopId: string }> {
-    const jwt = await import('jsonwebtoken');
-    const secret = process.env.CUSTOMER_JWT_SECRET || 'customer_secret_oaksol_2026';
-    try {
-      const payload = jwt.verify(token, secret) as any;
-      return { customerId: payload.customerId, shopId: payload.shopId };
-    } catch {
-      throw new BadRequestException('Invalid or expired token.');
-    }
-  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // PAGES CONTENT (from settings table, group = 'pages')
@@ -1551,18 +1265,255 @@ export class CatalogService {
   // ─────────────────────────────────────────────────────────────────────────────
 
   async adminLogin(dto: { email: string; password: string }) {
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@oaksol.in';
-    const adminPassword = process.env.ADMIN_PASSWORD || '123';
+    const defaultEmail = process.env.ADMIN_EMAIL || 'admin@oaksol.in';
+    const defaultPassword = process.env.ADMIN_PASSWORD || '123';
 
-    if (dto.email !== adminEmail || dto.password !== adminPassword) {
+    // 1. Auto-bootstrap the default admin if the platform_admins table is empty
+    const adminCount = await this.prisma.platformAdmin.count();
+    if (adminCount === 0) {
+      const bcrypt = await import('bcryptjs');
+      const hash = await bcrypt.hash(defaultPassword, 10);
+      await this.prisma.platformAdmin.create({
+        data: {
+          name: 'Platform Owner',
+          email: defaultEmail,
+          password_hash: hash,
+          permissions: [
+            'VIEW_SHOPS',
+            'VIEW_STATS',
+            'VIEW_REQUESTS',
+            'ONBOARD_SHOP',
+            'MANAGE_REQUESTS',
+            'SEED_DEMO',
+            'DELETE_SHOP',
+            'MANAGE_TEAM'
+          ],
+          status: 'active',
+        }
+      });
+      console.log(`[Auto-Bootstrap] Provisioned default Master Admin: ${defaultEmail}`);
+    }
+
+    // 2. Query the admin from the database
+    let admin = await this.prisma.platformAdmin.findUnique({
+      where: { email: dto.email }
+    });
+
+    if (!admin || admin.status !== 'active') {
+      throw new BadRequestException('Invalid admin credentials or inactive account.');
+    }
+
+    if (admin.email === defaultEmail) {
+      const allPermissions = [
+        'VIEW_SHOPS',
+        'VIEW_STATS',
+        'VIEW_REQUESTS',
+        'ONBOARD_SHOP',
+        'MANAGE_REQUESTS',
+        'SEED_DEMO',
+        'DELETE_SHOP',
+        'MANAGE_TEAM'
+      ];
+      if (!admin.permissions || admin.permissions.length === 0) {
+        admin = await this.prisma.platformAdmin.update({
+          where: { id: admin.id },
+          data: { permissions: allPermissions }
+        });
+      }
+    }
+
+    // 3. Verify password hash
+    const bcrypt = await import('bcryptjs');
+    const isMatch = await bcrypt.compare(dto.password, admin.password_hash);
+    if (!isMatch) {
       throw new BadRequestException('Invalid admin credentials.');
     }
 
-    const jwt = await import('jsonwebtoken');
+    // 4. Sign JWT token
     const secret = process.env.JWT_SECRET || 'oaksol-commerce-jwt-secret-key-replace-in-production';
-    const token = jwt.sign({ role: 'super_admin' }, secret, { expiresIn: '7d' });
+    const token = jwt.sign(
+      { 
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        role: 'super_admin',
+        permissions: admin.permissions || []
+      }, 
+      secret, 
+      { expiresIn: '7d' }
+    );
 
-    return { token };
+    return { 
+      token,
+      admin: {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        permissions: admin.permissions || []
+      }
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PLATFORM TEAM MANAGEMENT (MANAGE_TEAM ONLY)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  async getPlatformAdmin(id: string) {
+    const admin = await this.prisma.platformAdmin.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        permissions: true,
+        status: true,
+        created_at: true
+      }
+    });
+    if (!admin) throw new NotFoundException('Administrator not found.');
+    return admin;
+  }
+
+  async getPlatformTeam() {
+    return this.prisma.platformAdmin.findMany({
+      orderBy: { created_at: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        permissions: true,
+        status: true,
+        created_at: true
+      }
+    });
+  }
+
+  async createPlatformAdmin(dto: { name: string; email: string; password?: string; permissions?: string[] }) {
+    const existing = await this.prisma.platformAdmin.findUnique({
+      where: { email: dto.email }
+    });
+    if (existing) {
+      throw new BadRequestException('Administrator with this email already exists.');
+    }
+
+    const password = dto.password || 'OaksolAdmin2026';
+    const bcrypt = await import('bcryptjs');
+    const hash = await bcrypt.hash(password, 10);
+
+    return this.prisma.platformAdmin.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        password_hash: hash,
+        permissions: dto.permissions || [],
+        status: 'active'
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        permissions: true,
+        status: true,
+        created_at: true
+      }
+    });
+  }
+
+  async updatePlatformAdmin(id: string, dto: { status?: string; permissions?: string[] }) {
+    const targetAdmin = await this.prisma.platformAdmin.findUnique({
+      where: { id }
+    });
+    if (!targetAdmin) {
+      throw new NotFoundException('Administrator not found.');
+    }
+
+    // Protect Master Admin from downgrade/status change by others
+    if (targetAdmin.email === 'admin@oaksol.in') {
+      throw new BadRequestException('Cannot modify the primary owner.');
+    }
+
+    const updatedData: any = {};
+    if (dto.status !== undefined) {
+      updatedData.status = dto.status;
+    }
+    if (dto.permissions !== undefined) {
+      updatedData.permissions = dto.permissions;
+    }
+
+    return this.prisma.platformAdmin.update({
+      where: { id },
+      data: updatedData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        permissions: true,
+        status: true,
+        created_at: true
+      }
+    });
+  }
+
+  async deletePlatformAdmin(id: string) {
+    const targetAdmin = await this.prisma.platformAdmin.findUnique({
+      where: { id }
+    });
+    if (!targetAdmin) {
+      throw new NotFoundException('Administrator not found.');
+    }
+
+    if (targetAdmin.email === 'admin@oaksol.in') {
+      throw new BadRequestException('Cannot delete the primary owner.');
+    }
+
+    await this.prisma.platformAdmin.delete({
+      where: { id }
+    });
+
+    return { success: true };
+  }
+
+  // Merchant / Store Owner Login (Shopify Style - resolves shop by email lookup)
+  async merchantLogin(dto: { email: string; password: string }) {
+    const user = await this.prisma.user.findFirst({
+      where: { email: dto.email.trim().toLowerCase() },
+      include: { shop: true }
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid email or password.');
+    }
+
+    // Check plain password (dev mode) or bcrypt hash (prod mode)
+    let isMatch = false;
+    if (user.password && user.password === dto.password) {
+      isMatch = true;
+    } else {
+      const bcrypt = await import('bcryptjs');
+      isMatch = await bcrypt.compare(dto.password, user.password_hash).catch(() => false);
+    }
+
+    if (!isMatch) {
+      throw new BadRequestException('Invalid email or password.');
+    }
+
+    if (!user.shop || user.shop.status !== 'active') {
+      throw new BadRequestException('Shop is inactive or not found.');
+    }
+
+    return {
+      success: true,
+      shop: {
+        id: user.shop.id,
+        name: user.shop.name,
+        slug: user.shop.slug
+      },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    };
   }
 }
-

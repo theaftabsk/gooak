@@ -32,18 +32,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   
   // Resolve host context from browser to identify current tenant subdomain/domain
-  let tenantDomain = '';
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    const parts = hostname.split('.');
-    if (parts[0] === 'app' || hostname === 'localhost' || hostname === '127.0.0.1' || parts.length < 2) {
-      const activeShop = localStorage.getItem('oaksol_active_shop_slug') || 'aftab';
-      tenantDomain = `${activeShop}.localhost`;
-    } else {
-      tenantDomain = window.location.host;
-    }
-  }
-
+  const tenantDomain = typeof window !== 'undefined' ? window.location.host : '';
 
   // Get platform admin token if saved
   const adminToken = typeof window !== 'undefined' ? localStorage.getItem('oaksol_admin_token') : null;
@@ -285,9 +274,16 @@ export const catalogApi = {
   }) => request<any>('/catalog/tenant-requests', { method: 'POST', body: JSON.stringify(requestData) }),
 
   // ─── Platform Super Admin APIs ────────────────────────────────────────────
+  // Merchant Login (Shopify Style)
+  merchantLogin: async (data: { email: string; password: string }) =>
+    request<any>('/catalog/merchant/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   // Admin Login
   adminLogin: async (data: { email: string; password: string }) =>
-    request<{ token: string }>('/catalog/admin/login', {
+    request<{ token: string; admin?: { id: string; email: string; name: string; permissions?: string[] } }>('/catalog/admin/login', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -307,6 +303,9 @@ export const catalogApi = {
 
   seedDemoData: async (shopId: string) =>
     request<any>(`/catalog/admin/shops/${shopId}/seed-demo`, { method: 'POST' }),
+
+  deleteDemoData: async (shopId: string) =>
+    request<any>(`/catalog/admin/shops/${shopId}/delete-demo`, { method: 'POST' }),
 
   registerShop: async (shopData: {
     name: string; slug: string; ownerEmail: string; ownerName: string; ownerPassword?: string
@@ -435,3 +434,24 @@ export const pageBuilderApi = {
       method: 'DELETE',
     }),
 };
+
+// ─── Platform Team APIs ───────────────────────────────────────────────────────
+export const platformTeamApi = {
+  getTeam: async () => request<any[]>('/catalog/admin/team'),
+  getAdminDetail: async (id: string) => request<any>(`/catalog/admin/team/${id}`),
+  createAdmin: async (data: { name: string; email: string; password?: string; permissions?: string[] }) =>
+    request<any>('/catalog/admin/team', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateAdmin: async (id: string, data: { status?: string; permissions?: string[] }) =>
+    request<any>(`/catalog/admin/team/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteAdmin: async (id: string) =>
+    request<any>(`/catalog/admin/team/${id}`, {
+      method: 'DELETE',
+    }),
+};
+

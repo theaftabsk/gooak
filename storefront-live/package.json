@@ -9,9 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@oak-commerce/types": "workspace:*",
     "next": "16.2.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-router-dom": "^7.17.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

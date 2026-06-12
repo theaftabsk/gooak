@@ -276,7 +276,7 @@ export const catalogApi = {
   // ─── Platform Super Admin APIs ────────────────────────────────────────────
   // Admin Login
   adminLogin: async (data: { email: string; password: string }) =>
-    request<{ token: string }>('/catalog/admin/login', {
+    request<{ token: string; admin?: { id: string; email: string; name: string; permissions?: string[] } }>('/catalog/admin/login', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -296,6 +296,9 @@ export const catalogApi = {
 
   seedDemoData: async (shopId: string) =>
     request<any>(`/catalog/admin/shops/${shopId}/seed-demo`, { method: 'POST' }),
+
+  deleteDemoData: async (shopId: string) =>
+    request<any>(`/catalog/admin/shops/${shopId}/delete-demo`, { method: 'POST' }),
 
   registerShop: async (shopData: {
     name: string; slug: string; ownerEmail: string; ownerName: string; ownerPassword?: string
@@ -421,6 +424,26 @@ export const pageBuilderApi = {
     }),
   deletePage: async (id: string) =>
     request<any>(`/page-builder/pages/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ─── Platform Team APIs ───────────────────────────────────────────────────────
+export const platformTeamApi = {
+  getTeam: async () => request<any[]>('/catalog/admin/team'),
+  getAdminDetail: async (id: string) => request<any>(`/catalog/admin/team/${id}`),
+  createAdmin: async (data: { name: string; email: string; password?: string; permissions?: string[] }) =>
+    request<any>('/catalog/admin/team', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateAdmin: async (id: string, data: { status?: string; permissions?: string[] }) =>
+    request<any>(`/catalog/admin/team/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteAdmin: async (id: string) =>
+    request<any>(`/catalog/admin/team/${id}`, {
       method: 'DELETE',
     }),
 };

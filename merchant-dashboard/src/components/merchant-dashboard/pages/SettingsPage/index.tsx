@@ -205,7 +205,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ shopInfo, onSaveSett
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: '0.85rem' }}>
                 <div>
                   <span style={{ color: 'var(--m-text-muted)', display: 'block' }}>Subdomain domain mapping:</span>
-                  <code style={{ fontSize: '0.8rem', color: 'var(--m-primary)' }}>{shopInfo?.slug}.localhost:3000</code>
+                  <code style={{ fontSize: '0.8rem', color: 'var(--m-primary)' }}>{shopInfo?.slug}.localhost:3001</code>
                 </div>
                 <div>
                   <span style={{ color: 'var(--m-text-muted)', display: 'block' }}>Shop Registry ID:</span>

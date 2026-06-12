@@ -107,15 +107,25 @@ function MerchantDashboardInner() {
   const [updatingOrderStatus, setUpdatingOrderStatus] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setLoginError('Email and Password are required.');
       return;
     }
     setLoginError('');
-    setIsLoggedIn(true);
-    localStorage.setItem(`oaksol_merchant_logged_in_${tenantSlug}`, 'true');
+    try {
+      const res = await catalogApi.merchantLogin({ email, password });
+      if (res && res.shop) {
+        localStorage.setItem('oaksol_active_shop_slug', res.shop.slug);
+        localStorage.setItem(`oaksol_merchant_logged_in_${res.shop.slug}`, 'true');
+        window.location.href = window.location.pathname; // Reloads to apply new context
+      } else {
+        setLoginError('Invalid response from login API.');
+      }
+    } catch (err: any) {
+      setLoginError(err.message || 'Login failed. Please check your credentials.');
+    }
   };
 
   const handleLogout = () => {
@@ -296,7 +306,7 @@ function MerchantDashboardInner() {
           <div className="auth-card">
             <div className="auth-brand">
               <div className="auth-logo"><Icons.Store /></div>
-              <h2>{tenantSlug.toUpperCase()} Console</h2>
+              <h2>Merchant Console</h2>
               <p>Merchant Portal · Store Administration Console</p>
             </div>
             <form onSubmit={handleLoginSubmit} className="auth-form">
@@ -349,29 +359,23 @@ function MerchantDashboardInner() {
             </div>
             <div style={{ width: '100%', marginTop: '4px' }}>
               <label style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>Active Store</label>
-              <select 
-                value={tenantSlug} 
-                onChange={(e) => {
-                  const newSlug = e.target.value;
-                  localStorage.setItem('oaksol_active_shop_slug', newSlug);
-                  window.location.search = `?shop=${newSlug}`;
-                }}
-                style={{
-                  width: '100%',
-                  background: '#1E293B',
-                  border: '1px solid #334155',
-                  color: '#F8FAFC',
-                  padding: '6px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.8rem',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="aftab">aftab (Skincare)</option>
-                <option value="nature-glow">nature-glow (Fashion)</option>
-                <option value="maheorthe">maheorthe (Electronics)</option>
-              </select>
+              <div style={{
+                background: '#1E293B',
+                border: '1px solid #334155',
+                color: '#38BDF8',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#38BDF8', width: '14px', height: '14px' }}>
+                  <Icons.Store />
+                </span>
+                <span>{shopInfo?.name || tenantSlug.toUpperCase()} ({tenantSlug})</span>
+              </div>
             </div>
           </div>
           <nav className="sidebar-nav">
@@ -398,9 +402,20 @@ function MerchantDashboardInner() {
             <span className={currentTab === 'inventory' ? 'active' : ''} onClick={() => setCurrentTab('inventory')}>
               <Icons.Package /> Inventory
             </span>
-            <span className={currentTab === 'pages' ? 'active' : ''} onClick={() => setCurrentTab('pages')}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-              Pages &amp; Content
+            <span
+              style={{ cursor: 'pointer' }}
+              onClick={() => {
+                const base = location.pathname.startsWith('/dashboard') ? '/dashboard' : '/admin';
+                const shop = typeof window !== 'undefined' ? localStorage.getItem('oaksol_active_shop_slug') || '' : '';
+                window.open(`${base}/builder${shop ? `?shop=${shop}` : ''}`, '_blank');
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/></svg>
+              Website Builder
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginLeft: 4, opacity: 0.5}}>
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
             </span>
             <span className={currentTab === 'settings' ? 'active' : ''} onClick={() => setCurrentTab('settings')}>
               <Icons.Settings /> Settings

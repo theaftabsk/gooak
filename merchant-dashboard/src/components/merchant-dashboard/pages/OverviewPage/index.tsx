@@ -16,7 +16,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ shopInfo, products, 
   const totalSales = paidOrders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
 
   const slug = shopInfo?.slug || 'store';
-  const domain = shopInfo?.domains?.[0]?.domain || `${slug}.localhost:3000`;
+  const domain = shopInfo?.domains?.[0]?.domain || `${slug}.localhost:3001`;
 
   return (
     <>

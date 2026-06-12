@@ -9,11 +9,18 @@ import { StoresPage } from './pages/StoresPage/StoresPage';
 import { StoreDetailPage } from './pages/StoreDetailPage/StoreDetailPage';
 import { RequestsPage } from './pages/RequestsPage/RequestsPage';
 import { OnboardPage } from './pages/OnboardPage/OnboardPage';
+import { TeamPage } from './pages/TeamPage/TeamPage';
+import { TeamMemberDetailPage } from './pages/TeamPage/TeamMemberDetailPage';
 import { EditShopModal, CredentialsModal } from './modals';
 
 function AdminDashboardAppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('oaksol_admin_logged_in') === 'true';
+  });
+
+  const [currentAdmin, setCurrentAdmin] = useState<any>(() => {
+    const saved = localStorage.getItem('oaksol_admin_data');
+    return saved ? JSON.parse(saved) : null;
   });
 
   // Data State
@@ -88,16 +95,20 @@ function AdminDashboardAppContent() {
   }, [isLoggedIn]);
 
   // Handlers
-  const handleLogin = (token: string) => {
+  const handleLogin = (token: string, admin: any) => {
     setIsLoggedIn(true);
+    setCurrentAdmin(admin);
     localStorage.setItem('oaksol_admin_logged_in', 'true');
     localStorage.setItem('oaksol_admin_token', token);
+    localStorage.setItem('oaksol_admin_data', JSON.stringify(admin));
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setCurrentAdmin(null);
     localStorage.removeItem('oaksol_admin_logged_in');
     localStorage.removeItem('oaksol_admin_token');
+    localStorage.removeItem('oaksol_admin_data');
   };
 
   const handleApproveRequest = async (id: string) => {
@@ -177,6 +188,22 @@ function AdminDashboardAppContent() {
     }
   };
 
+  const handleDeleteDemoData = async (shopId: string) => {
+    if (!confirm('Are you sure you want to delete all seeded demo/cleanser products, categories, and banners from this store?')) {
+      return;
+    }
+    setSeedingId(shopId);
+    try {
+      await catalogApi.deleteDemoData(shopId);
+      alert('Demo data deleted successfully!');
+      refreshAllData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete demo data');
+    } finally {
+      setSeedingId(null);
+    }
+  };
+
   const handleProvisionStore = async (data: any) => {
     setSavingEdit(true);
     try {
@@ -236,6 +263,7 @@ function AdminDashboardAppContent() {
         <Sidebar
           pendingRequestsCount={requests.filter(r => r.status === 'pending').length}
           onLogout={handleLogout}
+          currentAdmin={currentAdmin}
         />
 
         {/* Main Content Area */}
@@ -263,6 +291,7 @@ function AdminDashboardAppContent() {
                 onEdit={setEditingShop}
                 onDelete={handleDeleteShop}
                 onSeedDemo={handleSeedDemoData}
+                onDeleteDemo={handleDeleteDemoData}
                 seedingId={seedingId}
                 deletingId={deletingShopId}
               />
@@ -284,6 +313,16 @@ function AdminDashboardAppContent() {
               <OnboardPage
                 onProvision={handleProvisionStore}
                 provisioning={savingEdit}
+              />
+            } />
+            <Route path="/team" element={
+              <TeamPage
+                currentAdmin={currentAdmin}
+              />
+            } />
+            <Route path="/team/:id" element={
+              <TeamMemberDetailPage
+                currentAdmin={currentAdmin}
               />
             } />
             <Route path="*" element={<Navigate to="/" replace />} />

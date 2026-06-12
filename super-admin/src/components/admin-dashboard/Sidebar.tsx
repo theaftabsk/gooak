@@ -5,9 +5,10 @@ import { Icons } from './icons';
 interface SidebarProps {
   pendingRequestsCount: number;
   onLogout: () => void;
+  currentAdmin: any;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ pendingRequestsCount, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ pendingRequestsCount, onLogout, currentAdmin }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
@@ -16,6 +17,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingRequestsCount, onLogout
   const isStoresActive = pathname === '/stores' || pathname.startsWith('/stores/');
   const isRequestsActive = pathname === '/requests';
   const isOnboardActive = pathname === '/onboard';
+  const isTeamActive = pathname === '/team';
 
   return (
     <aside className="sidebar">
@@ -54,6 +56,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingRequestsCount, onLogout
         >
           <Icons.Plus /> Provision Store
         </button>
+        {currentAdmin?.permissions?.includes('MANAGE_TEAM') && (
+          <button
+            className={`nav-item ${isTeamActive ? 'active' : ''}`}
+            onClick={() => navigate('/team')}
+          >
+            <Icons.Shield /> Platform Team
+          </button>
+        )}
         <button className="nav-item logout" onClick={onLogout}>
           <Icons.Logout /> Logout
         </button>

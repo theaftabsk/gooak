@@ -711,7 +711,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               <div>
                 <span style={{ color: 'var(--m-text-muted)', display: 'block' }}>Storefront URL:</span>
                 <a 
-                  href={`http://${window.location.hostname.split('.')[0]}.localhost:3000/products/${slug}`} 
+                  href={`http://${window.location.hostname.split('.')[0]}.localhost:3001/products/${slug}`} 
                   target="_blank" 
                   rel="noreferrer"
                   style={{ color: 'var(--m-primary)', wordBreak: 'break-all', display: 'inline-flex', alignItems: 'center', gap: 4 }}

@@ -9,12 +9,13 @@ interface StoreDetailPageProps {
   onEdit: (shop: any) => void;
   onDelete: (shop: any) => void;
   onSeedDemo: (shopId: string) => void;
+  onDeleteDemo: (shopId: string) => void;
   seedingId: string | null;
   deletingId: string | null;
 }
 
 export const StoreDetailPage: React.FC<StoreDetailPageProps> = ({
-  onEdit, onDelete, onSeedDemo, seedingId, deletingId
+  onEdit, onDelete, onSeedDemo, onDeleteDemo, seedingId, deletingId
 }) => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -45,6 +46,12 @@ export const StoreDetailPage: React.FC<StoreDetailPageProps> = ({
     fetchShopDetail(slug!);
   };
 
+  const handleDeleteDemo = async () => {
+    if (!shop?.id) return;
+    await onDeleteDemo(shop.id);
+    fetchShopDetail(slug!);
+  };
+
   return (
     <>
       <header className="page-header">
@@ -59,6 +66,9 @@ export const StoreDetailPage: React.FC<StoreDetailPageProps> = ({
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="btn-ghost-sm" onClick={handleSeed} disabled={seedingId === shop.id}>
               <Icons.Seed /> {seedingId === shop.id ? 'Seeding…' : 'Seed Demo Data'}
+            </button>
+            <button className="btn-danger-sm" onClick={handleDeleteDemo} disabled={seedingId === shop.id}>
+              <Icons.Trash /> {seedingId === shop.id ? 'Clearing…' : 'Clear Demo Data'}
             </button>
             <button className="btn-ghost-sm" onClick={() => onEdit(shop)}>
               <Icons.Edit /> Edit
@@ -123,45 +133,46 @@ export const StoreDetailPage: React.FC<StoreDetailPageProps> = ({
           </div>
 
           {/* Products Table */}
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 className="card-title" style={{ margin: 0 }}>Product Catalog ({shop.products?.length || 0})</h3>
-              <button className="btn-ghost-sm" onClick={handleSeed} disabled={seedingId === shop.id}>
-                <Icons.Seed /> {seedingId === shop.id ? 'Adding…' : 'Add Demo Products'}
-              </button>
+          {shop.products && shop.products.length > 0 && (
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 className="card-title" style={{ margin: 0 }}>Product Catalog ({shop.products.length})</h3>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn-ghost-sm" onClick={handleSeed} disabled={seedingId === shop.id}>
+                    <Icons.Seed /> {seedingId === shop.id ? 'Adding…' : 'Add Demo Products'}
+                  </button>
+                  <button className="btn-danger-sm" onClick={handleDeleteDemo} disabled={seedingId === shop.id}>
+                    <Icons.Trash /> {seedingId === shop.id ? 'Deleting…' : 'Delete Demo Products'}
+                  </button>
+                </div>
+              </div>
+              <DataTable
+                headers={['Product', 'Category', 'Price', 'Compare Price', 'Status']}
+                rows={shop.products.map((p: any) => [
+                  <strong>{p.name}</strong>,
+                  p.category?.name || '—',
+                  `₹${parseFloat(p.price).toFixed(2)}`,
+                  p.compare_price ? `₹${parseFloat(p.compare_price).toFixed(2)}` : '—',
+                  <Badge type="success">{p.status.toUpperCase()}</Badge>
+                ])}
+              />
             </div>
-            {!shop.products?.length
-              ? <EmptyState message="No products. Click 'Add Demo Products' to seed sample catalog." />
-              : (
-                <DataTable
-                  headers={['Product', 'Category', 'Price', 'Compare Price', 'Status']}
-                  rows={shop.products.map((p: any) => [
-                    <strong>{p.name}</strong>,
-                    p.category?.name || '—',
-                    `₹${parseFloat(p.price).toFixed(2)}`,
-                    p.compare_price ? `₹${parseFloat(p.compare_price).toFixed(2)}` : '—',
-                    <Badge type="success">{p.status.toUpperCase()}</Badge>
-                  ])}
-                />
-              )}
-          </div>
+          )}
 
           {/* Categories Table */}
-          <div className="card">
-            <h3 className="card-title">Categories ({shop.categories?.length || 0})</h3>
-            {!shop.categories?.length
-              ? <EmptyState message="No categories defined." />
-              : (
-                <DataTable
-                  headers={['Name', 'Slug', 'Status']}
-                  rows={shop.categories.map((c: any) => [
-                    <strong>{c.name}</strong>,
-                    <code>{c.slug}</code>,
-                    <Badge type={c.is_active ? 'success' : 'warn'}>{c.is_active ? 'ACTIVE' : 'INACTIVE'}</Badge>
-                  ])}
-                />
-              )}
-          </div>
+          {shop.categories && shop.categories.length > 0 && (
+            <div className="card">
+              <h3 className="card-title">Categories ({shop.categories.length})</h3>
+              <DataTable
+                headers={['Name', 'Slug', 'Status']}
+                rows={shop.categories.map((c: any) => [
+                  <strong>{c.name}</strong>,
+                  <code>{c.slug}</code>,
+                  <Badge type={c.is_active ? 'success' : 'warn'}>{c.is_active ? 'ACTIVE' : 'INACTIVE'}</Badge>
+                ])}
+              />
+            </div>
+          )}
         </div>
       ) : null}
     </>

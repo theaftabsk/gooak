@@ -1,10 +1,15 @@
 import { Injectable, NestMiddleware, NotFoundException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { PrismaService } from '../../database/prisma.service';
+import { TenantConnectionPoolService } from '../../database/tenant-connection-pool.service';
+import { tenantLocalStorage } from '../../database/tenant-context';
 
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private tenantConnectionPool: TenantConnectionPoolService,
+  ) {}
 
   async use(req: Request & { shopId?: string }, res: Response, next: NextFunction) {
     const tenantDomain = (req.headers['x-tenant-domain'] as string) || req.headers.host;
@@ -42,6 +47,8 @@ export class TenantMiddleware implements NestMiddleware {
     }
 
     let shopId: string | undefined;
+    let shopSlug: string | undefined;
+    let dbConnectionUrl: string | null | undefined;
 
     // 1. Try to match the exact domain hostname in shop_domains (works for custom domains and exact matches)
     const domainRecord = await this.prisma.shopDomain.findUnique({
@@ -51,6 +58,14 @@ export class TenantMiddleware implements NestMiddleware {
 
     if (domainRecord) {
       shopId = domainRecord.shop_id;
+      const shop = await this.prisma.shop.findUnique({
+        where: { id: shopId },
+        select: { slug: true, db_connection_url: true },
+      });
+      if (shop) {
+        shopSlug = shop.slug;
+        dbConnectionUrl = shop.db_connection_url;
+      }
     } else {
       // 2. If no exact match, check if it's a subdomain slug
       const isSubdomain = hostname.endsWith(`.${platformDomain}`) || hostname.endsWith('.localhost');
@@ -60,10 +75,12 @@ export class TenantMiddleware implements NestMiddleware {
         const slug = hostname.split('.')[0];
         const shop = await this.prisma.shop.findUnique({
           where: { slug },
-          select: { id: true }
+          select: { id: true, db_connection_url: true },
         });
         if (shop) {
           shopId = shop.id;
+          shopSlug = slug;
+          dbConnectionUrl = shop.db_connection_url;
         }
       }
     }
@@ -72,10 +89,12 @@ export class TenantMiddleware implements NestMiddleware {
     if (!shopId && (hostname === 'localhost' || hostname === '127.0.0.1')) {
       const fallbackShop = await this.prisma.shop.findFirst({
         where: { status: 'active' },
-        select: { id: true },
+        select: { id: true, slug: true, db_connection_url: true },
       });
       if (fallbackShop) {
         shopId = fallbackShop.id;
+        shopSlug = fallbackShop.slug;
+        dbConnectionUrl = fallbackShop.db_connection_url;
       }
     }
 
@@ -84,6 +103,20 @@ export class TenantMiddleware implements NestMiddleware {
     }
 
     req.shopId = shopId;
-    next();
+
+    // Resolve tenant database connection string (fallback to central DB if not specified)
+    const connectionString = dbConnectionUrl || process.env.DATABASE_URL!;
+    const tenantClient = this.tenantConnectionPool.getTenantClient(connectionString);
+
+    tenantLocalStorage.run(
+      {
+        tenantId: shopId,
+        tenantSlug: shopSlug || '',
+        client: tenantClient,
+      },
+      () => {
+        next();
+      },
+    );
   }
 }

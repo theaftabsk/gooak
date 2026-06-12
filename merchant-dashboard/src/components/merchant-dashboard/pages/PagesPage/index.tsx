@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { customerApi, pageBuilderApi, catalogApi } from '../../../../lib/api-client';
-import { LivePageData } from '../../../../lib/types/page-builder';
+import { LivePageData } from '@oak-commerce/types';
+import { Modal, Spinner } from 'shared-ui';
 import { EditorSidebar } from './EditorSidebar';
 import { CanvasIframe } from './CanvasIframe';
+import { SettingsPanel } from './SettingsPanel';
 
 interface Props {
   shopInfo: any;
@@ -19,7 +21,7 @@ const TAB_ITEMS: { id: PagesTab; label: string; icon: string; desc: string }[] =
 ];
 
 export const PagesPage: React.FC<Props> = ({ shopInfo }) => {
-  const [editorMode, setEditorMode] = useState<EditorMode>('standard');
+  const [editorMode, setEditorMode] = useState<EditorMode>('builder');
   const [activeTab, setActiveTab] = useState<PagesTab>('about');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,6 +51,7 @@ export const PagesPage: React.FC<Props> = ({ shopInfo }) => {
   // Custom Pages Builder State
   const [customPages, setCustomPages] = useState<any[]>([]);
   const [selectedPage, setSelectedPage] = useState<LivePageData | null>(null);
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState('');
@@ -204,7 +207,7 @@ export const PagesPage: React.FC<Props> = ({ shopInfo }) => {
     }
   };
 
-  const storefront = shopInfo?.storefront_url || `http://${shopInfo?.slug}.localhost:3000`;
+  const storefront = shopInfo?.storefront_url || `http://${shopInfo?.slug}.localhost:3001`;
   const builderPreviewUrl = selectedPage 
     ? `${storefront}${selectedPage.slug === 'index' ? '' : `/pages/${selectedPage.slug}`}` 
     : storefront;
@@ -277,7 +280,7 @@ export const PagesPage: React.FC<Props> = ({ shopInfo }) => {
           {/* Content Panel */}
           <div className="pg-panel">
             {loading ? (
-              <div className="pg-loading"><span className="pg-spinner-lg" /> Syncing pages...</div>
+              <div className="pg-loading"><Spinner size="lg" message="Syncing pages..." /></div>
             ) : (
               <div className="relative">
                 <div className="absolute top-4 right-4">
@@ -411,18 +414,29 @@ export const PagesPage: React.FC<Props> = ({ shopInfo }) => {
 
           {/* Builder Layout Workspace */}
           {selectedPage ? (
-            <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-4 items-start">
               {/* Left Config Panel */}
               <EditorSidebar 
                 layout={selectedPage} 
                 onChange={setSelectedPage} 
                 categories={categories}
+                selectedWidgetId={selectedWidgetId}
+                onSelectWidget={setSelectedWidgetId}
               />
 
-              {/* Right Live Preview Canvas */}
+              {/* Center Live Preview Canvas */}
               <CanvasIframe 
                 currentLayout={selectedPage} 
                 previewUrl={builderPreviewUrl} 
+              />
+
+              {/* Right Settings Panel */}
+              <SettingsPanel 
+                layout={selectedPage} 
+                onChange={setSelectedPage} 
+                categories={categories}
+                selectedWidgetId={selectedWidgetId}
+                onSelectWidget={setSelectedWidgetId}
               />
             </div>
           ) : (
@@ -441,58 +455,53 @@ export const PagesPage: React.FC<Props> = ({ shopInfo }) => {
         </div>
       )}
 
-      {/* Creation Modal dialog */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl p-6 max-w-md w-full flex flex-col gap-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-slate-800 text-base">Create Custom Storefront Page</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-700 font-bold">✕</button>
-            </div>
-            <form onSubmit={handleCreatePage} className="flex flex-col gap-4 text-xs">
-              <div className="flex flex-col gap-1.5">
-                <label className="font-semibold text-slate-600">Page Display Title</label>
-                <input 
-                  type="text" 
-                  value={newPageTitle}
-                  onChange={(e) => {
-                    setNewPageTitle(e.target.value);
-                    // Generate basic slug automatically
-                    if (!newPageSlug) {
-                      setNewPageSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-                    }
-                  }}
-                  placeholder="e.g. Summer Promo, Skincare Secrets"
-                  className="p-2.5 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-sm bg-slate-50"
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="font-semibold text-slate-600">URL path slug (e.g. /pages/summer-promo)</label>
-                <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
-                  <span className="p-2.5 text-slate-400 select-none bg-slate-100 border-r border-slate-200 text-xs">/pages/</span>
-                  <input 
-                    type="text" 
-                    value={newPageSlug}
-                    onChange={(e) => setNewPageSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
-                    placeholder="summer-promo"
-                    className="p-2.5 outline-none flex-1 focus:bg-white text-sm"
-                    required
-                  />
-                </div>
-                <span className="text-[10px] text-slate-400">Use `index` to customize the storefront default homepage (`/`).</span>
-              </div>
-              <button 
-                type="submit" 
-                className="mt-3 w-full py-3 bg-emerald-600 text-white font-bold rounded-lg shadow hover:bg-emerald-700 transition text-sm"
-                disabled={saving}
-              >
-                {saving ? 'Creating Page...' : 'Create Page & Launch Builder'}
-              </button>
-            </form>
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create Custom Storefront Page"
+      >
+        <form onSubmit={handleCreatePage} className="flex flex-col gap-4 text-xs">
+          <div className="flex flex-col gap-1.5">
+            <label className="font-semibold text-slate-600">Page Display Title</label>
+            <input 
+              type="text" 
+              value={newPageTitle}
+              onChange={(e) => {
+                setNewPageTitle(e.target.value);
+                // Generate basic slug automatically
+                if (!newPageSlug) {
+                  setNewPageSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                }
+              }}
+              placeholder="e.g. Summer Promo, Skincare Secrets"
+              className="p-2.5 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-sm bg-slate-50"
+              required
+            />
           </div>
-        </div>
-      )}
+          <div className="flex flex-col gap-1.5">
+            <label className="font-semibold text-slate-600">URL path slug (e.g. /pages/summer-promo)</label>
+            <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+              <span className="p-2.5 text-slate-400 select-none bg-slate-100 border-r border-slate-200 text-xs">/pages/</span>
+              <input 
+                type="text" 
+                value={newPageSlug}
+                onChange={(e) => setNewPageSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
+                placeholder="summer-promo"
+                className="p-2.5 outline-none flex-1 focus:bg-white text-sm"
+                required
+              />
+            </div>
+            <span className="text-[10px] text-slate-400">Use `index` to customize the storefront default homepage (`/`).</span>
+          </div>
+          <button 
+            type="submit" 
+            className="mt-3 w-full py-3 bg-emerald-600 text-white font-bold rounded-lg shadow hover:bg-emerald-700 transition text-sm"
+            disabled={saving}
+          >
+            {saving ? 'Creating Page...' : 'Create Page & Launch Builder'}
+          </button>
+        </form>
+      </Modal>
     </div>
   );
 };

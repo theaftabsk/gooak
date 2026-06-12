@@ -22,6 +22,7 @@ import { About } from './pages/About/index';
 import { Contact } from './pages/Contact/index';
 import { Privacy } from './pages/Privacy/index';
 import { Terms } from './pages/Terms/index';
+import { DynamicPage } from './pages/DynamicPage';
 import AdminDashboardApp from '@oaksol/admin-dashboard';
 import MerchantDashboardApp from '@oaksol/merchant-dashboard';
 import { Icons } from './icons';
@@ -402,7 +403,8 @@ function App() {
               <Header />
               <main className="storefront-main-content" style={{ flex: 1 }}>
                 <Routes>
-                  <Route path="/" element={<Home />} />
+                  <Route path="/" element={<DynamicPage fallback={<Home />} />} />
+                  <Route path="/pages/:slug" element={<DynamicPage />} />
                   <Route path="/products" element={<AllProducts />} />
                   <Route path="/categories" element={<Categories />} />
                   <Route path="/categories/:categorySlug" element={<Categories />} />
