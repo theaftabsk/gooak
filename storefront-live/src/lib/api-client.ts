@@ -86,7 +86,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       throw err;
     }
 
-    return (await response.json()) as T;
+    const text = await response.text();
+    if (!text || !text.trim()) {
+      return null as any;
+    }
+    return JSON.parse(text) as T;
   } catch (error: any) {
     console.error(`API Request failed on ${url}:`, error.message);
     throw error;
