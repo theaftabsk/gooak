@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { customerApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
+import { useLiveSettings } from '../../hooks/useLiveSettings';
 import { STATIC_PAGE_STYLES } from '../About/index';
 
 export const Contact: React.FC = () => {
-  const [data, setData] = useState<{ shop: any; content: Record<string, string> } | null>(null);
   const { cssVariables } = usePageTheme('contact');
+  const { shop, content: c } = useLiveSettings();
 
   // Contact Form fields
   const [name, setName] = useState('');
@@ -14,13 +15,6 @@ export const Contact: React.FC = () => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
-
-  useEffect(() => {
-    customerApi.getPages().then(setData).catch(() => {});
-  }, []);
-
-  const shop = data?.shop;
-  const c = data?.content || {};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

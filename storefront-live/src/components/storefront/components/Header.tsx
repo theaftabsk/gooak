@@ -78,6 +78,32 @@ export const Header: React.FC = () => {
     fetchHeaderData();
   }, []);
 
+  useEffect(() => {
+    const isPreview = window.location.search.includes('preview=true');
+    if (!isPreview) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'SETTINGS_UPDATE') {
+        const payload = event.data.payload;
+        if (payload) {
+          if (payload.logo_url !== undefined) {
+            setCustomLogoUrl(payload.logo_url);
+          }
+          if (payload.navbar_menu) {
+            try {
+              setNavItems(JSON.parse(payload.navbar_menu));
+            } catch (e) {
+              console.error('Header preview failed to parse navbar_menu:', e);
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   // Only root-level categories that should show in nav
   const menuCategories = categories.filter((cat: any) => cat.show_in_menu !== false);
 

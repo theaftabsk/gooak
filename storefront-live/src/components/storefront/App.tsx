@@ -401,7 +401,7 @@ function App() {
       <Router>
         <CustomerProvider>
           <CartProvider>
-            <div className="storefront-app-shell" style={{ background: '#FAF7F2', minHeight: '100vh', paddingTop: '70px', display: 'flex', flexDirection: 'column' }}>
+            <div className="storefront-app-shell" style={{ background: 'var(--sf-bg, #FAF7F2)', minHeight: '100vh', paddingTop: '70px', display: 'flex', flexDirection: 'column' }}>
               <Header />
               <main className="storefront-main-content" style={{ flex: 1 }}>
                 <Routes>

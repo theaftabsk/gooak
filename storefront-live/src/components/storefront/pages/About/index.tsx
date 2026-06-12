@@ -1,17 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { customerApi } from '../../../../lib/api-client';
+import React from 'react';
 import { usePageTheme } from '../../hooks/usePageTheme';
+import { useLiveSettings } from '../../hooks/useLiveSettings';
 
 export const About: React.FC = () => {
-  const [data, setData] = useState<{ shop: any; content: Record<string, string> } | null>(null);
   const { cssVariables } = usePageTheme('about');
-
-  useEffect(() => {
-    customerApi.getPages().then(setData).catch(() => {});
-  }, []);
-
-  const shop = data?.shop;
-  const c = data?.content || {};
+  const { shop, content: c } = useLiveSettings();
 
   return (
     <div className="sp-page" style={cssVariables}>

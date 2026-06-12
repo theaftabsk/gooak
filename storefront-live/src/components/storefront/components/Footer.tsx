@@ -37,6 +37,33 @@ export const Footer: React.FC = () => {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const isPreview = window.location.search.includes('preview=true');
+    if (!isPreview) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'SETTINGS_UPDATE') {
+        const payload = event.data.payload;
+        if (payload) {
+          if (payload.logo_url !== undefined) {
+            setCustomLogoUrl(payload.logo_url);
+          }
+          if (payload.footer_menu) {
+            try {
+              setFootItems(JSON.parse(payload.footer_menu));
+            } catch (e) {
+              console.error('Footer preview failed to parse footer_menu:', e);
+            }
+          }
+          setContent(prev => ({ ...prev, ...payload }));
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const handleLinkClick = (url: string) => {
     if (url.startsWith('http://') || url.startsWith('https://')) {
       window.open(url, '_blank', 'noopener,noreferrer');

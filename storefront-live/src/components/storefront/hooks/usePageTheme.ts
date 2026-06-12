@@ -65,6 +65,14 @@ export const usePageTheme = (slug: string) => {
     return () => window.removeEventListener('message', handleMessage);
   }, [isPreview, slug]);
 
+  useEffect(() => {
+    if (theme) {
+      document.documentElement.style.setProperty('--sf-accent', theme.primaryColor);
+      document.documentElement.style.setProperty('--sf-primary', theme.primaryColor);
+      document.documentElement.style.setProperty('--sf-bg', theme.backgroundColor);
+    }
+  }, [theme.primaryColor, theme.secondaryColor, theme.backgroundColor]);
+
   const cssVariables = {
     '--sf-accent': theme.primaryColor,
     '--sf-primary': theme.primaryColor,

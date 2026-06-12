@@ -51,6 +51,20 @@ export const DynamicPage: React.FC<DynamicPageProps> = ({ fallback }) => {
     return () => window.removeEventListener('message', handleMessage);
   }, [isPreview]);
 
+  const theme = pageData?.theme || {
+    primaryColor: '#15803D',
+    secondaryColor: '#ffffff',
+    backgroundColor: '#ffffff',
+  };
+
+  useEffect(() => {
+    if (theme) {
+      document.documentElement.style.setProperty('--sf-accent', theme.primaryColor);
+      document.documentElement.style.setProperty('--sf-primary', theme.primaryColor);
+      document.documentElement.style.setProperty('--sf-bg', theme.backgroundColor);
+    }
+  }, [theme.primaryColor, theme.secondaryColor, theme.backgroundColor]);
+
   if (loading && !pageData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -78,11 +92,7 @@ export const DynamicPage: React.FC<DynamicPageProps> = ({ fallback }) => {
   return (
     <WidgetRenderer 
       widgets={pageData.widgets} 
-      theme={pageData.theme || {
-        primaryColor: '#15803D',
-        secondaryColor: '#ffffff',
-        backgroundColor: '#ffffff',
-      }} 
+      theme={theme} 
     />
   );
 };

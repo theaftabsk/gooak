@@ -63,36 +63,63 @@ const WidgetBlock: React.FC<{ widget: WidgetLayout; theme: any }> = ({ widget, t
 const HeroBanner: React.FC<{ block: any; theme: any }> = ({ block, theme }) => {
   const { title, subtitle, backgroundImageUrl, buttonText, buttonLink } = block.content || {};
 
-  return (
-    <div 
-      className="relative w-full h-[450px] lg:h-[550px] flex items-center justify-center bg-slate-900 overflow-hidden"
-      style={{
-        backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : 'none',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
-    >
-      {/* Dynamic Overlay Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-slate-950/80 via-slate-900/40 to-transparent z-10" />
+  const hasBgImage = !!backgroundImageUrl;
+  const primary = theme.primaryColor || '#10B981';
+  const secondary = theme.secondaryColor || '#059669';
 
-      {/* Glassmorphic Card Container */}
-      <div className="relative z-20 text-center max-w-2xl mx-4 p-8 lg:p-12 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl animate-fade-in">
-        <h1 
-          className="text-3xl lg:text-5xl font-black mb-4 tracking-tight drop-shadow-md text-white"
-        >
-          {title || 'Organic Skincare Secrets'}
-        </h1>
-        <p className="text-sm lg:text-lg text-slate-100 font-medium mb-8 max-w-md mx-auto leading-relaxed drop-shadow">
-          {subtitle || 'Discover premium organic blends, sourced with raw ingredients and custom-designed for wellness.'}
-        </p>
-        {buttonText && (
-          <a
-            href={buttonLink || '#'}
-            className="inline-block px-8 py-3.5 rounded-xl text-sm font-bold shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-xl text-white"
-            style={{ backgroundColor: theme.primaryColor }}
-          >
-            {buttonText}
-          </a>
+  return (
+    <div className="w-full max-w-7xl mx-auto px-6 py-4">
+      <div 
+        className="relative w-full h-[400px] lg:h-[480px] flex flex-col items-center justify-center text-center overflow-hidden rounded-3xl"
+        style={{
+          background: hasBgImage 
+            ? `url(${backgroundImageUrl}) center/cover no-repeat` 
+            : `linear-gradient(135deg, ${primary}, ${secondary})`,
+          boxShadow: '0 15px 35px -5px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.05)'
+        }}
+      >
+        {hasBgImage ? (
+          <>
+            {/* Dynamic Overlay Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-slate-950/80 via-slate-900/40 to-transparent z-10" />
+
+            {/* Glassmorphic Card Container */}
+            <div className="relative z-20 text-center max-w-2xl mx-4 p-8 lg:p-12 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl animate-fade-in">
+              <h1 className="text-3xl lg:text-5xl font-black mb-4 tracking-tight drop-shadow-md text-white">
+                {title || 'Organic Skincare Secrets'}
+              </h1>
+              <p className="text-sm lg:text-lg text-slate-100 font-medium mb-8 max-w-md mx-auto leading-relaxed drop-shadow">
+                {subtitle || 'Discover premium organic blends, sourced with raw ingredients and custom-designed for wellness.'}
+              </p>
+              {buttonText && (
+                <a
+                  href={buttonLink || '#'}
+                  className="inline-block px-8 py-3.5 rounded-xl text-sm font-bold shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-xl text-white"
+                  style={{ backgroundColor: theme.primaryColor }}
+                >
+                  {buttonText}
+                </a>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="relative z-20 max-w-3xl px-6 lg:px-12 flex flex-col items-center">
+            <h1 className="text-3xl lg:text-5xl font-extrabold mb-4 tracking-tight text-white leading-tight drop-shadow-sm">
+              {title || "Welcome to nature's finest"}
+            </h1>
+            <p className="text-sm lg:text-lg text-white/90 font-medium mb-8 max-w-xl leading-relaxed drop-shadow-sm">
+              {subtitle || 'Discover our curated collection of premium organic products designed for you.'}
+            </p>
+            {buttonText && (
+              <a
+                href={buttonLink || '#'}
+                className="inline-block px-8 py-3.5 rounded-xl text-sm font-bold shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 hover:shadow-md bg-white"
+                style={{ color: primary }}
+              >
+                {buttonText}
+              </a>
+            )}
+          </div>
         )}
       </div>
     </div>
