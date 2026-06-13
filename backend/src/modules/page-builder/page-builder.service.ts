@@ -1,5 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+
+const RESERVED_SLUGS = [
+  'index',
+  'products',
+  'category',
+  'product',
+  'cart',
+  'checkout',
+  'about',
+  'contact',
+  'privacy',
+  'terms',
+  'refund',
+  'track-order'
+];
+
 
 @Injectable()
 export class PageBuilderService {
@@ -54,6 +70,10 @@ export class PageBuilderService {
     widgets: any[];
   }) {
     const { id, title, slug, type, theme, widgets } = payload;
+
+    if (!RESERVED_SLUGS.includes(slug)) {
+      throw new BadRequestException('Creating or renaming custom pages is disabled. Only existing system pages can be edited.');
+    }
 
     // Use transaction to ensure page and widgets are saved atomically
     return this.prisma.$transaction(async (tx) => {
@@ -136,18 +156,6 @@ export class PageBuilderService {
   }
 
   async deletePage(shopId: string, id: string) {
-    const page = await this.prisma.page.findFirst({
-      where: { id, shop_id: shopId },
-    });
-
-    if (!page) {
-      throw new NotFoundException(`Page with ID ${id} not found`);
-    }
-
-    await this.prisma.page.delete({
-      where: { id },
-    });
-
-    return { success: true };
+    throw new BadRequestException('Page deletion is disabled. Only existing pages can be edited.');
   }
 }

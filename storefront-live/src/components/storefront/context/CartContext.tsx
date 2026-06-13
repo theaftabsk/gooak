@@ -33,7 +33,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const cached = localStorage.getItem('oaksol_cart');
     if (cached) {
       try {
-        setCartItems(JSON.parse(cached));
+        const items = JSON.parse(cached);
+        if (Array.isArray(items)) {
+          const sanitized = items.filter(item => 
+            item && 
+            item.id && 
+            item.id !== 'undefined' && 
+            item.variantId && 
+            item.variantId !== 'default-undefined' && 
+            item.variantId !== 'undefined'
+          );
+          setCartItems(sanitized);
+          if (sanitized.length !== items.length) {
+            localStorage.setItem('oaksol_cart', JSON.stringify(sanitized));
+          }
+        }
       } catch (err) {
         console.error('Failed to parse cached cart:', err);
       }

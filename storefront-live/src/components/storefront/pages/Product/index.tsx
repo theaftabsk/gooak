@@ -27,8 +27,10 @@ export const Product: React.FC = () => {
       if (!slug) return;
       setLoading(true);
       try {
-        const prod = await catalogApi.getProduct(slug);
-        setProduct(prod || null);
+        const response = await catalogApi.getProduct(slug);
+        // Backend returns { product, relatedProducts } — extract the product object
+        const prod = response?.product || response || null;
+        setProduct(prod);
         
         // Setup initial image
         const cover = prod?.gallery?.find((g: any) => g.is_cover)?.url || prod?.gallery?.[0]?.url || 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=600';
@@ -65,7 +67,7 @@ export const Product: React.FC = () => {
     const variantId = selectedVariant ? selectedVariant.id : `default-${product.id}`;
     const variantLabel = selectedVariant ? selectedVariant.label || '' : '';
     const price = selectedVariant ? Number(selectedVariant.price) : Number(product.price);
-    const imageUrl = selectedVariant?.image_url || product.gallery?.find((g: any) => g.is_cover)?.url || product.gallery?.[0]?.url || '';
+    const imageUrl = selectedVariant?.image_url || product.gallery?.find((g: any) => g.is_cover)?.url || product.gallery?.[0]?.url || 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=600';
 
     addToCart({
       id: itemId,

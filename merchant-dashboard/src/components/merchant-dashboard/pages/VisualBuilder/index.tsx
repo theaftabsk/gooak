@@ -33,16 +33,16 @@ const vbStyles = `
     position: fixed; inset: 0; z-index: 9999;
     display: flex; flex-direction: column;
     font-family: 'Inter', sans-serif;
-    background: #090d16; color: #f1f5f9;
+    background: #f8fafc; color: #0f172a;
     overflow: hidden;
   }
 
   /* ── Top Bar ── */
   .vb-topbar {
     height: 56px; min-height: 56px;
-    background: rgba(15, 23, 42, 0.85);
+    background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid #e2e8f0;
     display: flex; align-items: center;
     padding: 0 20px; gap: 16px;
     flex-shrink: 0;
@@ -51,33 +51,33 @@ const vbStyles = `
   .vb-topbar-brand {
     display: flex; align-items: center; gap: 10px;
     font-family: 'Outfit', sans-serif;
-    font-size: 0.95rem; font-weight: 800; color: #38bdf8;
+    font-size: 0.95rem; font-weight: 800; color: #0f172a;
     text-transform: uppercase; letter-spacing: 0.06em;
     flex-shrink: 0;
   }
-  .vb-topbar-brand svg { width: 20px; height: 20px; color: #38bdf8; }
+  .vb-topbar-brand svg { width: 20px; height: 20px; color: #0284c7; }
   .vb-topbar-sep {
-    width: 1px; height: 24px; background: rgba(255,255,255,0.08); flex-shrink: 0;
+    width: 1px; height: 24px; background: #e2e8f0; flex-shrink: 0;
   }
   .vb-topbar-pages {
     display: flex; align-items: center; gap: 10px; flex: 1;
   }
   .vb-page-select {
-    background: #0f172a; border: 1px solid rgba(255,255,255,0.08); color: #e2e8f0;
+    background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a;
     border-radius: 8px; padding: 6px 12px; font-size: 0.82rem;
     font-family: inherit; cursor: pointer; min-width: 220px;
     outline: none; transition: all 0.2s;
   }
-  .vb-page-select:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.2); }
+  .vb-page-select:focus { border-color: #0284c7; box-shadow: 0 0 0 2px rgba(2,132,199,0.15); }
   
   .vb-btn-new {
-    background: transparent; border: 1px solid rgba(255,255,255,0.08); color: #94a3b8;
+    background: #ffffff; border: 1px solid #cbd5e1; color: #475569;
     border-radius: 8px; padding: 6px 12px; font-size: 0.78rem;
     font-weight: 600; cursor: pointer; font-family: inherit;
     display: flex; align-items: center; gap: 6px;
     transition: all 0.2s;
   }
-  .vb-btn-new:hover { border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.05); }
+  .vb-btn-new:hover { border-color: #0284c7; color: #0284c7; background: #f0f9ff; }
   
   .vb-topbar-actions {
     display: flex; align-items: center; gap: 10px; margin-left: auto; flex-shrink: 0;
@@ -90,14 +90,14 @@ const vbStyles = `
     display: inline-flex; align-items: center; gap: 6px;
   }
   .vb-status-published { 
-    background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2); 
+    background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; 
   }
   .vb-status-published::before {
     content: ''; width: 6px; height: 6px; border-radius: 50%; background: #10b981;
     box-shadow: 0 0 8px #10b981; animation: pulse 2s infinite;
   }
   .vb-status-draft { 
-    background: rgba(234,179,8,0.1); color: #fbbf24; border: 1px solid rgba(234,179,8,0.2); 
+    background: #fef9c3; color: #a16207; border: 1px solid #fef08a; 
   }
   .vb-status-draft::before {
     content: ''; width: 6px; height: 6px; border-radius: 50%; background: #eab308;
@@ -111,12 +111,12 @@ const vbStyles = `
   }
 
   .vb-btn-save {
-    background: #1e293b; border: 1px solid rgba(255,255,255,0.08); color: #cbd5e1;
+    background: #ffffff; border: 1px solid #cbd5e1; color: #334155;
     border-radius: 8px; padding: 7px 16px; font-size: 0.8rem;
     font-weight: 600; cursor: pointer; font-family: inherit;
     transition: all 0.2s;
   }
-  .vb-btn-save:hover { border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.05); }
+  .vb-btn-save:hover { border-color: #cbd5e1; color: #0f172a; background: #f1f5f9; }
   
   .vb-btn-publish {
     background: linear-gradient(135deg, #10b981, #059669);
@@ -130,25 +130,24 @@ const vbStyles = `
   .vb-btn-publish:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
   
   .vb-btn-exit {
-    background: transparent; border: 1px solid rgba(255,255,255,0.08); color: #94a3b8;
+    background: #ffffff; border: 1px solid #e2e8f0; color: #64748b;
     border-radius: 8px; padding: 7px 14px; font-size: 0.8rem;
     font-weight: 600; cursor: pointer; font-family: inherit;
     transition: all 0.2s; display: flex; align-items: center; gap: 6px;
   }
-  .vb-btn-exit:hover { border-color: #ef4444; color: #f87171; background: rgba(239,68,68,0.05); }
+  .vb-btn-exit:hover { border-color: #fca5a5; color: #ef4444; background: #fef2f2; }
 
   /* ── Workspace ── */
   .vb-workspace {
     display: flex; flex: 1; overflow: hidden; position: relative;
-    background: #090d16;
+    background: #f1f5f9;
   }
 
   /* ── Panels Styling ── */
   .vb-left {
     width: 280px; min-width: 280px;
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(16px);
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
     display: flex; flex-direction: column;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -162,9 +161,8 @@ const vbStyles = `
   
   .vb-right {
     width: 320px; min-width: 320px;
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(16px);
-    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    background: #ffffff;
+    border-left: 1px solid #e2e8f0;
     display: flex; flex-direction: column;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -178,7 +176,7 @@ const vbStyles = `
 
   .vb-left-header, .vb-right-header {
     padding: 14px 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid #e2e8f0;
     flex-shrink: 0;
     display: flex; align-items: center; justify-content: space-between;
   }
@@ -188,37 +186,37 @@ const vbStyles = `
     padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
     transition: all 0.15s;
   }
-  .vb-panel-collapse-btn:hover { background: rgba(255,255,255,0.05); color: #f1f5f9; }
+  .vb-panel-collapse-btn:hover { background: rgba(0,0,0,0.05); color: #0f172a; }
 
   .vb-add-btns {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; margin-top: 12px;
   }
   .vb-add-btn {
-    background: #0f172a; border: 1px solid rgba(255,255,255,0.06); color: #94a3b8;
+    background: #f8fafc; border: 1px solid #e2e8f0; color: #475569;
     border-radius: 8px; padding: 8px 4px; font-size: 0.68rem;
     font-weight: 600; cursor: pointer; font-family: inherit;
     display: flex; flex-direction: column; align-items: center; gap: 6px;
     transition: all 0.2s;
   }
-  .vb-add-btn:hover { border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.05); }
-  .vb-add-btn-icon { font-size: 1.1rem; font-weight: 400; color: #38bdf8; }
+  .vb-add-btn:hover { border-color: #0284c7; color: #0284c7; background: #f0f9ff; }
+  .vb-add-btn-icon { font-size: 1.1rem; font-weight: 400; color: #0284c7; }
 
   .vb-sections-scroll {
     flex: 1; overflow-y: auto; padding: 16px;
   }
   .vb-sections-scroll::-webkit-scrollbar { width: 4px; }
-  .vb-sections-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  .vb-sections-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
 
   .vb-section-item {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 12px; border-radius: 10px; cursor: pointer;
     border: 1px solid transparent; margin-bottom: 6px;
     transition: all 0.2s; user-select: none;
-    background: rgba(255,255,255,0.02);
+    background: #f1f5f9;
   }
-  .vb-section-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); }
-  .vb-section-item.selected { background: rgba(56,189,248,0.08); border-color: rgba(56,189,248,0.25); }
-  .vb-section-item.dragging { box-shadow: 0 10px 30px rgba(0,0,0,0.5); opacity: 0.95; }
+  .vb-section-item:hover { background: #e2e8f0; border-color: #cbd5e1; }
+  .vb-section-item.selected { background: rgba(2,132,199,0.08); border-color: rgba(2,132,199,0.25); }
+  .vb-section-item.dragging { box-shadow: 0 10px 30px rgba(0,0,0,0.15); opacity: 0.95; }
   .vb-drag-handle {
     color: #475569; font-size: 14px; cursor: grab; flex-shrink: 0; padding: 2px;
   }
@@ -231,10 +229,12 @@ const vbStyles = `
   .icon-hero { background: rgba(99,102,241,0.15); color: #818cf8; }
   .icon-grid { background: rgba(16,185,129,0.15); color: #34d399; }
   .icon-text { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .icon-star { background: rgba(234,179,8,0.15); color: #eab308; }
+  .icon-folder { background: rgba(14,116,144,0.15); color: #0e7490; }
   
   .vb-section-info { flex: 1; min-width: 0; }
   .vb-section-name {
-    font-size: 0.8rem; font-weight: 600; color: #e2e8f0;
+    font-size: 0.8rem; font-weight: 600; color: #0f172a;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .vb-section-order {
@@ -246,30 +246,30 @@ const vbStyles = `
     cursor: pointer; display: flex; align-items: center; justify-content: center;
     font-size: 12px; flex-shrink: 0; transition: all 0.2s;
   }
-  .vb-section-del:hover { background: rgba(239,68,68,0.15); color: #f87171; }
+  .vb-section-del:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
 
   .vb-empty-sections {
     padding: 32px 16px; text-align: center;
     color: #64748b; font-size: 0.8rem; line-height: 1.6;
-    border: 1.5px dashed rgba(255,255,255,0.06); border-radius: 12px; margin: 4px 0;
+    border: 1.5px dashed #e2e8f0; border-radius: 12px; margin: 4px 0;
   }
 
   .vb-left-footer {
     padding: 14px 20px;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    border-top: 1px solid #e2e8f0;
     flex-shrink: 0;
   }
   .vb-storefront-link {
     display: flex; align-items: center; gap: 8px;
-    font-size: 0.76rem; color: #94a3b8; text-decoration: none;
+    font-size: 0.76rem; color: #475569; text-decoration: none;
     transition: color 0.15s; font-weight: 500;
   }
-  .vb-storefront-link:hover { color: #38bdf8; }
+  .vb-storefront-link:hover { color: #0284c7; }
 
   /* ── Center Canvas ── */
   .vb-canvas {
     flex: 1; display: flex; flex-direction: column;
-    background: #090d16; overflow: hidden; position: relative;
+    background: #f1f5f9; overflow: hidden; position: relative;
   }
   
   /* Floating Expand Buttons */
@@ -279,21 +279,21 @@ const vbStyles = `
     transform: translateY(-50%);
     width: 24px;
     height: 48px;
-    background: #1e293b;
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #cbd5e1;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #475569;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     z-index: 60;
     transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   }
   .vb-sidebar-toggle:hover {
-    background: #38bdf8;
-    color: #0f172a;
-    border-color: #38bdf8;
+    background: #f8fafc;
+    color: #0284c7;
+    border-color: #cbd5e1;
   }
   .vb-sidebar-toggle.left-toggle {
     left: 0;
@@ -308,8 +308,8 @@ const vbStyles = `
 
   /* Canvas Toolbar */
   .vb-canvas-toolbar {
-    height: 44px; min-height: 44px; background: rgba(15, 23, 42, 0.5);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    height: 44px; min-height: 44px; background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 20px; gap: 16px; flex-shrink: 0;
   }
@@ -317,36 +317,36 @@ const vbStyles = `
     display: flex; align-items: center; gap: 8px; flex: 1; max-width: 400px;
   }
   .vb-canvas-url {
-    font-size: 0.74rem; color: #64748b; font-family: monospace;
+    font-size: 0.74rem; color: #475569; font-family: monospace;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.03); width: 100%;
+    background: #f1f5f9; padding: 4px 10px; border-radius: 6px;
+    border: 1px solid #cbd5e1; width: 100%;
   }
   
   /* Viewport Controls */
   .vb-viewport-controls {
-    display: flex; gap: 4px; background: #0f172a; padding: 4px; border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.04);
+    display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 8px;
+    border: 1px solid #e2e8f0;
   }
   .vb-viewport-btn {
     background: none; border: none; color: #64748b; width: 28px; height: 28px;
     border-radius: 6px; display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: all 0.2s;
   }
-  .vb-viewport-btn:hover { color: #cbd5e1; background: rgba(255,255,255,0.05); }
-  .vb-viewport-btn.active { color: #38bdf8; background: rgba(56,189,248,0.1); }
+  .vb-viewport-btn:hover { color: #0f172a; background: #e2e8f0; }
+  .vb-viewport-btn.active { color: #0284c7; background: rgba(2,132,199,0.08); }
   
   .vb-canvas-refresh {
     background: none; border: none; color: #64748b; cursor: pointer;
     font-size: 15px; transition: color 0.15s; padding: 4px; display: flex;
     align-items: center; justify-content: center; border-radius: 6px;
   }
-  .vb-canvas-refresh:hover { color: #38bdf8; background: rgba(255,255,255,0.05); }
+  .vb-canvas-refresh:hover { color: #0284c7; background: #f1f5f9; }
   
   /* Preview Device Workspace */
   .vb-iframe-wrap {
     flex: 1; display: flex; align-items: center; justify-content: center;
-    padding: 24px; overflow: hidden; background: #0f172a;
+    padding: 24px; overflow: hidden; background: #f1f5f9;
     position: relative;
   }
   
@@ -354,9 +354,9 @@ const vbStyles = `
     width: 100%; height: 100%;
     transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: flex; flex-direction: column;
-    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.1);
     border-radius: 12px; overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid #cbd5e1;
     background: #ffffff;
   }
   
@@ -388,7 +388,7 @@ const vbStyles = `
     color: #64748b; text-align: center; gap: 12px;
   }
   .vb-no-page-icon { font-size: 3.5rem; opacity: 0.5; }
-  .vb-no-page h3 { font-size: 1.2rem; font-weight: 700; color: #cbd5e1; margin: 0; }
+  .vb-no-page h3 { font-size: 1.2rem; font-weight: 700; color: #0f172a; margin: 0; }
   .vb-no-page p { font-size: 0.85rem; color: #64748b; max-width: 340px; margin: 0; line-height: 1.6; }
 
   /* ── Right Panel Scroll and Forms ── */
@@ -396,11 +396,11 @@ const vbStyles = `
     flex: 1; overflow-y: auto; padding: 20px;
   }
   .vb-right-scroll::-webkit-scrollbar { width: 4px; }
-  .vb-right-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  .vb-right-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
 
   .vb-field-section { 
     margin-bottom: 20px; padding-bottom: 20px; 
-    border-bottom: 1px solid rgba(255,255,255,0.06); 
+    border-bottom: 1px solid #e2e8f0; 
   }
   .vb-field-section:last-child { border-bottom: none; }
   .vb-field-group { margin-bottom: 16px; }
@@ -412,13 +412,13 @@ const vbStyles = `
   }
   
   .vb-input, .vb-select, .vb-textarea {
-    width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.08); color: #e2e8f0;
+    width: 100%; background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a;
     border-radius: 8px; padding: 8px 12px; font-size: 0.82rem;
     font-family: inherit; outline: none; box-sizing: border-box;
     transition: all 0.2s;
   }
   .vb-input:focus, .vb-select:focus, .vb-textarea:focus { 
-    border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.15); 
+    border-color: #0284c7; box-shadow: 0 0 0 2px rgba(2,132,199,0.15); 
   }
   
   .vb-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
@@ -429,8 +429,8 @@ const vbStyles = `
   }
   .vb-color-item {
     display: flex; align-items: center; gap: 8px; flex: 1;
-    background: #0f172a; padding: 6px 10px; border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.05);
+    background: #ffffff; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid #e2e8f0;
   }
   
   .vb-color-input {
@@ -440,9 +440,9 @@ const vbStyles = `
   }
   .vb-color-input::-webkit-color-swatch-wrapper { padding: 0; }
   .vb-color-input::-webkit-color-swatch {
-    border: 1px solid rgba(255,255,255,0.2); border-radius: 50%;
+    border: 1px solid #e2e8f0; border-radius: 50%;
   }
-  .vb-color-label { font-size: 0.68rem; color: #cbd5e1; font-weight: 600; }
+  .vb-color-label { font-size: 0.68rem; color: #0f172a; font-weight: 600; }
 
   .vb-del-widget-btn {
     width: 100%; padding: 10px; background: rgba(239,68,68,0.05);
@@ -456,8 +456,8 @@ const vbStyles = `
 
   /* Bottom tab bar for mobile viewports */
   .vb-mobile-tabs {
-    display: none; height: 60px; background: #0f172a;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    display: none; height: 60px; background: #ffffff;
+    border-top: 1px solid #e2e8f0;
     grid-template-columns: repeat(3, 1fr); z-index: 100;
   }
   .vb-mobile-tab-btn {
@@ -466,7 +466,7 @@ const vbStyles = `
     justify-content: center; gap: 4px; cursor: pointer; font-family: inherit;
     transition: all 0.2s;
   }
-  .vb-mobile-tab-btn.active { color: #38bdf8; }
+  .vb-mobile-tab-btn.active { color: #0284c7; }
   .vb-mobile-tab-btn svg { width: 18px; height: 18px; }
 
   /* ── Modal ── */
@@ -476,12 +476,12 @@ const vbStyles = `
     z-index: 10000; backdrop-filter: blur(4px);
   }
   .vb-modal {
-    background: #0f172a; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;
     padding: 24px; width: 440px; max-width: 90vw;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
   }
   .vb-modal h3 {
-    font-size: 1.15rem; font-weight: 700; color: #f1f5f9; margin: 0 0 6px;
+    font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 6px;
     font-family: 'Outfit', sans-serif;
   }
   .vb-modal p {
@@ -490,12 +490,12 @@ const vbStyles = `
   .vb-modal-fields { display: flex; flex-direction: column; gap: 14px; }
   .vb-modal-footer { display: flex; gap: 10px; margin-top: 24px; }
   .vb-modal-cancel {
-    flex: 1; padding: 10px; background: transparent; border: 1px solid rgba(255,255,255,0.08);
-    color: #cbd5e1; border-radius: 8px; font-size: 0.82rem;
+    flex: 1; padding: 10px; background: transparent; border: 1px solid #cbd5e1;
+    color: #475569; border-radius: 8px; font-size: 0.82rem;
     font-weight: 600; cursor: pointer; font-family: inherit;
     transition: all 0.2s;
   }
-  .vb-modal-cancel:hover { background: rgba(255,255,255,0.05); }
+  .vb-modal-cancel:hover { background: #f1f5f9; }
   .vb-modal-submit {
     flex: 2; padding: 10px; background: linear-gradient(135deg, #10b981, #059669); border: none;
     color: #ffffff; border-radius: 8px; font-size: 0.82rem;
@@ -525,7 +525,7 @@ const vbStyles = `
       position: fixed; top: 56px; bottom: 60px;
       width: 100% !important; min-width: 0 !important; max-width: 100% !important;
       z-index: 90; transform: translateX(-100%);
-      background: #090d16;
+      background: #ffffff;
     }
     .vb-right { transform: translateX(100%); }
     .vb-left.open, .vb-right.open { transform: translateX(0); }
@@ -621,11 +621,21 @@ const IconEye = () => (
   </svg>
 );
 
+const IconStar = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
 // ─── Widget type info ─────────────────────────────────────────────────────────
 const WIDGET_META: Record<string, { label: string; icon: React.ReactNode; iconClass: string }> = {
   HERO_BANNER:  { label: 'Hero Banner',   icon: <IconHero />,   iconClass: 'icon-hero' },
   PRODUCT_GRID: { label: 'Product Grid',  icon: <IconGrid />,   iconClass: 'icon-grid' },
   TEXT_BLOCK:   { label: 'Text Block',    icon: <IconText />,   iconClass: 'icon-text' },
+  PROMO_GRID:   { label: 'Promo Grid',    icon: <IconGrid />,   iconClass: 'icon-grid' },
+  TESTIMONIALS: { label: 'Testimonials', icon: <IconStar />,   iconClass: 'icon-star' },
+  BEST_SELLERS: { label: 'Best Sellers', icon: <IconGrid />,   iconClass: 'icon-grid' },
+  CATEGORIES_LIST: { label: 'Category List', icon: <IconFolder />, iconClass: 'icon-folder' },
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -633,10 +643,27 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const [pages, setPages] = useState<any[]>([]);
-  const [selectedPage, setSelectedPage] = useState<any | null>(null);
+  const [selectedPage, _setSelectedPage] = useState<any | null>(null);
+  const setSelectedPage = (page: any | null | ((prev: any | null) => any | null)) => {
+    if (typeof page === 'function') {
+      _setSelectedPage((prev: any | null) => {
+        const next = page(prev);
+        if (next && !next.widgets) {
+          next.widgets = [];
+        }
+        return next;
+      });
+    } else {
+      if (page && !page.widgets) {
+        page.widgets = [];
+      }
+      _setSelectedPage(page);
+    }
+  };
   const [policySettings, setPolicySettings] = useState<Record<string, string>>({});
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
@@ -701,6 +728,21 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     );
   }, [policySettings]);
 
+  // Listen for widget selection messages from the preview iframe
+  useEffect(() => {
+    const handleWidgetSelect = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'SELECT_WIDGET') {
+        const id = event.data.payload?.id;
+        if (id) {
+          setSelectedWidgetId(id);
+          setRightOpen(true);
+        }
+      }
+    };
+    window.addEventListener('message', handleWidgetSelect);
+    return () => window.removeEventListener('message', handleWidgetSelect);
+  }, []);
+
   const handleIframeLoad = () => {
     if (!iframeRef.current?.contentWindow) return;
     setTimeout(() => {
@@ -722,13 +764,15 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     const load = async () => {
       setLoading(true);
       try {
-        const [dbPages, cats, stdPages] = await Promise.all([
+        const [dbPages, cats, stdPages, productsRes] = await Promise.all([
           pageBuilderApi.getPages(),
           catalogApi.getCategories(),
           customerApi.getPages().catch(() => ({ content: {} })) as Promise<any>,
+          catalogApi.getProducts({ limit: 100 }).catch(() => ({ products: [] })),
         ]);
         
         setCategories(cats || []);
+        setAllProducts(productsRes?.products || []);
         if (stdPages?.content) {
           setPolicySettings(stdPages.content);
 
@@ -825,16 +869,20 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
         if (finalPagesList.length > 0) {
           // Select Homepage ('index') or the first page by default
           const homePage = finalPagesList.find(p => p.slug === 'index') || finalPagesList[0];
-          if (homePage.id.startsWith('virtual-')) {
-            setSelectedPage(homePage);
-          } else {
+          let activePage = homePage;
+          if (!homePage.id.startsWith('virtual-')) {
             const details = await pageBuilderApi.getPageById(homePage.id);
-            setSelectedPage({
+            activePage = {
               ...details,
               supportsHero: homePage.supportsHero,
               isReserved: homePage.isReserved,
               reservedType: homePage.reservedType,
-            });
+            };
+          }
+          setSelectedPage(activePage);
+
+          if (activePage?.widgets?.length > 0) {
+            setSelectedWidgetId(activePage.widgets[0].id);
           }
         }
       } catch (e) {
@@ -1011,7 +1059,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
   
   const addWidget = (type: WidgetType) => {
     if (!selectedPage) return;
-    if (selectedPage.isReserved) {
+    if (selectedPage.isReserved && selectedPage.slug !== 'index') {
       alert('Adding custom sections is disabled for this page layout.');
       return;
     }
@@ -1020,7 +1068,36 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     const content =
       type === 'HERO_BANNER' ? { title: 'New Hero Section', subtitle: 'Add a subtitle here', backgroundImageUrl: '', buttonText: 'Shop Now', buttonLink: '/products' }
       : type === 'PRODUCT_GRID' ? { collectionId: categories?.[0]?.id || '', itemsPerPage: 4, showPrice: true }
-      : { title: 'Section Title', body: '<p>Edit content here...</p>' };
+      : type === 'PROMO_GRID' ? {
+          title: 'Complete Skin & Hair Solutions',
+          subtitle: 'Explore our premium organic products',
+          layout: '3-columns',
+          cards: [
+            { title: 'Hair Care', subtitle: '100% Natural Oils', backgroundImageUrl: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?q=80&w=600', buttonText: 'Shop Now', buttonLink: '/products', bgColor: '#f1f5f9', textColor: '#0f172a', imgPosition: 'right' },
+            { title: 'Body Care', subtitle: 'Chemical Free Lotions', backgroundImageUrl: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=600', buttonText: 'Shop Now', buttonLink: '/products', bgColor: '#f1f5f9', textColor: '#0f172a', imgPosition: 'right' },
+            { title: 'Skin Care', subtitle: 'Organic Facewashes', backgroundImageUrl: 'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?q=80&w=600', buttonText: 'Shop Now', buttonLink: '/products', bgColor: '#f1f5f9', textColor: '#0f172a', imgPosition: 'right' },
+          ]
+        }
+      : type === 'TESTIMONIALS' ? {
+          title: 'What Our Customers Say',
+          subtitle: 'Real reviews from real customers',
+          testimonials: [
+            { id: '1', name: 'Alia Bhatt', role: 'Verified Buyer', rating: 5, text: 'This store has the absolute best organic face washes. My skin feels fresh, clear, and rejuvenated. Highly recommended!', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150', date: 'June 10, 2026' },
+            { id: '2', name: 'Kabir Sen', role: 'Verified Buyer', rating: 5, text: 'Fantastic customer support and extremely fast delivery. The lavender hair oil smells divine and works wonders.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150', date: 'June 12, 2026' },
+            { id: '3', name: 'Robert J.', role: 'Verified Buyer', rating: 4, text: 'Very good quality products. The packaging is eco-friendly and premium. Will definitely buy again!', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=150', date: 'June 13, 2026' }
+          ]
+        }
+      : type === 'BEST_SELLERS' ? {
+          title: 'Best Sellers',
+          subtitle: 'Our most popular organic products',
+          productIds: []
+        }
+      : type === 'CATEGORIES_LIST' ? {
+          title: 'Product Categories',
+          subtitle: 'Explore our curated collections',
+          showViewAll: true
+        }
+      : { title: 'Section Title', body: '<p>Edit content here...</p>', imageUrl: '', imagePosition: 'none' };
     const newWidget = { ...base, content } as any;
     handlePageChange({ ...selectedPage, widgets: [...selectedPage.widgets, newWidget] });
     setSelectedWidgetId(id);
@@ -1028,7 +1105,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
 
   const deleteWidget = (id: string) => {
     if (!selectedPage) return;
-    if (selectedPage.isReserved) {
+    if (selectedPage.isReserved && selectedPage.slug !== 'index') {
       alert('Deleting system sections is disabled for this page layout.');
       return;
     }
@@ -1038,7 +1115,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination || !selectedPage) return;
-    if (selectedPage.isReserved) return;
+    if (selectedPage.isReserved && selectedPage.slug !== 'index') return;
     const items = [...selectedPage.widgets];
     const [moved] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, moved);
@@ -1050,7 +1127,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     setPolicySettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const selectedWidget = selectedPage?.widgets.find((w: any) => w.id === selectedWidgetId) ?? null;
+  const selectedWidget = selectedPage?.widgets?.find((w: any) => w.id === selectedWidgetId) ?? null;
   const isPublished = (selectedPage as any)?.is_published;
 
   return (
@@ -1090,7 +1167,6 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                 ))
               }
             </select>
-            <button className="vb-btn-new" onClick={() => setShowCreateModal(true)}>+ New page</button>
           </div>
 
           {/* Actions */}
@@ -1121,7 +1197,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
           <div className={`vb-left ${leftOpen ? '' : 'collapsed'} ${mobileTab === 'structure' ? 'open' : ''}`}>
             <div className="vb-left-header">
               <div className="vb-panel-title-wrap">
-                <h3 style={{ fontSize: '0.85rem', color: '#E2E8F0', textTransform: 'none', margin: 0, fontWeight: 700 }}>
+                <h3 style={{ fontSize: '0.85rem', color: '#1e293b', textTransform: 'none', margin: 0, fontWeight: 700 }}>
                   {(selectedPage as any)?.title || 'No page selected'}
                 </h3>
               </div>
@@ -1130,8 +1206,8 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
               </button>
             </div>
 
-            <div className="vb-left-header-actions" style={{ padding: '0 20px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              {!selectedPage?.isReserved && (
+            <div className="vb-left-header-actions" style={{ padding: '0 20px 10px', borderBottom: '1px solid #e2e8f0' }}>
+              {(!selectedPage?.isReserved || selectedPage?.slug === 'index') ? (
                 <div className="vb-add-btns">
                   <button className="vb-add-btn" onClick={() => addWidget('HERO_BANNER')}>
                     <span className="vb-add-btn-icon">+</span> Hero
@@ -1142,9 +1218,20 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                   <button className="vb-add-btn" onClick={() => addWidget('TEXT_BLOCK')}>
                     <span className="vb-add-btn-icon">+</span> Text
                   </button>
+                  <button className="vb-add-btn" onClick={() => addWidget('PROMO_GRID')}>
+                    <span className="vb-add-btn-icon">+</span> Promo
+                  </button>
+                  <button className="vb-add-btn" onClick={() => addWidget('TESTIMONIALS')}>
+                    <span className="vb-add-btn-icon">+</span> Reviews
+                  </button>
+                  <button className="vb-add-btn" onClick={() => addWidget('BEST_SELLERS')}>
+                    <span className="vb-add-btn-icon">+</span> Best
+                  </button>
+                  <button className="vb-add-btn" onClick={() => addWidget('CATEGORIES_LIST')}>
+                    <span className="vb-add-btn-icon">+</span> Category
+                  </button>
                 </div>
-              )}
-              {selectedPage?.isReserved && (
+              ) : (
                 <p style={{ fontSize: '0.68rem', color: '#94A3B8', margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span>🔒</span> Fixed Template Layout
                 </p>
@@ -1154,9 +1241,9 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
             <div className="vb-sections-scroll">
               {!selectedPage ? (
                 <div className="vb-empty-sections">
-                  Create or select a page to start editing sections.
+                  Select a page to start editing sections.
                 </div>
-              ) : selectedPage.isReserved ? (
+              ) : (selectedPage.isReserved && selectedPage.slug !== 'index') ? (
                 // ── Reserved Page Tree View ──
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {/* Hero Banner (if supported) */}
@@ -1195,10 +1282,10 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
 
                   {/* Cart/Checkout automated template notice */}
                   {!selectedPage.supportsHero && selectedPage.reservedType === 'SYSTEM' && (
-                    <div className="vb-empty-sections" style={{ borderStyle: 'solid', borderColor: 'rgba(255,255,255,0.06)', textAlign: 'left', padding: '12px 14px' }}>
+                    <div className="vb-empty-sections" style={{ borderStyle: 'solid', borderColor: '#cbd5e1', textAlign: 'left', padding: '12px 14px' }}>
                       <span style={{ fontSize: '1.2rem', display: 'block', marginBottom: '6px' }}>🛍️</span>
-                      <strong style={{ fontSize: '0.8rem', color: '#E2E8F0', display: 'block' }}>System Page Template</strong>
-                      <p style={{ margin: '6px 0 0', fontSize: '0.7rem', color: '#94A3B8', lineHeight: '1.4' }}>
+                      <strong style={{ fontSize: '0.8rem', color: '#0f172a', display: 'block' }}>System Page Template</strong>
+                      <p style={{ margin: '6px 0 0', fontSize: '0.7rem', color: '#475569', lineHeight: '1.4' }}>
                         The layout is automated. Customize the active colors and font configurations on the right settings panel.
                       </p>
                     </div>
@@ -1316,11 +1403,11 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                 <div className={`vb-iframe-container mode-${viewportMode}`}>
                   {/* macOS dots inside device mockup */}
                   {viewportMode === 'desktop' && (
-                    <div style={{ height: '36px', background: '#1e293b', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', padding: '0 14px', gap: '6px', flexShrink: 0 }}>
+                    <div style={{ height: '36px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', padding: '0 14px', gap: '6px', flexShrink: 0 }}>
                       <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444' }}></span>
                       <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }}></span>
                       <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }}></span>
-                      <span style={{ fontSize: '0.75rem', color: '#64748B', fontFamily: 'monospace', marginLeft: '12px' }}>localhost:3001</span>
+                      <span style={{ fontSize: '0.75rem', color: '#475569', fontFamily: 'monospace', marginLeft: '12px' }}>localhost:3001</span>
                     </div>
                   )}
                   <iframe
@@ -1337,18 +1424,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
               <div className="vb-no-page">
                 <div className="vb-no-page-icon">🎨</div>
                 <h3>No page selected</h3>
-                <p>Select an existing page from the top bar, or create a new one to start customizing.</p>
-                <button
-                  style={{
-                    marginTop: 8, padding: '10px 22px',
-                    background: 'linear-gradient(135deg,#10B981,#059669)',
-                    border: 'none', color: '#fff', borderRadius: 8,
-                    fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit'
-                  }}
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  + Create First Page
-                </button>
+                <p>Select an existing page from the top bar to start customizing.</p>
               </div>
             )}
           </div>
@@ -1357,7 +1433,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
           <div className={`vb-right ${rightOpen ? '' : 'collapsed'} ${mobileTab === 'settings' ? 'open' : ''}`}>
             <div className="vb-right-header">
               <div className="vb-panel-title-wrap">
-                <span className="vb-right-header-title" style={{ fontSize: '0.85rem', color: '#E2E8F0', fontWeight: 700 }}>
+                <span className="vb-right-header-title" style={{ fontSize: '0.85rem', color: '#1e293b', fontWeight: 700 }}>
                   {selectedWidgetId === 'policy-content' ? 'Page Text Settings' : selectedWidget ? (WIDGET_META[selectedWidget.type]?.label || selectedWidget.type) : 'Storefront Settings'}
                 </span>
               </div>
@@ -1463,22 +1539,131 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                   )}
 
                   {selectedPage.slug === 'contact' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <div className="vb-field-group">
-                        <label className="vb-label">Contact Email</label>
-                        <input className="vb-input" type="email" value={policySettings.contact_email || ''} onChange={e => handlePolicySettingChange('contact_email', e.target.value)} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                      
+                      {/* Email Support */}
+                      <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <input
+                            type="checkbox"
+                            id="show_contact_email"
+                            checked={policySettings.show_contact_email !== 'false'}
+                            onChange={e => handlePolicySettingChange('show_contact_email', e.target.checked ? 'true' : 'false')}
+                          />
+                          <label htmlFor="show_contact_email" style={{ fontSize: '0.8rem', color: '#1e293b', fontWeight: 700, cursor: 'pointer' }}>
+                            Show Email Support
+                          </label>
+                        </div>
+                        {policySettings.show_contact_email !== 'false' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 16 }}>
+                            <div className="vb-field-group">
+                              <label className="vb-label" style={{ fontSize: '0.68rem' }}>Email Address</label>
+                              <input className="vb-input" style={{ padding: '4px 8px', fontSize: '0.75rem' }} type="email" value={policySettings.contact_email || ''} onChange={e => handlePolicySettingChange('contact_email', e.target.value)} placeholder="support@store.com" />
+                            </div>
+                            <div className="vb-field-group">
+                              <label className="vb-label" style={{ fontSize: '0.68rem' }}>Subtitle / Note</label>
+                              <input className="vb-input" style={{ padding: '4px 8px', fontSize: '0.75rem' }} value={policySettings.contact_email_desc || ''} onChange={e => handlePolicySettingChange('contact_email_desc', e.target.value)} placeholder="Monitored 24/7. Replies within 12 hours." />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="vb-field-group">
-                        <label className="vb-label">Contact Phone</label>
-                        <input className="vb-input" type="tel" value={policySettings.contact_phone || ''} onChange={e => handlePolicySettingChange('contact_phone', e.target.value)} />
+
+                      {/* Phone Helpline */}
+                      <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <input
+                            type="checkbox"
+                            id="show_contact_phone"
+                            checked={policySettings.show_contact_phone !== 'false'}
+                            onChange={e => handlePolicySettingChange('show_contact_phone', e.target.checked ? 'true' : 'false')}
+                          />
+                          <label htmlFor="show_contact_phone" style={{ fontSize: '0.8rem', color: '#1e293b', fontWeight: 700, cursor: 'pointer' }}>
+                            Show Phone Helpline
+                          </label>
+                        </div>
+                        {policySettings.show_contact_phone !== 'false' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 16 }}>
+                            <div className="vb-field-group">
+                              <label className="vb-label" style={{ fontSize: '0.68rem' }}>Phone Number</label>
+                              <input className="vb-input" style={{ padding: '4px 8px', fontSize: '0.75rem' }} type="tel" value={policySettings.contact_phone || ''} onChange={e => handlePolicySettingChange('contact_phone', e.target.value)} placeholder="+91 98765 43210" />
+                            </div>
+                            <div className="vb-field-group">
+                              <label className="vb-label" style={{ fontSize: '0.68rem' }}>Subtitle / Note</label>
+                              <input className="vb-input" style={{ padding: '4px 8px', fontSize: '0.75rem' }} value={policySettings.contact_phone_desc || ''} onChange={e => handlePolicySettingChange('contact_phone_desc', e.target.value)} placeholder="Available Mon-Sat, 9:00 AM - 6:00 PM." />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="vb-field-group">
-                        <label className="vb-label">Physical Address</label>
-                        <input className="vb-input" value={policySettings.contact_address || ''} onChange={e => handlePolicySettingChange('contact_address', e.target.value)} />
+
+                      {/* Store Location */}
+                      <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <input
+                            type="checkbox"
+                            id="show_contact_address"
+                            checked={policySettings.show_contact_address !== 'false'}
+                            onChange={e => handlePolicySettingChange('show_contact_address', e.target.checked ? 'true' : 'false')}
+                          />
+                          <label htmlFor="show_contact_address" style={{ fontSize: '0.8rem', color: '#1e293b', fontWeight: 700, cursor: 'pointer' }}>
+                            Show Store Location Address
+                          </label>
+                        </div>
+                        {policySettings.show_contact_address !== 'false' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 16 }}>
+                            <div className="vb-field-group">
+                              <label className="vb-label" style={{ fontSize: '0.68rem' }}>Physical Address</label>
+                              <input className="vb-input" style={{ padding: '4px 8px', fontSize: '0.75rem' }} value={policySettings.contact_address || ''} onChange={e => handlePolicySettingChange('contact_address', e.target.value)} placeholder="New Delhi, India" />
+                            </div>
+                            <div className="vb-field-group">
+                              <label className="vb-label" style={{ fontSize: '0.68rem' }}>Subtitle / Note</label>
+                              <input className="vb-input" style={{ padding: '4px 8px', fontSize: '0.75rem' }} value={policySettings.contact_address_desc || ''} onChange={e => handlePolicySettingChange('contact_address_desc', e.target.value)} placeholder="Flagship botanic laboratory storefront." />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="vb-field-group">
+
+                      {/* Customer Care Hours */}
+                      <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <input
+                            type="checkbox"
+                            id="show_contact_hours"
+                            checked={policySettings.show_contact_hours !== 'false'}
+                            onChange={e => handlePolicySettingChange('show_contact_hours', e.target.checked ? 'true' : 'false')}
+                          />
+                          <label htmlFor="show_contact_hours" style={{ fontSize: '0.8rem', color: '#1e293b', fontWeight: 700, cursor: 'pointer' }}>
+                            Show Customer Care Hours
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Google Map Section */}
+                      <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <input
+                            type="checkbox"
+                            id="show_contact_map"
+                            checked={policySettings.show_contact_map !== 'false'}
+                            onChange={e => handlePolicySettingChange('show_contact_map', e.target.checked ? 'true' : 'false')}
+                          />
+                          <label htmlFor="show_contact_map" style={{ fontSize: '0.8rem', color: '#1e293b', fontWeight: 700, cursor: 'pointer' }}>
+                            Show Google Map
+                          </label>
+                        </div>
+                        {policySettings.show_contact_map !== 'false' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 16 }}>
+                            <div className="vb-field-group">
+                              <label className="vb-label" style={{ fontSize: '0.68rem' }}>Google Maps Embed URL (Iframe Src)</label>
+                              <input className="vb-input" style={{ padding: '4px 8px', fontSize: '0.75rem' }} value={policySettings.contact_map_url || ''} onChange={e => handlePolicySettingChange('contact_map_url', e.target.value)} placeholder="https://www.google.com/maps/embed?pb=..." />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Instagram Link */}
+                      <div className="vb-field-group" style={{ marginBottom: 12 }}>
                         <label className="vb-label">Instagram Link</label>
-                        <input className="vb-input" type="url" value={policySettings.social_instagram || ''} onChange={e => handlePolicySettingChange('social_instagram', e.target.value)} />
+                        <input className="vb-input" type="url" value={policySettings.social_instagram || ''} onChange={e => handlePolicySettingChange('social_instagram', e.target.value)} placeholder="https://instagram.com/account" />
                       </div>
                     </div>
                   )}
@@ -1486,7 +1671,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
               ) : selectedWidget ? (
                 <>
                   {/* Theme Colors */}
-                  {selectedPage && (
+                  {selectedPage && selectedWidget.type !== 'HERO_BANNER' && (
                     <div className="vb-field-section">
                       <div className="vb-field-group">
                         <label className="vb-label">Theme colors</label>
@@ -1508,12 +1693,14 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                   <WidgetSettingsForm
                     widget={selectedWidget}
                     categories={categories}
+                    allProducts={allProducts}
+                    pageSlug={selectedPage?.slug}
                     onChange={(updated) => {
                       if (!selectedPage) return;
                       handlePageChange({ ...selectedPage, widgets: selectedPage.widgets.map((w: any) => w.id === updated.id ? updated : w) as any });
                     }}
                   />
-                  {!selectedPage?.isReserved && (
+                  {(!selectedPage?.isReserved || selectedPage?.slug === 'index') && (
                     <button className="vb-del-widget-btn" onClick={() => deleteWidget(selectedWidget.id)}>
                       🗑️ Remove section
                     </button>
@@ -1523,7 +1710,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                 <>
                   {/* Theme Colors */}
                   {selectedPage && (
-                    <div className="vb-field-section" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '14px' }}>
+                    <div className="vb-field-section" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
                       <label className="vb-label" style={{ marginBottom: '8px', display: 'block' }}>Theme colors</label>
                       <div className="vb-color-row">
                         {(['primaryColor', 'secondaryColor', 'backgroundColor'] as const).map(key => (
@@ -1540,7 +1727,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                   )}
 
                   {/* Logo Customization */}
-                  <div className="vb-field-section" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '14px' }}>
+                  <div className="vb-field-section" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
                     <div className="vb-field-group">
                       <label className="vb-label">Store Logo Image URL</label>
                       <input 
@@ -1552,14 +1739,148 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                     </div>
                   </div>
 
+                  {selectedPage?.slug === 'index' && (
+                    <>
+                      {/* Announcement Bar Settings */}
+                      <div className="vb-field-section" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+                        <label className="vb-label" style={{ marginBottom: '8px', display: 'block' }}>Announcement Bar</label>
+                        <div className="vb-field-group" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                          <input type="checkbox" id="announcement_bar_active"
+                            checked={policySettings.announcement_bar_active !== 'false'}
+                            onChange={e => handlePolicySettingChange('announcement_bar_active', e.target.checked ? 'true' : 'false')}
+                          />
+                          <label htmlFor="announcement_bar_active" style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600, cursor: 'pointer' }}>Show Announcement Bar</label>
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">Announcement Text</label>
+                          <input className="vb-input"
+                            value={policySettings.announcement_bar || ''}
+                            onChange={e => handlePolicySettingChange('announcement_bar', e.target.value)}
+                            placeholder="🌿 FREE SHIPPING FOR ORDERS ABOVE..."
+                          />
+                        </div>
+                      </div>
+
+                      {/* Homepage About Us settings */}
+                      <div className="vb-field-section" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+                        <label className="vb-label" style={{ marginBottom: '8px', display: 'block' }}>Homepage About Us</label>
+                        <div className="vb-field-group">
+                          <label className="vb-label">About Us Title</label>
+                          <input className="vb-input"
+                            value={policySettings.about_title || ''}
+                            onChange={e => handlePolicySettingChange('about_title', e.target.value)}
+                            placeholder="About Us"
+                          />
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">Tagline</label>
+                          <input className="vb-input"
+                            value={policySettings.about_tagline || ''}
+                            onChange={e => handlePolicySettingChange('about_tagline', e.target.value)}
+                            placeholder="Live Healthy. Stay Beautiful."
+                          />
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">Story / Description</label>
+                          <textarea className="vb-textarea" rows={4}
+                            value={policySettings.about_content || ''}
+                            onChange={e => handlePolicySettingChange('about_content', e.target.value)}
+                            placeholder="Enter story details..."
+                          />
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">Value: 100% Natural Description</label>
+                          <input className="vb-input"
+                            value={policySettings.value_quality || ''}
+                            onChange={e => handlePolicySettingChange('value_quality', e.target.value)}
+                          />
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">Value: Chemical Free Description</label>
+                          <input className="vb-input"
+                            value={policySettings.value_care || ''}
+                            onChange={e => handlePolicySettingChange('value_care', e.target.value)}
+                          />
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">Value: Women Empowerment Description</label>
+                          <input className="vb-input"
+                            value={policySettings.value_empowerment || policySettings.value_security || ''}
+                            onChange={e => handlePolicySettingChange('value_empowerment', e.target.value)}
+                          />
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">Value: Fast Delivery Description</label>
+                          <input className="vb-input"
+                            value={policySettings.value_delivery || ''}
+                            onChange={e => handlePolicySettingChange('value_delivery', e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Homepage CTA Banner settings */}
+                      <div className="vb-field-section" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+                        <label className="vb-label" style={{ marginBottom: '8px', display: 'block' }}>Homepage CTA Banner</label>
+                        <div className="vb-field-group">
+                          <label className="vb-label">CTA Title</label>
+                          <input className="vb-input"
+                            value={policySettings.cta_title || ''}
+                            onChange={e => handlePolicySettingChange('cta_title', e.target.value)}
+                            placeholder="Start your wellness journey today"
+                          />
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">CTA Subtitle</label>
+                          <textarea className="vb-textarea" rows={3}
+                            value={policySettings.cta_subtitle || ''}
+                            onChange={e => handlePolicySettingChange('cta_subtitle', e.target.value)}
+                            placeholder="Join thousands of happy customers..."
+                          />
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">Primary Button Label</label>
+                          <input className="vb-input"
+                            value={policySettings.cta_btn1_text || ''}
+                            onChange={e => handlePolicySettingChange('cta_btn1_text', e.target.value)}
+                            placeholder="Shop All Products"
+                          />
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">Primary Button Link</label>
+                          <input className="vb-input"
+                            value={policySettings.cta_btn1_link || ''}
+                            onChange={e => handlePolicySettingChange('cta_btn1_link', e.target.value)}
+                            placeholder="/products"
+                          />
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">Secondary Button Label</label>
+                          <input className="vb-input"
+                            value={policySettings.cta_btn2_text || ''}
+                            onChange={e => handlePolicySettingChange('cta_btn2_text', e.target.value)}
+                            placeholder="Our Story"
+                          />
+                        </div>
+                        <div className="vb-field-group">
+                          <label className="vb-label">Secondary Button Link</label>
+                          <input className="vb-input"
+                            value={policySettings.cta_btn2_link || ''}
+                            onChange={e => handlePolicySettingChange('cta_btn2_link', e.target.value)}
+                            placeholder="/about"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
                   {/* Navbar Menu Customization */}
-                  <div className="vb-field-section" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '14px' }}>
+                  <div className="vb-field-section" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
                     <label className="vb-label" style={{ marginBottom: '10px', display: 'block' }}>Navbar Menu Links</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
                       {navbarMenu.map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#0f172a', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', gap: '6px' }}>
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', gap: '6px' }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <strong style={{ fontSize: '0.75rem', color: '#e2e8f0', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</strong>
+                            <strong style={{ fontSize: '0.75rem', color: '#1e293b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</strong>
                             <span style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.url}</span>
                           </div>
                           <div style={{ display: 'flex', gap: '4px' }}>
@@ -1571,7 +1892,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                       ))}
                     </div>
                     {/* Add Nav Item form */}
-                    <div style={{ background: '#0f172a', padding: '10px', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <input 
                         className="vb-input" 
                         style={{ fontSize: '0.75rem', padding: '4px 8px' }} 
@@ -1589,7 +1910,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                       <button 
                         type="button" 
                         onClick={handleAddNavItem}
-                        style={{ background: '#38bdf8', color: '#0f172a', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                        style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
                       >
                         + Add Navbar Link
                       </button>
@@ -1601,9 +1922,9 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                     <label className="vb-label" style={{ marginBottom: '10px', display: 'block' }}>Footer Menu Links</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
                       {footerMenu.map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#0f172a', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', gap: '6px' }}>
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', gap: '6px' }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <strong style={{ fontSize: '0.75rem', color: '#e2e8f0', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</strong>
+                            <strong style={{ fontSize: '0.75rem', color: '#1e293b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</strong>
                             <span style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.url}</span>
                           </div>
                           <div style={{ display: 'flex', gap: '4px' }}>
@@ -1615,7 +1936,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                       ))}
                     </div>
                     {/* Add Footer Item form */}
-                    <div style={{ background: '#0f172a', padding: '10px', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <input 
                         className="vb-input" 
                         style={{ fontSize: '0.75rem', padding: '4px 8px' }} 
@@ -1633,7 +1954,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                       <button 
                         type="button" 
                         onClick={handleAddFootItem}
-                        style={{ background: '#38bdf8', color: '#0f172a', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                        style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
                       >
                         + Add Footer Link
                       </button>
@@ -1669,42 +1990,371 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
 const WidgetSettingsForm: React.FC<{
   widget: WidgetLayout;
   categories: any[];
+  allProducts: any[];
+  pageSlug?: string;
   onChange: (w: WidgetLayout) => void;
-}> = ({ widget, categories, onChange }) => {
+}> = ({ widget, categories, allProducts, pageSlug, onChange }) => {
   const updateContent = (key: string, value: any) => {
     onChange({ ...widget, content: { ...(widget.content as any), [key]: value } } as any);
   };
 
   if (widget.type === 'HERO_BANNER') {
     const c = widget.content as any;
+    
+    // Fallback to legacy single slide content
+    const slides = c.slides && c.slides.length > 0 ? c.slides : [
+      {
+        title: c.title || '',
+        subtitle: c.subtitle || '',
+        backgroundImageUrl: c.backgroundImageUrl || '',
+        buttonText: c.buttonText || '',
+        buttonLink: c.buttonLink || '',
+        textAlign: c.textAlign || 'center',
+      }
+    ];
+
+    const updateSlideField = (idx: number, key: string, val: any) => {
+      const newSlides = [...slides];
+      newSlides[idx] = { ...newSlides[idx], [key]: val };
+      onChange({ ...widget, content: { ...c, slides: newSlides } });
+    };
+
+    if (pageSlug === 'products' || pageSlug === 'category' || pageSlug === 'contact') {
+      const slide = slides[0] || {};
+      const hasBg = !!slide.backgroundImageUrl;
+      
+      const getPageName = () => {
+        if (pageSlug === 'products') return 'Shop / Product Listing';
+        if (pageSlug === 'category') return 'Categories';
+        return 'Contact Us';
+      };
+
+      const getPlaceholderTitle = () => {
+        if (pageSlug === 'products') return 'Shop / Product Listing';
+        if (pageSlug === 'category') return 'Product Categories';
+        return 'Get in Touch';
+      };
+
+      const getPlaceholderSub = () => {
+        if (pageSlug === 'products') return 'Welcome to our shop / product listing page.';
+        if (pageSlug === 'category') return 'Explore our curated collections';
+        return 'Have questions about our botanical skincare? Our support team is here to assist you.';
+      };
+
+      return (
+        <div className="vb-field-section">
+          <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 16px', lineHeight: 1.5 }}>
+            Update the banner heading, description, and background photo for the {getPageName()} page.
+          </p>
+          <div className="vb-field-group">
+            <label className="vb-label">Banner Heading</label>
+            <input
+              className="vb-input"
+              value={slide.title || ''}
+              onChange={e => updateSlideField(0, 'title', e.target.value)}
+              placeholder={getPlaceholderTitle()}
+            />
+          </div>
+          <div className="vb-field-group">
+            <label className="vb-label">Subheading / Description</label>
+            <textarea
+              className="vb-textarea"
+              rows={3}
+              value={slide.subtitle || ''}
+              onChange={e => updateSlideField(0, 'subtitle', e.target.value)}
+              placeholder={getPlaceholderSub()}
+            />
+          </div>
+          <div className="vb-field-group">
+            <label className="vb-label">Background / Product Image URL</label>
+            <input
+              className="vb-input"
+              value={slide.backgroundImageUrl || ''}
+              onChange={e => updateSlideField(0, 'backgroundImageUrl', e.target.value)}
+              placeholder="https://images.unsplash.com/..."
+            />
+            {hasBg && (
+              <div style={{ marginTop: 12, borderRadius: 8, overflow: 'hidden', maxHeight: 120, border: '1px solid #cbd5e1' }}>
+                <img src={slide.backgroundImageUrl} alt="Preview" style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+
+
+
+    const addSlide = () => {
+      const newSlides = [...slides, {
+        title: 'New Slide Heading',
+        subtitle: 'New slide description',
+        backgroundImageUrl: '',
+        buttonText: 'Shop Now',
+        buttonLink: '/products',
+        textAlign: 'center',
+      }];
+      onChange({ ...widget, content: { ...c, slides: newSlides } });
+    };
+
+    const deleteSlide = (idx: number) => {
+      if (slides.length <= 1) return;
+      const newSlides = slides.filter((_: any, i: number) => i !== idx);
+      onChange({ ...widget, content: { ...c, slides: newSlides } });
+    };
+
+    const moveSlide = (idx: number, dir: 'up' | 'down') => {
+      const newSlides = [...slides];
+      const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= newSlides.length) return;
+      const [moved] = newSlides.splice(idx, 1);
+      newSlides.splice(targetIdx, 0, moved);
+      onChange({ ...widget, content: { ...c, slides: newSlides } });
+    };
+
     return (
       <>
+        {/* ── Global Autoplay Speed & Overlay ── */}
         <div className="vb-field-section">
+          <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '0 0 14px', lineHeight: 1.5 }}>
+            Configure transition slide interval, image overlays, and edit details per banner slide.
+          </p>
           <div className="vb-field-group">
-            <label className="vb-label">Heading</label>
-            <input className="vb-input" value={c.title || ''} onChange={e => updateContent('title', e.target.value)} placeholder="Main headline..." />
+            <label className="vb-label">Autoplay Interval (Seconds)</label>
+            <select
+              className="vb-select"
+              value={c.autoplaySpeed || '3'}
+              onChange={e => onChange({ ...widget, content: { ...c, autoplaySpeed: e.target.value } })}
+            >
+              <option value="2">2 Seconds</option>
+              <option value="3">3 Seconds (Default)</option>
+              <option value="4">4 Seconds</option>
+              <option value="5">5 Seconds</option>
+            </select>
           </div>
           <div className="vb-field-group">
-            <label className="vb-label">Subheading</label>
-            <input className="vb-input" value={c.subtitle || ''} onChange={e => updateContent('subtitle', e.target.value)} placeholder="Supporting text..." />
+            <label className="vb-label">Overlay Color (for all image banners)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="color"
+                className="vb-color-input"
+                value={c.overlayColor || '#000000'}
+                onChange={e => onChange({ ...widget, content: { ...c, overlayColor: e.target.value } })}
+              />
+              <input
+                type="range" min={0} max={90} step={5}
+                value={parseInt(c.overlayOpacity || '50')}
+                onChange={e => onChange({ ...widget, content: { ...c, overlayOpacity: e.target.value } })}
+                style={{ flex: 1, accentColor: '#0284c7' }}
+              />
+              <span style={{ fontSize: '0.72rem', color: '#475569', minWidth: 30 }}>{c.overlayOpacity || '50'}%</span>
+            </div>
           </div>
         </div>
-        <div className="vb-field-section">
-          <div className="vb-field-group">
-            <label className="vb-label">Background image URL</label>
-            <input className="vb-input" value={c.backgroundImageUrl || ''} onChange={e => updateContent('backgroundImageUrl', e.target.value)} placeholder="https://images.unsplash.com/..." />
-          </div>
-        </div>
-        <div className="vb-field-section">
-          <div className="vb-field-group">
-            <label className="vb-label">Button label</label>
-            <input className="vb-input" value={c.buttonText || ''} onChange={e => updateContent('buttonText', e.target.value)} placeholder="Shop Now" />
-          </div>
-          <div className="vb-field-group">
-            <label className="vb-label">Button link</label>
-            <input className="vb-input" value={c.buttonLink || ''} onChange={e => updateContent('buttonLink', e.target.value)} placeholder="/products" />
-          </div>
-        </div>
+
+        {/* ── Slides List ── */}
+        {slides.map((slide: any, idx: number) => {
+          const hasBg = !!slide.backgroundImageUrl;
+          return (
+            <div key={idx} className="vb-field-section" style={{ borderBottom: '2.5px solid #cbd5e1', paddingBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>Slide {idx + 1}</span>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button type="button" onClick={() => moveSlide(idx, 'up')} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }} title="Move Up">▲</button>
+                  <button type="button" onClick={() => moveSlide(idx, 'down')} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }} title="Move Down">▼</button>
+                  <button type="button" onClick={() => deleteSlide(idx)} disabled={slides.length <= 1} style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px', opacity: slides.length <= 1 ? 0.5 : 1 }} title="Delete Slide">✕</button>
+                </div>
+              </div>
+
+              <div className="vb-field-group">
+                <label className="vb-label">Layout Style</label>
+                <select
+                  className="vb-select"
+                  value={slide.layout || 'default'}
+                  onChange={e => updateSlideField(idx, 'layout', e.target.value)}
+                >
+                  <option value="default">Default (Full Image / Gradient)</option>
+                  <option value="split_product">Split Screen (Product Focus)</option>
+                </select>
+              </div>
+
+              {slide.layout === 'split_product' && (
+                <>
+                  <div className="vb-field-group">
+                    <label className="vb-label">Slide Background Color</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input
+                        type="color"
+                        className="vb-color-input"
+                        value={slide.slideBgColor || '#e2eee5'}
+                        onChange={e => updateSlideField(idx, 'slideBgColor', e.target.value)}
+                      />
+                      <input
+                        className="vb-input"
+                        value={slide.slideBgColor || '#e2eee5'}
+                        onChange={e => updateSlideField(idx, 'slideBgColor', e.target.value)}
+                        placeholder="#e2eee5"
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+                  </div>
+                  <div className="vb-field-group">
+                    <label className="vb-label">Headline/Border Text Color</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input
+                        type="color"
+                        className="vb-color-input"
+                        value={slide.textColor || '#1b4332'}
+                        onChange={e => updateSlideField(idx, 'textColor', e.target.value)}
+                      />
+                      <input
+                        className="vb-input"
+                        value={slide.textColor || '#1b4332'}
+                        onChange={e => updateSlideField(idx, 'textColor', e.target.value)}
+                        placeholder="#1b4332"
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="vb-field-group">
+                <label className="vb-label">Banner Heading</label>
+                <input className="vb-input" value={slide.title || ''} onChange={e => updateSlideField(idx, 'title', e.target.value)} placeholder="Headline..." />
+              </div>
+              <div className="vb-field-group">
+                <label className="vb-label">Subheading / Description</label>
+                <textarea className="vb-textarea" rows={3} value={slide.subtitle || ''} onChange={e => updateSlideField(idx, 'subtitle', e.target.value)} placeholder="Description..." />
+              </div>
+              <div className="vb-field-group">
+                <label className="vb-label">Background / Product Image URL</label>
+                <input
+                  className="vb-input"
+                  value={slide.backgroundImageUrl || ''}
+                  onChange={e => updateSlideField(idx, 'backgroundImageUrl', e.target.value)}
+                  placeholder="https://images.unsplash.com/..."
+                />
+                {hasBg && (
+                  <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', maxHeight: 80, border: '1px solid #cbd5e1' }}>
+                    <img src={slide.backgroundImageUrl} alt="Preview" style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} />
+                  </div>
+                )}
+              </div>
+              <div className="vb-field-group">
+                <label className="vb-label">Button Label</label>
+                <input className="vb-input" value={slide.buttonText || ''} onChange={e => updateSlideField(idx, 'buttonText', e.target.value)} placeholder="Button label..." />
+              </div>
+              <div className="vb-field-group">
+                <label className="vb-label">Button Link</label>
+                <input className="vb-input" value={slide.buttonLink || ''} onChange={e => updateSlideField(idx, 'buttonLink', e.target.value)} placeholder="/products..." />
+              </div>
+
+              {slide.layout !== 'split_product' && (
+                <>
+                  <div className="vb-field-group">
+                    <label className="vb-label">Text Alignment</label>
+                    <select className="vb-select" value={slide.textAlign || 'center'} onChange={e => updateSlideField(idx, 'textAlign', e.target.value)}>
+                      <option value="center">Center</option>
+                      <option value="left">Left</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </div>
+                  <div className="vb-field-group" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14 }}>
+                    <input
+                      type="checkbox"
+                      id={`showTextCard-${idx}`}
+                      checked={slide.showTextCard !== undefined ? !!slide.showTextCard : !!slide.showTextBlur}
+                      onChange={e => {
+                        updateSlideField(idx, 'showTextCard', e.target.checked);
+                        updateSlideField(idx, 'showTextBlur', e.target.checked); // sync for backward compatibility
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <label htmlFor={`showTextCard-${idx}`} style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
+                      Show Text Background Card
+                    </label>
+                  </div>
+
+                  {(slide.showTextCard !== undefined ? !!slide.showTextCard : !!slide.showTextBlur) && (
+                    <div style={{ marginLeft: 16, marginTop: 12, paddingLeft: 12, borderLeft: '2px solid #0284c7', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div className="vb-field-group">
+                        <label className="vb-label" style={{ fontSize: '0.65rem' }}>Card Theme</label>
+                        <select
+                          className="vb-select"
+                          value={slide.textCardTheme || 'light'}
+                          onChange={e => updateSlideField(idx, 'textCardTheme', e.target.value)}
+                        >
+                          <option value="light">Light Theme (Glass / White)</option>
+                          <option value="dark">Dark Theme (Glass / Black)</option>
+                        </select>
+                      </div>
+
+                      <div className="vb-field-group">
+                        <label className="vb-label" style={{ fontSize: '0.65rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Card Opacity</span>
+                          <strong>{slide.textCardOpacity !== undefined ? slide.textCardOpacity : (slide.textCardTheme === 'dark' ? '45' : '15')}%</strong>
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="5"
+                          value={slide.textCardOpacity !== undefined ? slide.textCardOpacity : (slide.textCardTheme === 'dark' ? '45' : '15')}
+                          onChange={e => updateSlideField(idx, 'textCardOpacity', e.target.value)}
+                          style={{ width: '100%', accentColor: '#0284c7' }}
+                        />
+                      </div>
+
+                      <div className="vb-field-group">
+                        <label className="vb-label" style={{ fontSize: '0.65rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Blur Intensity</span>
+                          <strong>{slide.textCardBlur !== undefined ? slide.textCardBlur : '12'}px</strong>
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="40"
+                          step="1"
+                          value={slide.textCardBlur !== undefined ? slide.textCardBlur : '12'}
+                          onChange={e => updateSlideField(idx, 'textCardBlur', e.target.value)}
+                          style={{ width: '100%', accentColor: '#0284c7' }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={addSlide}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: 'rgba(2,132,199,0.05)',
+            border: '1px dashed #0284c7',
+            color: '#0284c7',
+            borderRadius: '8px',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            marginTop: '12px',
+            marginBottom: '12px',
+          }}
+        >
+          ➕ Add Another Slide
+        </button>
       </>
     );
   }
@@ -1750,6 +2400,419 @@ const WidgetSettingsForm: React.FC<{
           <div className="vb-field-group">
             <label className="vb-label">Content</label>
             <textarea className="vb-textarea" rows={8} value={c.body || ''} onChange={e => updateContent('body', e.target.value)} placeholder="<p>Your content here...</p>" />
+          </div>
+        </div>
+        <div className="vb-field-section">
+          <div className="vb-field-group">
+            <label className="vb-label">Photo / Image URL</label>
+            <input className="vb-input" value={c.imageUrl || ''} onChange={e => updateContent('imageUrl', e.target.value)} placeholder="https://images.unsplash.com/..." />
+          </div>
+          <div className="vb-field-group">
+            <label className="vb-label">Photo Position</label>
+            <select className="vb-select" value={c.imagePosition || 'none'} onChange={e => updateContent('imagePosition', e.target.value)}>
+              <option value="none">No Photo (Text Only)</option>
+              <option value="left">Left of Text</option>
+              <option value="right">Right of Text</option>
+              <option value="top">Top (Above Text)</option>
+            </select>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (widget.type === 'PROMO_GRID') {
+    const c = widget.content as any;
+    const cards = c.cards || [];
+
+    const updateCardField = (idx: number, key: string, val: any) => {
+      const newCards = [...cards];
+      newCards[idx] = { ...newCards[idx], [key]: val };
+      onChange({ ...widget, content: { ...c, cards: newCards } });
+    };
+
+    const addCard = () => {
+      const newCards = [...cards, {
+        title: 'New Promo Card',
+        subtitle: 'Shop Now',
+        backgroundImageUrl: '',
+        buttonText: 'Shop Now',
+        buttonLink: '/products',
+        bgColor: '#f1f5f9',
+        textColor: '#0f172a',
+        imgPosition: 'right',
+      }];
+      onChange({ ...widget, content: { ...c, cards: newCards } });
+    };
+
+    const deleteCard = (idx: number) => {
+      if (cards.length <= 1) return;
+      const newCards = cards.filter((_: any, i: number) => i !== idx);
+      onChange({ ...widget, content: { ...c, cards: newCards } });
+    };
+
+    const moveCard = (idx: number, dir: 'up' | 'down') => {
+      const newCards = [...cards];
+      const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= newCards.length) return;
+      const [moved] = newCards.splice(idx, 1);
+      newCards.splice(targetIdx, 0, moved);
+      onChange({ ...widget, content: { ...c, cards: newCards } });
+    };
+
+    return (
+      <>
+        {/* Title & Subtitle */}
+        <div className="vb-field-section">
+          <div className="vb-field-group">
+            <label className="vb-label">Grid Section Title</label>
+            <input className="vb-input" value={c.title || ''} onChange={e => updateContent('title', e.target.value)} placeholder="e.g. Deals You Can't Miss..." />
+          </div>
+          <div className="vb-field-group">
+            <label className="vb-label">Grid Section Subtitle</label>
+            <input className="vb-input" value={c.subtitle || ''} onChange={e => updateContent('subtitle', e.target.value)} placeholder="Subtitle..." />
+          </div>
+          <div className="vb-field-group">
+            <label className="vb-label">Grid Layout Preset</label>
+            <select className="vb-select" value={c.layout || '3-columns'} onChange={e => updateContent('layout', e.target.value)}>
+              <option value="3-columns">3 Columns Grid (Equal Columns)</option>
+              <option value="2-columns">2 Columns Grid (Equal Columns)</option>
+              <option value="asymmetric-3-box">Asymmetric 3-Box (2 Small + 1 Wide Bottom)</option>
+              <option value="asymmetric-4-box">Asymmetric 4-Box (1 Tall Left + 2 Top Right + 1 Wide Bottom)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Promo Cards List */}
+        {cards.map((card: any, idx: number) => (
+          <div key={idx} className="vb-field-section" style={{ borderBottom: '2.5px solid #cbd5e1', paddingBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>Card {idx + 1}</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button type="button" onClick={() => moveCard(idx, 'up')} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }} title="Move Up">▲</button>
+                <button type="button" onClick={() => moveCard(idx, 'down')} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }} title="Move Down">▼</button>
+                <button type="button" onClick={() => deleteCard(idx)} disabled={cards.length <= 1} style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px', opacity: cards.length <= 1 ? 0.5 : 1 }} title="Delete Card">✕</button>
+              </div>
+            </div>
+
+            <div className="vb-field-group">
+              <label className="vb-label">Card Title</label>
+              <input className="vb-input" value={card.title || ''} onChange={e => updateCardField(idx, 'title', e.target.value)} placeholder="Title..." />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Card Subtitle / Description</label>
+              <input className="vb-input" value={card.subtitle || ''} onChange={e => updateCardField(idx, 'subtitle', e.target.value)} placeholder="Subtitle..." />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Image URL</label>
+              <input className="vb-input" value={card.backgroundImageUrl || ''} onChange={e => updateCardField(idx, 'backgroundImageUrl', e.target.value)} placeholder="https://images.unsplash.com/..." />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Image Layout / Position</label>
+              <select className="vb-select" value={card.imgPosition || 'right'} onChange={e => updateCardField(idx, 'imgPosition', e.target.value)}>
+                <option value="right">Right Side (Text on Left)</option>
+                <option value="left">Left Side (Text on Right)</option>
+                <option value="background">Background Image Overlay</option>
+              </select>
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Button Label</label>
+              <input className="vb-input" value={card.buttonText || ''} onChange={e => updateCardField(idx, 'buttonText', e.target.value)} placeholder="e.g. SHOP NOW" />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Button Link URL</label>
+              <input className="vb-input" value={card.buttonLink || ''} onChange={e => updateCardField(idx, 'buttonLink', e.target.value)} placeholder="/products..." />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Background Color</label>
+              <input className="vb-input" type="color" value={card.bgColor || '#f1f5f9'} onChange={e => updateCardField(idx, 'bgColor', e.target.value)} />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Text Color</label>
+              <input className="vb-input" type="color" value={card.textColor || '#0f172a'} onChange={e => updateCardField(idx, 'textColor', e.target.value)} />
+            </div>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={addCard}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: 'rgba(2,132,199,0.05)',
+            border: '1px dashed #0284c7',
+            color: '#0284c7',
+            borderRadius: '8px',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            marginTop: '12px',
+            marginBottom: '12px',
+          }}
+        >
+          ➕ Add Another Card
+        </button>
+      </>
+    );
+  }
+
+  if (widget.type === 'TESTIMONIALS') {
+    const c = widget.content as any;
+    const testimonials = c.testimonials || [];
+
+    const updateTestimonialField = (idx: number, key: string, val: any) => {
+      const updated = [...testimonials];
+      updated[idx] = { ...updated[idx], [key]: val };
+      onChange({ ...widget, content: { ...c, testimonials: updated } });
+    };
+
+    const addTestimonial = () => {
+      const updated = [...testimonials, {
+        id: `t-${Date.now()}`,
+        name: 'Jane Doe',
+        role: 'Verified Buyer',
+        rating: 5,
+        text: 'Wonderful experience with these organic products! Highly recommend to everyone.',
+        avatarUrl: '',
+        date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      }];
+      onChange({ ...widget, content: { ...c, testimonials: updated } });
+    };
+
+    const deleteTestimonial = (idx: number) => {
+      const updated = testimonials.filter((_: any, i: number) => i !== idx);
+      onChange({ ...widget, content: { ...c, testimonials: updated } });
+    };
+
+    const moveTestimonial = (idx: number, dir: 'up' | 'down') => {
+      const updated = [...testimonials];
+      const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= updated.length) return;
+      const [moved] = updated.splice(idx, 1);
+      updated.splice(targetIdx, 0, moved);
+      onChange({ ...widget, content: { ...c, testimonials: updated } });
+    };
+
+    return (
+      <>
+        {/* Title & Subtitle */}
+        <div className="vb-field-section">
+          <div className="vb-field-group">
+            <label className="vb-label">Section Title</label>
+            <input className="vb-input" value={c.title || ''} onChange={e => updateContent('title', e.target.value)} placeholder="e.g. What Our Customers Say" />
+          </div>
+          <div className="vb-field-group">
+            <label className="vb-label">Section Subtitle</label>
+            <input className="vb-input" value={c.subtitle || ''} onChange={e => updateContent('subtitle', e.target.value)} placeholder="e.g. Real feedback from real customers" />
+          </div>
+        </div>
+
+        {/* Testimonials List */}
+        {testimonials.map((item: any, idx: number) => (
+          <div key={item.id || idx} className="vb-field-section" style={{ borderBottom: '2.5px solid #cbd5e1', paddingBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>Review {idx + 1}</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button type="button" onClick={() => moveTestimonial(idx, 'up')} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }} title="Move Up">▲</button>
+                <button type="button" onClick={() => moveTestimonial(idx, 'down')} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }} title="Move Down">▼</button>
+                <button type="button" onClick={() => deleteTestimonial(idx)} style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }} title="Delete Review">✕</button>
+              </div>
+            </div>
+
+            <div className="vb-field-group">
+              <label className="vb-label">Reviewer Name</label>
+              <input className="vb-input" value={item.name || ''} onChange={e => updateTestimonialField(idx, 'name', e.target.value)} placeholder="Reviewer Name" />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Reviewer Role / Info</label>
+              <input className="vb-input" value={item.role || ''} onChange={e => updateTestimonialField(idx, 'role', e.target.value)} placeholder="e.g. Verified Buyer" />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Review Date</label>
+              <input className="vb-input" value={item.date || ''} onChange={e => updateTestimonialField(idx, 'date', e.target.value)} placeholder="e.g. June 10, 2026" />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Rating (Stars)</label>
+              <select className="vb-select" value={item.rating || 5} onChange={e => updateTestimonialField(idx, 'rating', parseInt(e.target.value) || 5)}>
+                <option value={5}>5 Stars</option>
+                <option value={4}>4 Stars</option>
+                <option value={3}>3 Stars</option>
+                <option value={2}>2 Stars</option>
+                <option value={1}>1 Star</option>
+              </select>
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Review Comment</label>
+              <textarea className="vb-textarea" rows={4} value={item.text || ''} onChange={e => updateTestimonialField(idx, 'text', e.target.value)} placeholder="Comment details..." />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Avatar Image URL</label>
+              <input className="vb-input" value={item.avatarUrl || ''} onChange={e => updateTestimonialField(idx, 'avatarUrl', e.target.value)} placeholder="https://images.unsplash.com/..." />
+            </div>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={addTestimonial}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: 'rgba(2,132,199,0.05)',
+            border: '1px dashed #0284c7',
+            color: '#0284c7',
+            borderRadius: '8px',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            marginTop: '12px',
+            marginBottom: '12px',
+          }}
+        >
+          ➕ Add Another Review
+        </button>
+      </>
+    );
+  }
+
+  if (widget.type === 'BEST_SELLERS') {
+    const c = widget.content as any;
+    const selectedIds = c.productIds || [];
+
+    const addProduct = () => {
+      const firstId = allProducts?.[0]?.id || '';
+      onChange({ ...widget, content: { ...c, productIds: [...selectedIds, firstId] } });
+    };
+
+    const updateProductAt = (idx: number, id: string) => {
+      const updated = [...selectedIds];
+      updated[idx] = id;
+      onChange({ ...widget, content: { ...c, productIds: updated } });
+    };
+
+    const removeProductAt = (idx: number) => {
+      const updated = selectedIds.filter((_: any, i: number) => i !== idx);
+      onChange({ ...widget, content: { ...c, productIds: updated } });
+    };
+
+    const moveProductAt = (idx: number, dir: 'up' | 'down') => {
+      const updated = [...selectedIds];
+      const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= updated.length) return;
+      const [moved] = updated.splice(idx, 1);
+      updated.splice(targetIdx, 0, moved);
+      onChange({ ...widget, content: { ...c, productIds: updated } });
+    };
+
+    return (
+      <>
+        {/* Title & Subtitle */}
+        <div className="vb-field-section">
+          <div className="vb-field-group">
+            <label className="vb-label">Section Title</label>
+            <input className="vb-input" value={c.title || ''} onChange={e => updateContent('title', e.target.value)} placeholder="e.g. Best Sellers" />
+          </div>
+          <div className="vb-field-group">
+            <label className="vb-label">Section Subtitle</label>
+            <input className="vb-input" value={c.subtitle || ''} onChange={e => updateContent('subtitle', e.target.value)} placeholder="e.g. Our most popular organic products" />
+          </div>
+        </div>
+
+        {/* Selected Products List */}
+        <div className="vb-field-section">
+          <label className="vb-label" style={{ marginBottom: '10px', display: 'block' }}>Best Seller Products</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+            {selectedIds.map((prodId: string, idx: number) => (
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', gap: '6px' }}>
+                <select
+                  className="vb-select"
+                  style={{ flex: 1, padding: '4px 8px', fontSize: '0.78rem' }}
+                  value={prodId}
+                  onChange={e => updateProductAt(idx, e.target.value)}
+                >
+                  <option value="">— Select Product —</option>
+                  {allProducts.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button type="button" onClick={() => moveProductAt(idx, 'up')} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }} title="Move Up">▲</button>
+                  <button type="button" onClick={() => moveProductAt(idx, 'down')} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }} title="Move Down">▼</button>
+                  <button type="button" onClick={() => removeProductAt(idx)} style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }} title="Remove">✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={addProduct}
+            style={{
+              width: '100%',
+              padding: '8px',
+              background: 'rgba(2,132,199,0.05)',
+              border: '1px dashed #0284c7',
+              color: '#0284c7',
+              borderRadius: '8px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            ➕ Add Product
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  if (widget.type === 'CATEGORIES_LIST') {
+    const c = widget.content as any;
+    return (
+      <>
+        {/* Title & Subtitle */}
+        <div className="vb-field-section">
+          <div className="vb-field-group">
+            <label className="vb-label">Section Title</label>
+            <input className="vb-input" value={c.title || ''} onChange={e => updateContent('title', e.target.value)} placeholder="e.g. Product Categories" />
+          </div>
+          <div className="vb-field-group">
+            <label className="vb-label">Section Subtitle</label>
+            <input className="vb-input" value={c.subtitle || ''} onChange={e => updateContent('subtitle', e.target.value)} placeholder="e.g. Explore our curated collections" />
+          </div>
+        </div>
+
+        {/* View All Button Toggle */}
+        <div className="vb-field-section">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input 
+              type="checkbox" 
+              id="showViewAll" 
+              checked={c.showViewAll !== false} 
+              onChange={e => updateContent('showViewAll', e.target.checked)} 
+            />
+            <label htmlFor="showViewAll" style={{ fontSize: '0.8rem', color: '#202223', cursor: 'pointer', userSelect: 'none' }}>
+              Show "View All" Button
+            </label>
           </div>
         </div>
       </>

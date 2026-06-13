@@ -275,7 +275,7 @@ export const Checkout: React.FC = () => {
                 {cartItems.map((item) => (
                   <div key={item.variantId} className="checkout-item-row">
                     <div className="checkout-item-image-wrapper">
-                      <img src={item.imageUrl} alt={item.name} className="checkout-item-image" />
+                      <img src={item.imageUrl || 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=200'} alt={item.name} className="checkout-item-image" />
                     </div>
                     <div className="checkout-item-info">
                       <h4 className="checkout-item-name">{item.name}</h4>

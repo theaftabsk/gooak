@@ -372,12 +372,6 @@ export const PagesPage: React.FC<Props> = ({ shopInfo }) => {
                 ))}
               </select>
 
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition"
-              >
-                + Create New Page
-              </button>
             </div>
 
             {selectedPage && (
@@ -386,13 +380,6 @@ export const PagesPage: React.FC<Props> = ({ shopInfo }) => {
                   URL: <a href={builderPreviewUrl} target="_blank" rel="noreferrer" className="text-emerald-600 hover:underline">{selectedPage.slug === 'index' ? '/' : `/pages/${selectedPage.slug}`}</a>
                 </span>
                 
-                <button 
-                  onClick={() => handleDeleteCustomPage(selectedPage.id)}
-                  className="px-3 py-1.5 border border-red-200 text-red-500 hover:bg-red-50 font-bold text-xs rounded-lg transition"
-                >
-                  Delete Page
-                </button>
-
                 <button 
                   onClick={handleSaveCustomLayout}
                   className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-lg transition"
@@ -442,66 +429,14 @@ export const PagesPage: React.FC<Props> = ({ shopInfo }) => {
           ) : (
             <div className="flex flex-col items-center justify-center p-20 text-center bg-white border border-slate-200 rounded-xl shadow-sm">
               <span className="text-4xl mb-4">🎨</span>
-              <h3 className="font-bold text-slate-800 text-lg mb-1">Create or Select a Page to Begin</h3>
-              <p className="text-slate-400 text-sm max-w-sm mb-6">Create dynamic layouts for your landing pages, seasonal collections, or promotions and verify edits in real-time.</p>
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className="px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-lg shadow hover:bg-emerald-700 transition"
-              >
-                + Create Your First Page
-              </button>
+              <h3 className="font-bold text-slate-800 text-lg mb-1">Select a Page to Begin</h3>
+              <p className="text-slate-400 text-sm max-w-sm mb-2">Select a page layout from the list to begin editing real-time details.</p>
             </div>
           )}
         </div>
       )}
 
-      <Modal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        title="Create Custom Storefront Page"
-      >
-        <form onSubmit={handleCreatePage} className="flex flex-col gap-4 text-xs">
-          <div className="flex flex-col gap-1.5">
-            <label className="font-semibold text-slate-600">Page Display Title</label>
-            <input 
-              type="text" 
-              value={newPageTitle}
-              onChange={(e) => {
-                setNewPageTitle(e.target.value);
-                // Generate basic slug automatically
-                if (!newPageSlug) {
-                  setNewPageSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-                }
-              }}
-              placeholder="e.g. Summer Promo, Skincare Secrets"
-              className="p-2.5 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-sm bg-slate-50"
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="font-semibold text-slate-600">URL path slug (e.g. /pages/summer-promo)</label>
-            <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
-              <span className="p-2.5 text-slate-400 select-none bg-slate-100 border-r border-slate-200 text-xs">/pages/</span>
-              <input 
-                type="text" 
-                value={newPageSlug}
-                onChange={(e) => setNewPageSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
-                placeholder="summer-promo"
-                className="p-2.5 outline-none flex-1 focus:bg-white text-sm"
-                required
-              />
-            </div>
-            <span className="text-[10px] text-slate-400">Use `index` to customize the storefront default homepage (`/`).</span>
-          </div>
-          <button 
-            type="submit" 
-            className="mt-3 w-full py-3 bg-emerald-600 text-white font-bold rounded-lg shadow hover:bg-emerald-700 transition text-sm"
-            disabled={saving}
-          >
-            {saving ? 'Creating Page...' : 'Create Page & Launch Builder'}
-          </button>
-        </form>
-      </Modal>
+      
     </div>
   );
 };

@@ -999,20 +999,92 @@ export class CatalogService {
       throw new BadRequestException('Order must contain at least one item');
     }
 
-    const variantIds = dto.items.map(item => item.variant_id);
+    // Pre-process items: resolve any "default-${productId}" or invalid/missing variant IDs
+    const resolvedItems: { variant_id: string; qty: number }[] = [];
+
+    for (const item of dto.items) {
+      let varId = item.variant_id;
+      if (!varId) {
+        throw new BadRequestException('item.variant_id is required');
+      }
+
+      let productId: string | null = null;
+
+      if (varId.startsWith('default-')) {
+        productId = varId.replace('default-', '');
+      } else {
+        // Check if it's a valid UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(varId)) {
+          // See if it is a variant ID or a product ID
+          const isVariant = await this.prisma.productVariant.count({
+            where: { id: varId, shop_id: shopId }
+          });
+          if (isVariant === 0) {
+            // It might be a product ID
+            const isProduct = await this.prisma.product.count({
+              where: { id: varId, shop_id: shopId }
+            });
+            if (isProduct > 0) {
+              productId = varId;
+            }
+          }
+        }
+      }
+
+      if (productId) {
+        // Find or create a default variant for this product
+        let defaultVariant = await this.prisma.productVariant.findFirst({
+          where: { product_id: productId, shop_id: shopId }
+        });
+
+        if (!defaultVariant) {
+          const product = await this.prisma.product.findFirst({
+            where: { id: productId, shop_id: shopId }
+          });
+          if (!product) {
+            throw new BadRequestException(`Product with ID ${productId} not found`);
+          }
+          
+          // Auto-generate SKU
+          const finalSku = product.master_sku?.trim()
+            ? product.master_sku.trim()
+            : `${productId.slice(0, 6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+
+          defaultVariant = await this.prisma.productVariant.create({
+            data: {
+              shop_id: shopId,
+              product_id: productId,
+              label: 'Standard',
+              sku: finalSku,
+              price: product.price,
+              compare_price: product.compare_price,
+              cost_price: product.cost_price,
+              stock_qty: 100, // default stock if simple product
+              is_active: true,
+            }
+          });
+        }
+        varId = defaultVariant.id;
+      }
+
+      resolvedItems.push({ variant_id: varId, qty: item.qty });
+    }
+
+    const variantIds = resolvedItems.map(item => item.variant_id);
     const variants = await this.prisma.productVariant.findMany({
       where: { id: { in: variantIds }, shop_id: shopId },
       include: { product: true }
     });
 
-    if (variants.length !== dto.items.length) {
+    if (variants.length !== resolvedItems.length) {
       throw new BadRequestException('Some product variants were not found');
     }
 
     const variantMap = new Map(variants.map(v => [v.id, v]));
 
     // Check stock levels
-    for (const item of dto.items) {
+    for (const item of resolvedItems) {
       const variant = variantMap.get(item.variant_id);
       if (!variant) continue;
       if (variant.stock_qty < item.qty) {
@@ -1022,7 +1094,7 @@ export class CatalogService {
 
     // Calculate totals
     let subtotal = 0;
-    for (const item of dto.items) {
+    for (const item of resolvedItems) {
       const variant = variantMap.get(item.variant_id);
       if (variant) {
         subtotal += Number(variant.price) * item.qty;
@@ -1055,7 +1127,7 @@ export class CatalogService {
           shipping_address: dto.shipping_address,
           notes: dto.notes || null,
           items: {
-            create: dto.items.map(item => {
+            create: resolvedItems.map(item => {
               const variant = variantMap.get(item.variant_id)!;
               return {
                 shop_id: shopId,
@@ -1107,7 +1179,7 @@ export class CatalogService {
         });
 
         // Deduct inventory stock
-        for (const item of dto.items) {
+        for (const item of resolvedItems) {
           const variant = variantMap.get(item.variant_id);
           if (variant) {
             const newQty = Math.max(0, variant.stock_qty - item.qty);

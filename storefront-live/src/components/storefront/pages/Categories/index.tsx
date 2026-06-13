@@ -140,6 +140,165 @@ export const Categories: React.FC = () => {
 
   const heroWidgets = pageData?.widgets?.filter((w: any) => w.type === 'HERO_BANNER') || [];
 
+  if (!categorySlug) {
+    return (
+      <div style={cssVariables} className="catalog-wrapper">
+        {/* 1. Header Hero Area */}
+        {heroWidgets.length > 0 ? (
+          <WidgetRenderer widgets={heroWidgets} theme={theme} />
+        ) : (
+          <div className="catalog-hero categories-page-hero">
+            <div className="catalog-hero-inner">
+              <span className="catalog-hero-badge">Collections</span>
+              <h1 className="catalog-hero-title">Browse Categories</h1>
+              <p className="catalog-hero-desc">
+                Explore our premium collections of 100% natural, organic formulations tailored for your body, hair, and skin care.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Categories Grid Container */}
+        <div className="categories-grid-container">
+          <div className="categories-grid">
+            {categories.map((cat) => {
+              const catImage = cat.image_url || 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=600';
+              return (
+                <Link
+                  key={cat.id}
+                  to={`/categories/${cat.slug}`}
+                  className="category-card-item"
+                >
+                  <div className="category-card-img-wrap">
+                    <img src={catImage} alt={cat.name} className="category-card-img" />
+                    <div className="category-card-overlay">
+                      <span className="category-card-btn" style={{ background: theme.primaryColor || '#15803D' }}>
+                        View Collection →
+                      </span>
+                    </div>
+                  </div>
+                  <div className="category-card-info">
+                    <h3 className="category-card-name">{cat.name}</h3>
+                    <p className="category-card-subtitle">Organic Solutions</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        <style>{`
+          .categories-page-hero {
+            background: radial-gradient(ellipse at center, rgba(255,255,255,0.8), rgba(255,255,255,0)), var(--sf-bg, #FAF7F2);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 80px 24px;
+            text-align: center;
+          }
+          .categories-grid-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 60px 24px 100px;
+            box-sizing: border-box;
+          }
+          .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 36px;
+          }
+          .category-card-item {
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          .category-card-item:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px -20px rgba(0, 0, 0, 0.1);
+            border-color: var(--sf-accent, #15803D);
+          }
+          .category-card-img-wrap {
+            position: relative;
+            aspect-ratio: 16/11;
+            overflow: hidden;
+            background: #F3F4F6;
+          }
+          .category-card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+          .category-card-item:hover .category-card-img {
+            transform: scale(1.06);
+          }
+          .category-card-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+          .category-card-item:hover .category-card-overlay {
+            opacity: 1;
+          }
+          .category-card-btn {
+            color: #ffffff;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            transform: translateY(10px);
+            transition: transform 0.3s ease;
+          }
+          .category-card-item:hover .category-card-btn {
+            transform: translateY(0);
+          }
+          .category-card-info {
+            padding: 24px;
+            text-align: center;
+          }
+          .category-card-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 6px;
+          }
+          .category-card-subtitle {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9CA3AF;
+            margin: 0;
+          }
+          @media (max-width: 640px) {
+            .categories-grid {
+              grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+              gap: 24px;
+            }
+            .categories-grid-container {
+              padding-top: 40px;
+              padding-bottom: 60px;
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div style={cssVariables} className="catalog-wrapper">
       {/* 1. Header Hero Area */}
