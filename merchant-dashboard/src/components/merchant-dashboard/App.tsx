@@ -11,11 +11,11 @@ import { OverviewPage } from './pages/OverviewPage/index';
 import { ProductsPage } from './pages/ProductsPage/index';
 import { ProductDetailPage } from './pages/ProductDetailPage/index';
 import { CategoriesPage } from './pages/CategoriesPage/index';
-import { BannersPage } from './pages/BannersPage/index';
 import { OrdersPage } from './pages/OrdersPage/index';
 import { InventoryPage } from './pages/InventoryPage/index';
 import { SettingsPage } from './pages/SettingsPage/index';
 import { PagesPage } from './pages/PagesPage/index';
+import { PaymentPage } from './pages/PaymentPage/index';
 
 function App() {
   return (
@@ -58,9 +58,10 @@ function MerchantDashboardInner() {
     if (path.includes('/products/')) return 'products';
     if (path.endsWith('/products')) return 'products';
     if (path.endsWith('/categories')) return 'categories';
-    if (path.endsWith('/banners')) return 'banners';
+
     if (path.endsWith('/orders')) return 'orders';
     if (path.endsWith('/inventory')) return 'inventory';
+    if (path.endsWith('/payments')) return 'payments';
     if (path.endsWith('/settings')) return 'settings';
     if (path.endsWith('/pages')) return 'pages';
     return 'overview';
@@ -93,7 +94,7 @@ function MerchantDashboardInner() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
-  const [banners, setBanners] = useState<any[]>([]);
+
   const [orders, setOrders] = useState<any[]>([]);
 
   // Loaders
@@ -102,8 +103,7 @@ function MerchantDashboardInner() {
   const [deletingProduct, setDeletingProduct] = useState(false);
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState(false);
-  const [creatingBanner, setCreatingBanner] = useState(false);
-  const [deletingBanner, setDeletingBanner] = useState(false);
+
   const [updatingOrderStatus, setUpdatingOrderStatus] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -140,10 +140,9 @@ function MerchantDashboardInner() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch homepage details (includes banner list + shop metadata info)
+      // 1. Fetch homepage details (includes shop metadata info)
       const homeData = await catalogApi.getHomepage();
       setShopInfo(homeData.shop || { name: tenantSlug.toUpperCase(), slug: tenantSlug });
-      setBanners(homeData.banners || []);
 
       // 2. Fetch products
       const prods = await catalogApi.getProducts();
@@ -244,31 +243,7 @@ function MerchantDashboardInner() {
     }
   };
 
-  const handleCreateBanner = async (bannerData: any) => {
-    setCreatingBanner(true);
-    try {
-      await catalogApi.createBanner(bannerData);
-      alert('Banner campaign published!');
-      fetchDashboardData();
-    } catch (err: any) {
-      alert(err.message || 'Failed to publish banner');
-    } finally {
-      setCreatingBanner(false);
-    }
-  };
 
-  const handleDeleteBanner = async (id: string) => {
-    setDeletingBanner(true);
-    try {
-      await catalogApi.deleteBanner(id);
-      alert('Banner deleted successfully');
-      fetchDashboardData();
-    } catch (err: any) {
-      alert(err.message || 'Failed to delete banner');
-    } finally {
-      setDeletingBanner(false);
-    }
-  };
 
   const handleUpdateOrderStatus = async (id: string, status: string, note?: string) => {
     setUpdatingOrderStatus(true);
@@ -388,9 +363,7 @@ function MerchantDashboardInner() {
             <span className={currentTab === 'categories' ? 'active' : ''} onClick={() => setCurrentTab('categories')}>
               <Icons.Folder /> Categories
             </span>
-            <span className={currentTab === 'banners' ? 'active' : ''} onClick={() => setCurrentTab('banners')}>
-              <Icons.Image /> Promo Banners
-            </span>
+
             <span className={currentTab === 'orders' ? 'active' : ''} onClick={() => setCurrentTab('orders')}>
               <Icons.Clipboard /> Store Orders
               {orders.filter(o => o.status === 'pending').length > 0 && (
@@ -416,6 +389,10 @@ function MerchantDashboardInner() {
                 <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
                 <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
               </svg>
+            </span>
+            <span className={currentTab === 'payments' ? 'active' : ''} onClick={() => setCurrentTab('payments')}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              Payments
             </span>
             <span className={currentTab === 'settings' ? 'active' : ''} onClick={() => setCurrentTab('settings')}>
               <Icons.Settings /> Settings
@@ -476,16 +453,7 @@ function MerchantDashboardInner() {
                 />
               )}
 
-              {currentTab === 'banners' && (
-                <BannersPage
-                  banners={banners}
-                  loading={loading}
-                  onCreateBanner={handleCreateBanner}
-                  onDeleteBanner={handleDeleteBanner}
-                  creating={creatingBanner}
-                  deleting={deletingBanner}
-                />
-              )}
+
 
               {currentTab === 'orders' && (
                 <OrdersPage
@@ -501,6 +469,8 @@ function MerchantDashboardInner() {
               {currentTab === 'pages' && (
                 <PagesPage shopInfo={shopInfo} />
               )}
+
+              {currentTab === 'payments' && <PaymentPage />}
 
               {currentTab === 'settings' && (
                 <SettingsPage

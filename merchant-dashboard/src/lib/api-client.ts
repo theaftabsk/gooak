@@ -110,7 +110,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 // ─── Storefront / Catalog APIs ───────────────────────────────────────────────
 export const catalogApi = {
-  // 1. Homepage banners & sections
+  // 1. Homepage & shop data
   getHomepage: async () => request<any>('/catalog/homepage'),
 
   // 2. Products list
@@ -143,12 +143,6 @@ export const catalogApi = {
       body: JSON.stringify(productData),
     }),
 
-  createBanner: async (bannerData: any, token?: string) =>
-    request<any>('/catalog/admin/banners', {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify(bannerData),
-    }),
 
   createSection: async (sectionData: any, token?: string) =>
     request<any>('/catalog/admin/sections', {
@@ -196,11 +190,6 @@ export const catalogApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     }),
 
-  deleteBanner: async (id: string, token?: string) =>
-    request<any>(`/catalog/admin/banners/${id}`, {
-      method: 'DELETE',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }),
 
   getOrders: async (token?: string) =>
     request<any>('/catalog/admin/orders', {
