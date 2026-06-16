@@ -127,18 +127,63 @@ Ensure Docker Desktop is open and running, then execute the following command to
 ```bash
 docker compose up -d
 ```
+
 > **Port Conflict Note:** If you experience connection access errors (e.g., Prisma Error `P1010`), ensure local system instances of PostgreSQL are stopped (`brew services stop postgresql`) so that Docker can claim port `5432`.
 
-### 3. Run Database Migrations
-Prisma v7 does not automatically read environment variables in monorepos. Ensure your configuration utilizes absolute path resolution for `.env`. To apply the initial schema blueprint to your active container, run:
+### 3. Initialize Local Database Schema
+Apply the central and tenant schema models to your local PostgreSQL instance and generate Prisma clients for both databases.
 ```bash
-pnpm exec prisma migrate dev --name init_database
+pnpm run db:setup
 ```
 
-### 4. Generate the Prisma Client
-Generate the type-safe definitions for your TypeScript compilation context:
+If you only need to synchronize schema definitions without generating the clients again, run:
 ```bash
-pnpm exec prisma generate
+pnpm run db:sync
+```
+
+For a full reset and seeded development database, use:
+```bash
+pnpm run db:rebuild
+```
+
+### 4. Seed Local Developer Data
+Create a default platform admin and a sample demo shop for local development:
+```bash
+pnpm run db:seed
+```
+
+### 5. Use Prisma Studio
+Inspect the central schema:
+```bash
+pnpm run db:studio
+```
+
+Inspect the tenant schema:
+```bash
+pnpm run db:studio:tenant
+```
+
+### 6. Development Startup
+Run the backend by itself from the repository root:
+```bash
+pnpm dev:backend
+```
+
+Or run directly inside the backend package:
+```bash
+cd backend
+pnpm run start:dev
+```
+
+### 7. Root Workspace Helpers
+The monorepo root also exposes the following backend database helpers:
+```bash
+pnpm db:setup
+pnpm db:seed
+pnpm db:rebuild
+pnpm db:bootstrap
+pnpm db:studio
+pnpm db:studio:tenant
 ```
 
 ---
@@ -158,7 +203,7 @@ pnpm dev:backend
 # Execute from inside the /backend directory
 pnpm run start:dev
 ```
-Once initialized, the local gateway instance will be active at: `http://localhost:4000`
+Once initialized, the backend will listen on the port configured in `backend/.env` or the default port `5001`.
 
 ---
 

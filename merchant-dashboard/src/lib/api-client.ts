@@ -48,9 +48,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   // Get platform admin token if saved
   const adminToken = typeof window !== 'undefined' ? localStorage.getItem('oaksol_admin_token') : null;
 
+  const shouldSendTenantDomain = path !== '/catalog/merchant/login';
   const headers = {
     'Content-Type': 'application/json',
-    ...(tenantDomain ? { 'X-Tenant-Domain': tenantDomain } : {}),
+    ...(shouldSendTenantDomain && tenantDomain ? { 'X-Tenant-Domain': tenantDomain } : {}),
     ...(adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}),
     ...options.headers,
   };

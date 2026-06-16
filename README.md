@@ -29,3 +29,6 @@ Clone the repository and install all dependencies from the root. `pnpm` will aut
 git clone <your-repo-url>
 cd oak-commerce
 pnpm install
+
+Your local online store you created can be accessed at:
+* (http://<shop_urlcode>.localhost:3001/)

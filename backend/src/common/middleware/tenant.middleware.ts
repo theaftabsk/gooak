@@ -12,6 +12,12 @@ export class TenantMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: Request & { shopId?: string }, res: Response, next: NextFunction) {
+    // The merchant login endpoint resolves shop access by email and should not require a tenant domain mapping.
+    if (req.method === 'POST' && req.path === '/catalog/merchant/login') {
+      next();
+      return;
+    }
+
     const tenantDomain = (req.headers['x-tenant-domain'] as string) || req.headers.host;
 
     if (!tenantDomain) {
