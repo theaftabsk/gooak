@@ -19,8 +19,8 @@ async function bootstrap() {
   // Apply global exception filter to sanitize DB error stack traces
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Default to 5000 for local development (matching frontend API requests)
-  const port = process.env.PORT ?? 5000;
+  // Default to 5001 for local development to avoid macOS Control Center port 5000 conflicts
+  const port = process.env.PORT ?? 5001;
   await app.listen(port);
   console.log(`OakSol Commerce backend running on port: ${port}`);
 }

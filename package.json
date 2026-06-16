@@ -5,7 +5,8 @@
   "description": "Oak Commerce Monorepo",
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=!backend",
+    "dev:all": "turbo run dev",
     "lint": "turbo run lint",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "dev:backend": "turbo run dev --filter=backend",

@@ -8,7 +8,7 @@ This repository is structured as a strict `pnpm` workspace monorepo. It contains
 
 | App/Service | Type | Port | Description |
 | :--- | :--- | :--- | :--- |
-| **`backend`** | NestJS | `:4000` | The core API, handling database connections and business logic. |
+| **`backend`** | NestJS | `:5001` | add `PORT=5001` on backedn env | The core API, handling database connections and business logic. |
 | **`merchant-dashboard`**| Next.js | `:3000` | The portal where merchants manage inventory and store settings. |
 | **`storefront-live`** | Next.js | `:3001` | The consumer-facing storefront where customers buy products. |
 | **`super-admin`** | Next.js | `:3002` | Our internal admin panel for managing the entire platform. |
