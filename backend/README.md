@@ -110,9 +110,16 @@ Ensure you have the following installed on your local machine before starting se
 
 ---
 
+## Prisma Schema Layout
+
+This backend uses three Prisma schema files in `backend/prisma`:
+* `schema.prisma` — canonical primary schema used for `db push`, central database migrations, and `prisma studio`
+* `central.prisma` — central-schema client generator for platform-wide tables and shop metadata
+* `tenant.prisma` — tenant-schema client generator for shop-specific tenant databases
+
 ## 🚀 Local Setup & Installation
 
-Follow these steps precisely to configure your local database and initialize the Prisma client.
+Follow these steps precisely to configure your local database and initialize the Prisma clients.
 
 ### 1. Environment Configuration
 Create a `.env` file in the root of the `backend/` directory:
@@ -175,7 +182,26 @@ cd backend
 pnpm run start:dev
 ```
 
-### 7. Root Workspace Helpers
+### 7. Create a Shop in Super Admin
+Once the backend is running, open the Super Admin app at `http://localhost:3002` and create a new shop. This step ensures your shop has the proper domain mapping before you use the merchant dashboard or storefront.
+
+### 8. Frontend Development from Root
+If you want to run the frontend apps while the backend is running, use the root workspace commands:
+```bash
+pnpm dev
+```
+
+This starts the frontend apps only:
+* `merchant-dashboard` on `http://localhost:3000`
+* `storefront-live` on `http://localhost:3001`
+* `super-admin` on `http://localhost:3002`
+
+If you want backend and frontends together, use:
+```bash
+pnpm dev:all
+```
+
+### 9. Root Workspace Helpers
 The monorepo root also exposes the following backend database helpers:
 ```bash
 pnpm db:setup

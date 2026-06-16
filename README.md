@@ -29,6 +29,75 @@ Clone the repository and install all dependencies from the root. `pnpm` will aut
 git clone <your-repo-url>
 cd oak-commerce
 pnpm install
+```
 
-Your local online store you created can be accessed at:
-* (http://<shop_urlcode>.localhost:3001/)
+Your local online store can be accessed at:
+* `http://<shop_urlcode>.localhost:3001/`
+
+### 2. Backend Setup
+The backend runs in `backend/` and depends on PostgreSQL for both the central schema and tenant databases.
+
+1. Start Docker and the local database:
+```bash
+docker compose up -d
+```
+
+2. Initialize the backend database and Prisma clients:
+```bash
+pnpm db:setup
+```
+
+3. Seed example data if needed:
+```bash
+pnpm db:seed
+```
+
+4. Start the backend API:
+```bash
+pnpm dev:backend
+```
+
+If you prefer to run the backend directly from the backend package:
+```bash
+cd backend
+pnpm run start:dev
+```
+
+5. Create a shop in Super Admin
+Once the backend is running, open the Super Admin app at `http://localhost:3002` and create a new shop. This ensures the shop has the required domain mapping before you use the merchant dashboard or storefront.
+
+### 3. Frontend development
+From the repo root, start all frontend apps with one command:
+```bash
+pnpm dev
+```
+
+This starts:
+* `merchant-dashboard` on `http://localhost:3000`
+* `storefront-live` on `http://localhost:3001`
+* `super-admin` on `http://localhost:3002`
+
+If you want backend plus all frontends together, run:
+```bash
+pnpm dev:all
+```
+
+If you need only one frontend app, use:
+```bash
+pnpm dev:dashboard
+pnpm dev:storefront
+pnpm dev:admin
+```
+
+### 4. Backend Prisma schema details
+This repository uses three Prisma schema files in `backend/prisma`:
+* `schema.prisma` — the canonical backend schema used for `db push` and central migrations
+* `central.prisma` — the central database schema used to generate the central Prisma client
+* `tenant.prisma` — the tenant database schema used to generate the tenant Prisma client
+
+### 5. Useful backend helpers
+```bash
+pnpm db:bootstrap      # full db setup + seed
+pnpm db:studio          # inspect the central schema
+pnpm db:studio:tenant   # inspect the tenant schema
+```
