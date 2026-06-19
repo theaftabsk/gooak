@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { catalogApi } from '@oaksol/api-client';
+import { Icons } from '../../icons';
+import { LoadingSpinner, EmptyState } from '../../shared';
 
 const STOCK_TYPES = [
-  { value: 'received', label: '📦 Received' },
-  { value: 'return', label: '↩️ Return' },
-  { value: 'correction', label: '🔧 Correction' },
-  { value: 'damaged', label: '💔 Damaged' },
-  { value: 'manual', label: '✏️ Manual' },
+  { value: 'received', label: 'Received' },
+  { value: 'return', label: 'Return' },
+  { value: 'correction', label: 'Correction' },
+  { value: 'damaged', label: 'Damaged' },
+  { value: 'manual', label: 'Manual' },
 ];
 
 function StockBar({ qty, lowAt }: { qty: number; lowAt: number }) {
@@ -35,6 +37,10 @@ export const InventoryPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'low' | 'out'>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Stock adjustment
   const [adjVariantId, setAdjVariantId] = useState<string | null>(null);
@@ -82,6 +88,13 @@ export const InventoryPage: React.FC = () => {
     return matchSearch && matchFilter;
   });
 
+  // Paginated List
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginatedProducts = filtered.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   const handleAdjust = async () => {
     if (!adjVariantId || !adjAmount) return;
     const amount = parseInt(adjAmount);
@@ -113,26 +126,28 @@ export const InventoryPage: React.FC = () => {
           <h2 style={{ margin: 0 }}>Inventory Management</h2>
           <p className="header-sub">Track and adjust stock across all product variants</p>
         </div>
-        <button className="btn-ghost-sm" onClick={load} style={{ padding: '9px 16px' }}>
-          ↻ Refresh
+        <button className="btn-ghost-sm" onClick={load} style={{ padding: '9px 16px', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <Icons.Refresh /> Refresh
         </button>
       </header>
 
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
         {[
-          { label: 'Total SKUs', value: totalSkus, icon: '🏷️', color: '#4F46E5', bg: '#EEF2FF' },
-          { label: 'Total Stock', value: totalStock, icon: '📦', color: '#0EA5E9', bg: '#F0F9FF' },
-          { label: 'Low Stock', value: totalLowStock, icon: '⚠️', color: '#D97706', bg: '#FFFBEB' },
-          { label: 'Out of Stock', value: totalOutOfStock, icon: '🚨', color: '#DC2626', bg: '#FEF2F2' },
+          { label: 'Total SKUs', value: totalSkus, icon: <Icons.Tag />, color: '#4F46E5', bg: '#EEF2FF' },
+          { label: 'Total Stock', value: totalStock, icon: <Icons.Package />, color: '#0EA5E9', bg: '#F0F9FF' },
+          { label: 'Low Stock', value: totalLowStock, icon: <Icons.Warning />, color: '#D97706', bg: '#FFFBEB' },
+          { label: 'Out of Stock', value: totalOutOfStock, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>, color: '#DC2626', bg: '#FEF2F2' },
         ].map(card => (
           <div key={card.label} className="card" style={{ background: card.bg, border: `1px solid ${card.color}28`, padding: '18px 22px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <p style={{ margin: 0, fontSize: '0.78rem', color: card.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{card.label}</p>
                 <p style={{ margin: '6px 0 0', fontSize: '2.2rem', fontWeight: 800, color: card.color, lineHeight: 1 }}>{loading ? '—' : card.value}</p>
               </div>
-              <span style={{ fontSize: '1.8rem' }}>{card.icon}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: card.color, width: 42, height: 42, borderRadius: '50%', background: 'rgba(255, 255, 255, 0.7)' }}>
+                {card.icon}
+              </span>
             </div>
           </div>
         ))}
@@ -143,14 +158,14 @@ export const InventoryPage: React.FC = () => {
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="🔍  Search products..."
+            onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+            placeholder="Search products..."
             style={{ flex: 1, minWidth: 200, padding: '9px 14px', borderRadius: 8, border: '1px solid var(--m-border)', fontSize: '0.9rem' }}
           />
           {(['all', 'low', 'out'] as const).map(f => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => { setFilter(f); setCurrentPage(1); }}
               style={{
                 padding: '8px 18px', borderRadius: 8, border: '1.5px solid',
                 fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s',
@@ -159,7 +174,17 @@ export const InventoryPage: React.FC = () => {
                 color: filter === f ? 'var(--m-primary)' : 'var(--m-text-muted)',
               }}
             >
-              {f === 'all' ? 'All Products' : f === 'low' ? '⚠️ Low Stock' : '🚨 Out of Stock'}
+              {f === 'all' ? (
+                'All Products'
+              ) : f === 'low' ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <Icons.Warning /> Low Stock
+                </span>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Out of Stock
+                </span>
+              )}
             </button>
           ))}
           <span style={{ fontSize: '0.82rem', color: 'var(--m-text-muted)', marginLeft: 'auto' }}>
@@ -170,19 +195,12 @@ export const InventoryPage: React.FC = () => {
 
       {/* Product List */}
       {loading ? (
-        <div className="card" style={{ textAlign: 'center', padding: 60, color: 'var(--m-text-muted)' }}>
-          <div style={{ fontSize: '2rem', marginBottom: 10 }}>⏳</div>
-          Loading inventory...
-        </div>
+        <LoadingSpinner message="Loading inventory overview..." />
       ) : filtered.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: 60, color: 'var(--m-text-muted)' }}>
-          <div style={{ fontSize: '2rem', marginBottom: 10 }}>📦</div>
-          <div style={{ fontWeight: 600 }}>No products found</div>
-          <div style={{ fontSize: '0.85rem', marginTop: 6 }}>Try changing your filters or create products first</div>
-        </div>
+        <EmptyState message="No inventory items found matching the search/filter criteria." />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {filtered.map(product => {
+          {paginatedProducts.map(product => {
             const coverImg = product.gallery?.[0]?.url;
             const isExpanded = expanded.has(product.id);
 
@@ -196,7 +214,9 @@ export const InventoryPage: React.FC = () => {
                   {coverImg ? (
                     <img src={coverImg} alt={product.name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--m-border)', flexShrink: 0 }} />
                   ) : (
-                    <div style={{ width: 44, height: 44, borderRadius: 8, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>📦</div>
+                    <div style={{ width: 44, height: 44, borderRadius: 8, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--m-text-muted)', flexShrink: 0 }}>
+                      <Icons.Package />
+                    </div>
                   )}
 
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -222,7 +242,7 @@ export const InventoryPage: React.FC = () => {
                       padding: '3px 10px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 700,
                       background: product.status === 'active' ? '#F0FDF4' : '#F8FAFC',
                       color: product.status === 'active' ? '#15803D' : '#94A3B8',
-                    }}>{product.status}</span>
+                    }}>{product.status.toUpperCase()}</span>
                     <span style={{ color: 'var(--m-text-muted)', fontSize: '1rem', transition: 'transform 0.2s', display: 'inline-block', transform: isExpanded ? 'rotate(90deg)' : 'none' }}>›</span>
                   </div>
                 </div>
@@ -270,7 +290,7 @@ export const InventoryPage: React.FC = () => {
                                 cursor: 'pointer', transition: 'all 0.15s',
                               }}
                             >
-                              ⚡ Adjust Stock
+                              Adjust Stock
                             </button>
                           </div>
 
@@ -328,14 +348,54 @@ export const InventoryPage: React.FC = () => {
               </div>
             );
           })}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--m-border)', flexWrap: 'wrap', gap: 12 }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--m-text-muted)' }}>
+                Showing <strong>{((currentPage - 1) * itemsPerPage) + 1}</strong> to <strong>{Math.min(currentPage * itemsPerPage, filtered.length)}</strong> of <strong>{filtered.length}</strong> products
+              </span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button 
+                  className="btn-ghost-sm" 
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  <Icons.ArrowLeft /> Prev
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                  <button
+                    key={pageNum}
+                    className="btn-ghost-sm"
+                    style={{
+                      background: currentPage === pageNum ? 'var(--m-primary-light)' : 'transparent',
+                      color: currentPage === pageNum ? 'var(--m-primary)' : 'var(--m-text-main)',
+                      borderColor: currentPage === pageNum ? 'var(--m-primary)' : 'var(--m-border)',
+                      fontWeight: 600
+                    }}
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+                <button 
+                  className="btn-ghost-sm" 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next <Icons.ArrowRight />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Low Stock Alert Panel */}
-      {totalLowStock > 0 || totalOutOfStock > 0 ? (
+      {(totalLowStock > 0 || totalOutOfStock > 0) && (
         <div className="card" style={{ marginTop: 24, borderLeft: '4px solid #D97706', background: '#FFFBEB' }}>
-          <h3 style={{ margin: '0 0 14px', fontSize: '0.95rem', fontWeight: 700, color: '#92400E' }}>
-            ⚠️ Attention Required — {totalOutOfStock + totalLowStock} variants need restocking
+          <h3 style={{ margin: '0 0 14px', fontSize: '0.95rem', fontWeight: 700, color: '#92400E', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Icons.Warning /> Attention Required — {totalOutOfStock + totalLowStock} variants need restocking
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {products.flatMap(p =>
@@ -357,8 +417,7 @@ export const InventoryPage: React.FC = () => {
             )}
           </div>
         </div>
-      ) : null}
+      )}
     </>
   );
 };
-

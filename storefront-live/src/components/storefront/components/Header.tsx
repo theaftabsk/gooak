@@ -29,6 +29,9 @@ export const Header: React.FC = () => {
 
         const homeData = await catalogApi.getHomepage();
         setShop(homeData.shop || null);
+        if (homeData.shop) {
+          localStorage.setItem('oaksol_shop_currency', homeData.shop.currency || 'INR');
+        }
 
         const pageSettings = await customerApi.getPages().catch(() => null);
         if (pageSettings) {
@@ -131,7 +134,7 @@ export const Header: React.FC = () => {
           ) : (
             <>
               <span className="brand-name">{shop?.name || 'STOREFRONT'}</span>
-              <span className="brand-tag">Pure Botanical</span>
+              {shop?.description && <span className="brand-tag">{shop.description}</span>}
             </>
           )}
         </div>

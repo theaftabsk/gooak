@@ -2,47 +2,49 @@
 
 const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'posix.digital';
 
-const getApiBaseUrl = (): string => {
-  // 1. Check current domain context first to restrict/enforce production API
+const getApiBaseUrl = (tenantDomain?: string): string => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // Only use the production API on the platform domain and its subdomains
-    const isProdDomain = 
-      hostname === PLATFORM_DOMAIN || 
-      hostname.endsWith(`.${PLATFORM_DOMAIN}`);
-
-    if (isProdDomain) {
-      return `https://api.${PLATFORM_DOMAIN}/api/v1`;
+    const protocol = window.location.protocol;
+    
+    // Check if it's localhost / development
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5005/api/v1';
     }
+
+    if (hostname.endsWith('.localhost')) {
+      return `${protocol}//${hostname}:5005/api/v1`;
+    }
+
+    // For production subdomains/domains, route to the dynamic host
+    if (tenantDomain) {
+      return `${protocol}//${tenantDomain}/api/v1`;
+    }
+    return `${protocol}//${hostname}/api/v1`;
   }
 
-  // 2. Otherwise, check if NEXT_PUBLIC_API_URL is explicitly set in env (e.g., from the shared .env file)
   if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-
-  // 3. Fallback for local development
-  return 'http://localhost:5000/api/v1';
+  return 'http://localhost:5005/api/v1';
 };
-
-const API_BASE_URL = getApiBaseUrl();
 
 // Base Request Helper
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
-  
   // Resolve host context from browser to identify current tenant subdomain/domain
   let tenantDomain = '';
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     const parts = hostname.split('.');
     if (parts[0] === 'app' || hostname === 'localhost' || hostname === '127.0.0.1' || parts.length < 2) {
-      const activeShop = localStorage.getItem('oaksol_active_shop_slug') || 'aftab';
+      const activeShop = localStorage.getItem('oaksol_active_shop_slug') || 'testShop';
       tenantDomain = `${activeShop}.localhost`;
     } else {
       tenantDomain = window.location.host;
     }
   }
+
+  const url = `${getApiBaseUrl(tenantDomain)}${path}`;
 
 
   // Get platform admin token if saved
@@ -294,7 +296,7 @@ export const catalogApi = {
     }),
 
   // Dashboard stats
-  getAdminStats: async () => request<any>('/catalog/admin/stats'),
+  getAdminStats: async () => request<any>('/catalog/admin/platform-stats'),
 
   // Shops
   getShops: async () => request<any>('/catalog/admin/shops'),
@@ -303,6 +305,23 @@ export const catalogApi = {
   updateShop: async (id: string, dto: { name?: string; plan?: string; status?: string; description?: string }) =>
     request<any>(`/catalog/admin/shops/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
 
+  updateMerchantSettings: async (dto: {
+    name?: string;
+    description?: string;
+    logo_url?: string;
+    currency?: string;
+    timezone?: string;
+  }) => request<any>('/catalog/merchant/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(dto),
+  }),
+
+  switchMerchantTheme: async (dto: { industry: string; theme: string }) =>
+    request<any>('/catalog/merchant/switch-theme', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
   deleteShop: async (id: string) =>
     request<any>(`/catalog/admin/shops/${id}`, { method: 'DELETE' }),
 
@@ -310,7 +329,7 @@ export const catalogApi = {
     request<any>(`/catalog/admin/shops/${shopId}/seed-demo`, { method: 'POST' }),
 
   registerShop: async (shopData: {
-    name: string; slug: string; ownerEmail: string; ownerName: string; ownerPassword?: string
+    name: string; slug: string; ownerEmail: string; ownerName: string; ownerPassword?: string; industry?: string; theme?: string;
   }) => request<any>('/catalog/register-shop', { method: 'POST', body: JSON.stringify(shopData) }),
 
   // Tenant requests
@@ -338,6 +357,61 @@ export const catalogApi = {
   // Get public order details for the payment page (tenant-scoped)
   getPublicOrder: async (orderId: string) =>
     request<any>(`/catalog/orders/${orderId}`),
+
+  // Advanced store settings & extensions
+  getShopStats: async () =>
+    request<any>('/catalog/admin/stats'),
+
+  getShopUsers: async () =>
+    request<any>('/catalog/admin/users'),
+
+  addShopUser: async (dto: { name: string; email: string; password?: string; role?: string }) =>
+    request<any>('/catalog/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
+  deleteShopUser: async (id: string) =>
+    request<any>(`/catalog/admin/users/${id}`, { method: 'DELETE' }),
+
+  getShopDomains: async () =>
+    request<any>('/catalog/admin/domains'),
+
+  addShopDomain: async (dto: { domain: string; type?: string }) =>
+    request<any>('/catalog/admin/domains', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
+  setPrimaryDomain: async (id: string) =>
+    request<any>(`/catalog/admin/domains/${id}/primary`, { method: 'PATCH' }),
+
+  deleteShopDomain: async (id: string) =>
+    request<any>(`/catalog/admin/domains/${id}`, { method: 'DELETE' }),
+
+  getConfigOverrides: async () =>
+    request<any>('/catalog/admin/configs'),
+
+  saveConfigOverride: async (dto: { key: string; value: string }) =>
+    request<any>('/catalog/admin/configs/override', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
+  deleteConfigOverride: async (key: string) =>
+    request<any>(`/catalog/admin/configs/override/${key}`, { method: 'DELETE' }),
+
+  updateAdvancedSettings: async (dto: { slug?: string; status?: string; db_connection_url?: string }) =>
+    request<any>('/catalog/admin/settings/advanced', {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    }),
+
+  getJsonBackup: async () =>
+    request<any>('/catalog/admin/backup/json'),
+
+  getSqlBackup: async () =>
+    request<any>('/catalog/admin/backup/sql'),
 };
 
 // ─── Payment APIs ─────────────────────────────────────────────────────────────

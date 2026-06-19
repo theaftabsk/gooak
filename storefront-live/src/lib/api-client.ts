@@ -2,37 +2,39 @@
 
 const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'posix.digital';
 
-const getApiBaseUrl = (): string => {
-  // 1. Check current domain context first to restrict/enforce production API
+const getApiBaseUrl = (tenantDomain?: string): string => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // Only use the production API on the platform domain and its subdomains
-    const isProdDomain = 
-      hostname === PLATFORM_DOMAIN || 
-      hostname.endsWith(`.${PLATFORM_DOMAIN}`);
-
-    if (isProdDomain) {
-      return `https://api.${PLATFORM_DOMAIN}/api/v1`;
+    const protocol = window.location.protocol;
+    
+    // Check if it's localhost / development
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5005/api/v1';
     }
+
+    if (hostname.endsWith('.localhost')) {
+      return `${protocol}//${hostname}:5005/api/v1`;
+    }
+
+    // For production subdomains/domains, route to the dynamic host
+    if (tenantDomain) {
+      return `${protocol}//${tenantDomain.split(':')[0]}/api/v1`;
+    }
+    return `${protocol}//${hostname}/api/v1`;
   }
 
-  // 2. Otherwise, check if NEXT_PUBLIC_API_URL is explicitly set in env (e.g., from the shared .env file)
   if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-
-  // 3. Fallback for local development
-  return 'http://localhost:5000/api/v1';
+  return 'http://localhost:5005/api/v1';
 };
-
-const API_BASE_URL = getApiBaseUrl();
 
 // Base Request Helper
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
-  
   // Resolve host context from browser to identify current tenant subdomain/domain
   const tenantDomain = typeof window !== 'undefined' ? window.location.host : '';
+
+  const url = `${getApiBaseUrl(tenantDomain)}${path}`;
 
   // Get platform admin token if saved
   const adminToken = typeof window !== 'undefined' ? localStorage.getItem('oaksol_admin_token') : null;
@@ -293,7 +295,7 @@ export const catalogApi = {
     }),
 
   // Dashboard stats
-  getAdminStats: async () => request<any>('/catalog/admin/stats'),
+  getAdminStats: async () => request<any>('/catalog/admin/platform-stats'),
 
   // Shops
   getShops: async () => request<any>('/catalog/admin/shops'),
@@ -301,6 +303,23 @@ export const catalogApi = {
 
   updateShop: async (id: string, dto: { name?: string; plan?: string; status?: string; description?: string }) =>
     request<any>(`/catalog/admin/shops/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  updateMerchantSettings: async (dto: {
+    name?: string;
+    description?: string;
+    logo_url?: string;
+    currency?: string;
+    timezone?: string;
+  }) => request<any>('/catalog/merchant/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(dto),
+  }),
+
+  switchMerchantTheme: async (dto: { industry: string; theme: string }) =>
+    request<any>('/catalog/merchant/switch-theme', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
 
   deleteShop: async (id: string) =>
     request<any>(`/catalog/admin/shops/${id}`, { method: 'DELETE' }),
@@ -312,7 +331,7 @@ export const catalogApi = {
     request<any>(`/catalog/admin/shops/${shopId}/delete-demo`, { method: 'POST' }),
 
   registerShop: async (shopData: {
-    name: string; slug: string; ownerEmail: string; ownerName: string; ownerPassword?: string
+    name: string; slug: string; ownerEmail: string; ownerName: string; ownerPassword?: string; industry?: string; theme?: string;
   }) => request<any>('/catalog/register-shop', { method: 'POST', body: JSON.stringify(shopData) }),
 
   // Tenant requests
@@ -370,6 +389,10 @@ export const paymentApi = {
     razorpay_order_id: string;
     razorpay_signature: string;
   }) => request<any>('/payments/razorpay/verify', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Sandbox simulation — backend creates order + generates valid signature using stored key_secret
+  simulatePayment: async (orderId: string) =>
+    request<any>(`/payments/razorpay/simulate/${orderId}`, { method: 'POST' }),
 };
 
 // ─── Customer Auth APIs ───────────────────────────────────────────────────────

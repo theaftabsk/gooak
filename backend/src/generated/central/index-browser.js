@@ -523,6 +523,15 @@ exports.Prisma.PlatformAdminScalarFieldEnum = {
   updated_at: 'updated_at'
 };
 
+exports.Prisma.SystemSettingScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  value: 'value',
+  description: 'description',
+  is_public: 'is_public',
+  updated_at: 'updated_at'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -586,7 +595,8 @@ exports.Prisma.ModelName = {
   TenantRequest: 'TenantRequest',
   Page: 'Page',
   Widget: 'Widget',
-  PlatformAdmin: 'PlatformAdmin'
+  PlatformAdmin: 'PlatformAdmin',
+  SystemSetting: 'SystemSetting'
 };
 
 /**

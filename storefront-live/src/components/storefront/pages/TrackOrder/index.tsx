@@ -81,7 +81,7 @@ export const TrackOrder: React.FC = () => {
     if (!addr) return '';
     if (typeof addr === 'string') return addr;
     const parts = [
-      addr.street,
+      addr.address_line1 || addr.street,
       addr.city,
       addr.state,
       addr.postal_code,
@@ -305,21 +305,30 @@ export const TrackOrder: React.FC = () => {
                 </div>
               </div>
 
-              {/* Shipping Information */}
-              <div className="track-card">
-                <h4 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 700, color: 'var(--sf-text-main)' }}>
-                  Delivery Details
+              {/* Customer & Delivery Information */}
+              <div className="track-card" style={{ padding: '30px 24px' }}>
+                <h4 style={{ margin: '0 0 20px', fontSize: '1.05rem', fontWeight: 700, color: 'var(--sf-text-main)', borderBottom: '1px solid rgba(0,0,0,0.04)', paddingBottom: '10px' }}>
+                  Customer & Delivery Details
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '28px' }}>
                   <div>
-                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recipient</span>
-                    <strong style={{ fontSize: '0.9rem', color: 'var(--sf-text-main)' }}>
-                      {typeof order.shipping_address === 'object' ? order.shipping_address?.name || 'Customer' : 'Customer'}
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', fontWeight: 700 }}>Customer Account</span>
+                    <strong style={{ display: 'block', fontSize: '0.95rem', color: 'var(--sf-text-main)' }}>
+                      {order.customer?.name || order.shipping_address?.full_name || order.shipping_address?.name || 'Guest Customer'}
                     </strong>
+                    <span style={{ display: 'block', fontSize: '0.82rem', color: '#6B7280', marginTop: '4px' }}>
+                      ✉️ {order.customer?.email || 'Guest checkout'}
+                    </span>
+                    <span style={{ display: 'block', fontSize: '0.82rem', color: '#6B7280', marginTop: '4px' }}>
+                      📞 {order.shipping_address?.phone || order.customer?.phone || 'N/A'}
+                    </span>
                   </div>
                   <div>
-                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Shipping Address</span>
-                    <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--sf-text-main)', lineHeight: '1.4' }}>
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', fontWeight: 700 }}>Shipping Address</span>
+                    <strong style={{ display: 'block', fontSize: '0.95rem', color: 'var(--sf-text-main)' }}>
+                      {order.shipping_address?.full_name || order.shipping_address?.name}
+                    </strong>
+                    <p style={{ margin: '6px 0 0 0', fontSize: '0.85rem', color: '#4B5563', lineHeight: '1.45' }}>
                       {formatAddress(order.shipping_address)}
                     </p>
                   </div>

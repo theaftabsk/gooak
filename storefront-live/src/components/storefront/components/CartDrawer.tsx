@@ -2,6 +2,7 @@ import React from 'react';
 import { useCart } from '../context/CartContext';
 import { Button } from '@oaksol/shared-ui';
 import { useNavigate } from 'react-router-dom';
+import { getCurrencySymbol } from '../../../lib/utils';
 
 export const CartDrawer: React.FC = () => {
   const { cartItems, cartTotal, isCartOpen, setCartOpen, updateQty, removeFromCart } = useCart();
@@ -44,7 +45,7 @@ export const CartDrawer: React.FC = () => {
                     </div>
                   </div>
                   <div className="cart-item-price-col">
-                    <span className="item-price">₹{(item.price * item.qty).toFixed(2)}</span>
+                    <span className="item-price">{getCurrencySymbol()}{(item.price * item.qty).toFixed(2)}</span>
                     <button className="remove-item-btn" onClick={() => removeFromCart(item.variantId)}>Remove</button>
                   </div>
                 </div>
@@ -57,9 +58,9 @@ export const CartDrawer: React.FC = () => {
           <div className="cart-footer">
             <div className="subtotal-row">
               <span>Subtotal:</span>
-              <span className="total-amount">₹{cartTotal.toFixed(2)}</span>
+              <span className="total-amount">{getCurrencySymbol()}{cartTotal.toFixed(2)}</span>
             </div>
-            <p className="shipping-note">Free Shipping for orders above ₹500</p>
+            <p className="shipping-note">Free Shipping for orders above {getCurrencySymbol()}500</p>
             <Button
               variant="storefront"
               style={{ width: '100%', marginTop: '15px' }}

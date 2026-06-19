@@ -22,7 +22,7 @@ const getApiBaseUrl = (): string => {
   }
 
   // 3. Fallback for local development
-  return 'http://localhost:5000/api/v1';
+  return 'http://localhost:5005/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -282,7 +282,7 @@ export const catalogApi = {
     }),
 
   // Dashboard stats
-  getAdminStats: async () => request<any>('/catalog/admin/stats'),
+  getAdminStats: async () => request<any>('/catalog/admin/platform-stats'),
 
   // Shops
   getShops: async () => request<any>('/catalog/admin/shops'),
@@ -300,8 +300,14 @@ export const catalogApi = {
   deleteDemoData: async (shopId: string) =>
     request<any>(`/catalog/admin/shops/${shopId}/delete-demo`, { method: 'POST' }),
 
+  switchMerchantTheme: async (dto: { industry: string; theme: string }) =>
+    request<any>('/catalog/merchant/switch-theme', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
   registerShop: async (shopData: {
-    name: string; slug: string; ownerEmail: string; ownerName: string; ownerPassword?: string
+    name: string; slug: string; ownerEmail: string; ownerName: string; ownerPassword?: string; industry?: string; theme?: string;
   }) => request<any>('/catalog/register-shop', { method: 'POST', body: JSON.stringify(shopData) }),
 
   // Tenant requests

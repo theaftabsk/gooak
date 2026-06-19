@@ -1,4 +1,4 @@
-import { PrismaClient as CentralPrismaClient } from './src/generated/central';
+import { PrismaClient as CentralPrismaClient } from '../src/generated/central';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as dotenv from 'dotenv';

@@ -12,10 +12,12 @@ import { ProductsPage } from './pages/ProductsPage/index';
 import { ProductDetailPage } from './pages/ProductDetailPage/index';
 import { CategoriesPage } from './pages/CategoriesPage/index';
 import { OrdersPage } from './pages/OrdersPage/index';
+import { OrderDetailPage } from './pages/OrderDetailPage/index';
 import { InventoryPage } from './pages/InventoryPage/index';
 import { SettingsPage } from './pages/SettingsPage/index';
 import { PagesPage } from './pages/PagesPage/index';
 import { PaymentPage } from './pages/PaymentPage/index';
+import { ThemesPage } from './pages/ThemesPage/index';
 
 function App() {
   return (
@@ -31,7 +33,7 @@ function MerchantDashboardInner() {
   const parts = hostname.split('.');
   const isMainPlatform = parts[0] === 'app' || hostname === 'localhost' || hostname === '127.0.0.1' || parts.length < 2;
   
-  let resolvedTenant = 'aftab';
+  let resolvedTenant = 'testShop';
   if (!isMainPlatform) {
     resolvedTenant = parts[0];
   } else if (typeof window !== 'undefined') {
@@ -58,12 +60,13 @@ function MerchantDashboardInner() {
     if (path.includes('/products/')) return 'products';
     if (path.endsWith('/products')) return 'products';
     if (path.endsWith('/categories')) return 'categories';
-
+    if (path.includes('/orders/')) return 'orders';
     if (path.endsWith('/orders')) return 'orders';
     if (path.endsWith('/inventory')) return 'inventory';
     if (path.endsWith('/payments')) return 'payments';
     if (path.endsWith('/settings')) return 'settings';
     if (path.endsWith('/pages')) return 'pages';
+    if (path.endsWith('/themes')) return 'themes';
     return 'overview';
   };
 
@@ -72,6 +75,10 @@ function MerchantDashboardInner() {
   // Extract selected product ID if on details subpage
   const productIdMatch = location.pathname.match(/\/products\/([a-f0-9-]{36})$/i);
   const selectedProductId = productIdMatch ? productIdMatch[1] : null;
+
+  // Extract selected order ID if on details subpage
+  const orderIdMatch = location.pathname.match(/\/orders\/([a-f0-9-]{36})$/i);
+  const selectedOrderId = orderIdMatch ? orderIdMatch[1] : null;
 
   const setCurrentTab = (tab: MerchantTab) => {
     const base = location.pathname.startsWith('/dashboard') ? '/dashboard' : '/admin';
@@ -85,9 +92,22 @@ function MerchantDashboardInner() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem(`oaksol_merchant_logged_in_${tenantSlug}`) === 'true';
   });
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('oaksol_sidebar_collapsed') === 'true' : false;
+  });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+
+  const merchantEmail = typeof window !== 'undefined' ? localStorage.getItem(`oaksol_merchant_email_${tenantSlug}`) || 'admin@oaksol.in' : 'admin@oaksol.in';
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('oaksol_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   // Shop & Dashboard Data
   const [shopInfo, setShopInfo] = useState<any>(null);
@@ -119,6 +139,7 @@ function MerchantDashboardInner() {
       if (res && res.shop) {
         localStorage.setItem('oaksol_active_shop_slug', res.shop.slug);
         localStorage.setItem(`oaksol_merchant_logged_in_${res.shop.slug}`, 'true');
+        localStorage.setItem(`oaksol_merchant_email_${res.shop.slug}`, email);
         window.location.href = window.location.pathname; // Reloads to apply new context
       } else {
         setLoginError('Invalid response from login API.');
@@ -259,10 +280,9 @@ function MerchantDashboardInner() {
   };
 
   const handleSaveSettings = async (settingsData: any) => {
-    if (!shopInfo?.id) return;
     setSavingSettings(true);
     try {
-      await catalogApi.updateShop(shopInfo.id, settingsData);
+      await catalogApi.updateMerchantSettings(settingsData);
       alert('Store settings saved successfully!');
       fetchDashboardData();
     } catch (err: any) {
@@ -320,87 +340,116 @@ function MerchantDashboardInner() {
   return (
     <div className="merchant-app">
       <MerchantStyles />
-      <div className="dashboard-shell">
+      <div className={`dashboard-shell ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         
         {/* Sidebar */}
-        <aside className="sidebar">
-          <div className="sidebar-brand" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div className="sidebar-logo"><Icons.Store /></div>
-              <div>
-                <h3>{shopInfo?.name || tenantSlug.toUpperCase()}</h3>
-                <span className="sidebar-brand-sub">Merchant Console</span>
+        <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+          <button className="sidebar-toggle-btn" onClick={toggleSidebar} title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>
+            {isSidebarCollapsed ? <Icons.ArrowRight /> : <Icons.ArrowLeft />}
+          </button>
+
+          <div className="sidebar-content">
+            <div className="sidebar-brand">
+              <div className="sidebar-brand-top">
+                <div className="sidebar-logo"><Icons.Store /></div>
+                <div className="sidebar-brand-meta">
+                  <h3>{shopInfo?.name || tenantSlug.toUpperCase()}</h3>
+                  <span className="sidebar-brand-sub">Merchant Console</span>
+                </div>
+              </div>
+              <div className="sidebar-active-store-container">
+                <label className="sidebar-active-store-label">Active Store</label>
+                <div className="sidebar-active-store-box">
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#38BDF8', width: '14px', height: '14px', flexShrink: 0 }}>
+                    <Icons.Store />
+                  </span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {shopInfo?.name || tenantSlug.toUpperCase()} ({tenantSlug})
+                  </span>
+                </div>
               </div>
             </div>
-            <div style={{ width: '100%', marginTop: '4px' }}>
-              <label style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>Active Store</label>
-              <div style={{
-                background: '#1E293B',
-                border: '1px solid #334155',
-                color: '#38BDF8',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#38BDF8', width: '14px', height: '14px' }}>
-                  <Icons.Store />
-                </span>
-                <span>{shopInfo?.name || tenantSlug.toUpperCase()} ({tenantSlug})</span>
+            <nav className="sidebar-nav">
+              <div className="sidebar-group-title">Catalog</div>
+              <span className={currentTab === 'overview' ? 'active' : ''} onClick={() => setCurrentTab('overview')} title="Overview">
+                <Icons.Dashboard />
+                <span className="sidebar-nav-item-text">Overview</span>
+              </span>
+              <span className={currentTab === 'products' ? 'active' : ''} onClick={() => setCurrentTab('products')} title="Products Registry">
+                <Icons.Package />
+                <span className="sidebar-nav-item-text">Products Registry</span>
+              </span>
+              <span className={currentTab === 'categories' ? 'active' : ''} onClick={() => setCurrentTab('categories')} title="Categories">
+                <Icons.Folder />
+                <span className="sidebar-nav-item-text">Categories</span>
+              </span>
+              <span className={currentTab === 'inventory' ? 'active' : ''} onClick={() => setCurrentTab('inventory')} title="Inventory">
+                <Icons.Package />
+                <span className="sidebar-nav-item-text">Inventory</span>
+              </span>
+
+              <div className="sidebar-group-title">Operations</div>
+              <span className={currentTab === 'orders' ? 'active' : ''} onClick={() => setCurrentTab('orders')} title="Store Orders">
+                <Icons.Clipboard />
+                <span className="sidebar-nav-item-text">Store Orders</span>
+                {orders.filter(o => o.status === 'pending').length > 0 && (
+                  <span className="sidebar-badge">
+                    {orders.filter(o => o.status === 'pending').length}
+                  </span>
+                )}
+              </span>
+              <span className={currentTab === 'payments' ? 'active' : ''} onClick={() => setCurrentTab('payments')} title="Payments">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                <span className="sidebar-nav-item-text">Payments</span>
+              </span>
+
+              <div className="sidebar-group-title">Settings</div>
+              <span
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  const base = location.pathname.startsWith('/dashboard') ? '/dashboard' : '/admin';
+                  const shop = typeof window !== 'undefined' ? localStorage.getItem('oaksol_active_shop_slug') || '' : '';
+                  window.open(`${base}/builder${shop ? `?shop=${shop}` : ''}`, '_blank');
+                }}
+                title="Website Builder"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/></svg>
+                <span className="sidebar-nav-item-text">Website Builder</span>
+                {!isSidebarCollapsed && (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginLeft: 'auto', opacity: 0.5}}>
+                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                )}
+              </span>
+              <span className={currentTab === 'themes' ? 'active' : ''} onClick={() => setCurrentTab('themes')} title="Themes">
+                <Icons.Palette />
+                <span className="sidebar-nav-item-text">Themes</span>
+              </span>
+              <span className={currentTab === 'settings' ? 'active' : ''} onClick={() => setCurrentTab('settings')} title="Settings">
+                <Icons.Settings />
+                <span className="sidebar-nav-item-text">Settings</span>
+              </span>
+            </nav>
+
+            <div className="sidebar-footer">
+              <div className="sidebar-profile">
+                <div className="sidebar-avatar">
+                  {merchantEmail.charAt(0).toUpperCase()}
+                </div>
+                <div className="sidebar-profile-info">
+                  <span className="sidebar-profile-name">Merchant Admin</span>
+                  <span className="sidebar-profile-role" title={merchantEmail}>
+                    {merchantEmail.length > 20 ? merchantEmail.substring(0, 17) + '...' : merchantEmail}
+                  </span>
+                </div>
               </div>
+              <button className="logout-btn" onClick={handleLogout} title="Logout">
+                <Icons.Logout />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
-          <nav className="sidebar-nav">
-            <span className={currentTab === 'overview' ? 'active' : ''} onClick={() => setCurrentTab('overview')}>
-              <Icons.Dashboard /> Overview
-            </span>
-            <span className={currentTab === 'products' ? 'active' : ''} onClick={() => setCurrentTab('products')}>
-              <Icons.Package /> Products Registry
-            </span>
-            <span className={currentTab === 'categories' ? 'active' : ''} onClick={() => setCurrentTab('categories')}>
-              <Icons.Folder /> Categories
-            </span>
-
-            <span className={currentTab === 'orders' ? 'active' : ''} onClick={() => setCurrentTab('orders')}>
-              <Icons.Clipboard /> Store Orders
-              {orders.filter(o => o.status === 'pending').length > 0 && (
-                <span className="sidebar-badge" style={{ background: 'var(--m-warn)', color: '#000000', padding: '1px 6px', borderRadius: 4, fontSize: '0.7rem', marginLeft: 8, fontWeight: 'bold' }}>
-                  {orders.filter(o => o.status === 'pending').length}
-                </span>
-              )}
-            </span>
-            <span className={currentTab === 'inventory' ? 'active' : ''} onClick={() => setCurrentTab('inventory')}>
-              <Icons.Package /> Inventory
-            </span>
-            <span
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
-                const base = location.pathname.startsWith('/dashboard') ? '/dashboard' : '/admin';
-                const shop = typeof window !== 'undefined' ? localStorage.getItem('oaksol_active_shop_slug') || '' : '';
-                window.open(`${base}/builder${shop ? `?shop=${shop}` : ''}`, '_blank');
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/></svg>
-              Website Builder
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginLeft: 4, opacity: 0.5}}>
-                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-              </svg>
-            </span>
-            <span className={currentTab === 'payments' ? 'active' : ''} onClick={() => setCurrentTab('payments')}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-              Payments
-            </span>
-            <span className={currentTab === 'settings' ? 'active' : ''} onClick={() => setCurrentTab('settings')}>
-              <Icons.Settings /> Settings
-            </span>
-            <span className="logout-link" onClick={handleLogout}>
-              <Icons.Logout /> Logout
-            </span>
-          </nav>
         </aside>
 
         {/* Main Content */}
@@ -429,6 +478,7 @@ function MerchantDashboardInner() {
                   />
                 ) : (
                   <ProductsPage
+                    shopInfo={shopInfo}
                     products={products}
                     categories={categories}
                     brands={brands}
@@ -456,12 +506,22 @@ function MerchantDashboardInner() {
 
 
               {currentTab === 'orders' && (
-                <OrdersPage
-                  orders={orders}
-                  loading={loading}
-                  onUpdateOrderStatus={handleUpdateOrderStatus}
-                  updating={updatingOrderStatus}
-                />
+                selectedOrderId ? (
+                  <OrderDetailPage
+                    orderId={selectedOrderId}
+                    orders={orders}
+                    onUpdateOrderStatus={handleUpdateOrderStatus}
+                    updating={updatingOrderStatus}
+                    onBack={() => setCurrentTab('orders')}
+                  />
+                ) : (
+                  <OrdersPage
+                    orders={orders}
+                    loading={loading}
+                    onUpdateOrderStatus={handleUpdateOrderStatus}
+                    updating={updatingOrderStatus}
+                  />
+                )
               )}
 
               {currentTab === 'inventory' && <InventoryPage />}
@@ -477,6 +537,13 @@ function MerchantDashboardInner() {
                   shopInfo={shopInfo}
                   onSaveSettings={handleSaveSettings}
                   saving={savingSettings}
+                />
+              )}
+
+              {currentTab === 'themes' && (
+                <ThemesPage
+                  shopInfo={shopInfo}
+                  onThemeChange={fetchDashboardData}
                 />
               )}
             </>

@@ -9,7 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     rawBody: true,
   });
-  
+
   // Enable CORS to allow multi-tenant dynamic origins (localhost:3000, localhost:3001, and custom domains)
   app.enableCors({
     origin: true,

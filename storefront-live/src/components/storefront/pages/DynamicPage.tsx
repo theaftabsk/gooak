@@ -11,7 +11,17 @@ interface DynamicPageProps {
 export const DynamicPage: React.FC<DynamicPageProps> = ({ fallback }) => {
   const { slug = 'index' } = useParams<{ slug?: string }>();
   const [searchParams] = useSearchParams();
-  const [pageData, setPageData] = useState<LivePageData | null>(null);
+  const [pageData, setPageData] = useState<LivePageData | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`oaksol_preview_page_${slug}`);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +34,9 @@ export const DynamicPage: React.FC<DynamicPageProps> = ({ fallback }) => {
       try {
         const data = await pageBuilderApi.getPageBySlug(slug);
         setPageData(data);
+        if (data && typeof window !== 'undefined') {
+          localStorage.setItem(`oaksol_preview_page_${slug}`, JSON.stringify(data));
+        }
       } catch (err: any) {
         setError(err.message || 'Page details not found');
       } finally {
@@ -36,20 +49,19 @@ export const DynamicPage: React.FC<DynamicPageProps> = ({ fallback }) => {
 
   // Setup preview postMessage listener for visual editor integration
   useEffect(() => {
-    if (!isPreview) return;
-
-    console.log('[Storefront Preview] Visual preview editor mode enabled.');
-
     const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'LAYOUT_UPDATE') {
+      if (event.data && event.data.type === 'LAYOUT_UPDATE' && event.data.payload?.slug === slug) {
         console.log('[Storefront Preview] Layout update received:', event.data.payload);
         setPageData(event.data.payload);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`oaksol_preview_page_${slug}`, JSON.stringify(event.data.payload));
+        }
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [isPreview]);
+  }, [slug]);
 
   const theme = pageData?.theme || {
     primaryColor: '#15803D',
@@ -74,19 +86,21 @@ export const DynamicPage: React.FC<DynamicPageProps> = ({ fallback }) => {
   }
 
   // Fallback default state if page is not found or has no widgets yet
-  if (!pageData) {
-    if (slug === 'index' && fallback) {
+  if (!pageData || !pageData.widgets || pageData.widgets.length === 0) {
+    if (fallback) {
       return <>{fallback}</>;
     }
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-slate-50 text-center">
-        <span className="text-4xl mb-4">🏠</span>
-        <h1 className="text-xl font-bold text-slate-800 mb-2">Welcome to your store</h1>
-        <p className="text-slate-500 text-sm max-w-sm">
-          No published storefront widgets found for this path yet. Customize this page inside the Merchant Dashboard Page Builder.
-        </p>
-      </div>
-    );
+    if (!pageData) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-slate-50 text-center">
+          <span className="text-4xl mb-4">🏠</span>
+          <h1 className="text-xl font-bold text-slate-800 mb-2">Welcome to your store</h1>
+          <p className="text-slate-500 text-sm max-w-sm">
+            No published storefront widgets found for this path yet. Customize this page inside the Merchant Dashboard Page Builder.
+          </p>
+        </div>
+      );
+    }
   }
 
   return (

@@ -17,7 +17,7 @@ export default function VisualBuilderPage() {
       params.get('tenant') ||
       (!['localhost', '127.0.0.1'].includes(parts[0]) && parts.length >= 2 ? parts[0] : null) ||
       localStorage.getItem('oaksol_active_shop_slug') ||
-      'aftab';
+      'testShop';
 
     // Check login
     const isLoggedIn = localStorage.getItem(`oaksol_merchant_logged_in_${slug}`) === 'true';

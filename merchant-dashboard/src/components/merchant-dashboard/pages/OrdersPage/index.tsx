@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icons } from '../../icons';
-import { Badge, LoadingSpinner, EmptyState, InfoRow } from '../../shared';
+import { Badge, LoadingSpinner, EmptyState } from '../../shared';
 import { formatINR } from '../../utils';
 
 interface OrdersPageProps {
@@ -10,43 +11,70 @@ interface OrdersPageProps {
   updating: boolean;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'pending', label: 'Pending Payment' },
-  { value: 'confirmed', label: 'Payment Confirmed' },
-  { value: 'processing', label: 'Processing / Packing' },
-  { value: 'shipped', label: 'Shipped / Dispatched' },
-  { value: 'completed', label: 'Order Completed' },
-  { value: 'cancelled', label: 'Cancelled' },
+const MONTHS = [
+  { value: 0, label: 'January' },
+  { value: 1, label: 'February' },
+  { value: 2, label: 'March' },
+  { value: 3, label: 'April' },
+  { value: 4, label: 'May' },
+  { value: 5, label: 'June' },
+  { value: 6, label: 'July' },
+  { value: 7, label: 'August' },
+  { value: 8, label: 'September' },
+  { value: 9, label: 'October' },
+  { value: 10, label: 'November' },
+  { value: 11, label: 'December' },
 ];
+
+const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
+
+const filterSelectStyle: React.CSSProperties = {
+  background: '#FFFFFF',
+  border: '1px solid var(--m-border)',
+  borderRadius: '6px',
+  padding: '6px 12px',
+  fontSize: '0.85rem',
+  outline: 'none',
+  cursor: 'pointer'
+};
 
 export const OrdersPage: React.FC<OrdersPageProps> = ({
   orders, loading, onUpdateOrderStatus, updating
 }) => {
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-  const [newStatus, setNewStatus] = useState('');
-  const [statusNote, setStatusNote] = useState('');
+  const navigate = useNavigate();
+
+  // Filters and Pagination states
+  const [filterDay, setFilterDay] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const handleOpenOrder = (o: any) => {
-    setSelectedOrder(o);
-    setNewStatus(o.status);
-    setStatusNote('');
+    const base = window.location.pathname.startsWith('/dashboard') ? '/dashboard' : '/admin';
+    navigate(`${base}/orders/${o.id}`);
   };
 
-  const handleStatusSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedOrder || !newStatus) return;
+  // Get unique list of years from orders for the year filter, fallback to current year
+  const uniqueYears = Array.from(new Set(orders.map(o => new Date(o.created_at).getFullYear())))
+    .sort((a, b) => b - a);
+  const yearsList = uniqueYears.length > 0 ? uniqueYears : [new Date().getFullYear()];
 
-    await onUpdateOrderStatus(selectedOrder.id, newStatus, statusNote);
-    
-    // Refresh selected order reference locally
-    const refreshed = orders.find(o => o.id === selectedOrder.id);
-    if (refreshed) {
-      setSelectedOrder(refreshed);
-    } else {
-      setSelectedOrder(null);
-    }
-    setStatusNote('');
-  };
+  // Filtering Logic
+  const filteredOrders = orders.filter(o => {
+    const d = new Date(o.created_at);
+    if (filterDay && d.getDate() !== parseInt(filterDay)) return false;
+    if (filterMonth && d.getMonth() !== parseInt(filterMonth)) return false;
+    if (filterYear && d.getFullYear() !== parseInt(filterYear)) return false;
+    return true;
+  });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <>
@@ -58,166 +86,154 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({
       </header>
 
       <div className="card">
-        <h3 className="card-title">Customer Transactions</h3>
-        {loading ? <LoadingSpinner message="Fetching orders..." /> : orders.length === 0 ? (
-          <EmptyState message="No orders placed yet. Storefront checkouts will show up here." />
-        ) : (
-          <div className="db-table-container">
-            <table className="db-table">
-              <thead>
-                <tr>
-                  <th>Order Number</th>
-                  <th>Customer Info</th>
-                  <th>Total Payable</th>
-                  <th>Payment / Status</th>
-                  <th>Date</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map(o => {
-                  const addr = typeof o.shipping_address === 'string' ? JSON.parse(o.shipping_address) : o.shipping_address;
-                  const name = o.customer?.name || addr?.name || 'Guest User';
-                  const email = o.customer?.email || addr?.email || '';
-
-                  return (
-                    <tr key={o.id}>
-                      <td><strong>#{o.order_number}</strong></td>
-                      <td>
-                        <div>
-                          <strong>{name}</strong>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--m-text-muted)', marginTop: 2 }}>{email}</div>
-                        </div>
-                      </td>
-                      <td>{formatINR(o.total)}</td>
-                      <td>
-                        <Badge type={
-                          o.status === 'confirmed' || o.status === 'completed' ? 'success' :
-                          o.status === 'pending' ? 'warn' :
-                          o.status === 'cancelled' ? 'danger' : 'info'
-                        }>
-                          {o.status.toUpperCase()}
-                        </Badge>
-                      </td>
-                      <td style={{ fontSize: '0.8rem', color: 'var(--m-text-muted)' }}>
-                        {new Date(o.created_at).toLocaleString()}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <button className="btn-ghost-sm" onClick={() => handleOpenOrder(o)}>
-                          <Icons.Eye /> View &amp; Update
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Order Details Modal Overlay */}
-      {selectedOrder && (
-        <div className="modal-overlay" onClick={() => setSelectedOrder(null)}>
-          <div className="modal-box" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Order Details — #{selectedOrder.order_number}</h3>
-              <button className="modal-close" onClick={() => setSelectedOrder(null)}><Icons.X /></button>
+        {/* Header containing title and Year/Month/Day filters */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 15, marginBottom: 20 }}>
+          <h3 className="card-title" style={{ margin: 0 }}>Customer Transactions</h3>
+          
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Year Filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--m-text-muted)' }}>Year:</span>
+              <select
+                value={filterYear}
+                onChange={e => { setFilterYear(e.target.value); setCurrentPage(1); }}
+                style={filterSelectStyle}
+              >
+                <option value="">All Years</option>
+                {yearsList.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
             </div>
-            
-            <div className="modal-body" style={{ gap: 20 }}>
-              
-              {/* Customer & Address details */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                <div>
-                  <h4 style={{ fontSize: '0.9rem', marginBottom: 10, color: 'var(--m-text-muted)' }}>Customer Details</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <InfoRow label="Name" value={selectedOrder.customer?.name || 'Guest'} />
-                    <InfoRow label="Email" value={selectedOrder.customer?.email || 'N/A'} />
-                    <InfoRow label="Phone" value={selectedOrder.customer?.phone || 'N/A'} />
-                  </div>
-                </div>
-                <div>
-                  <h4 style={{ fontSize: '0.9rem', marginBottom: 10, color: 'var(--m-text-muted)' }}>Shipping Destination</h4>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--m-text-main)', background: 'rgba(15, 23, 42, 0.4)', padding: 12, borderRadius: 8, border: '1px solid var(--m-border)' }}>
-                    {typeof selectedOrder.shipping_address === 'string'
-                      ? selectedOrder.shipping_address
-                      : `${selectedOrder.shipping_address?.address || selectedOrder.shipping_address?.address_line1 || ''}, ${selectedOrder.shipping_address?.city || ''}, ${selectedOrder.shipping_address?.state || ''} ${selectedOrder.shipping_address?.pincode || selectedOrder.shipping_address?.postal_code || ''}`
-                    }
-                  </div>
-                </div>
-              </div>
 
-              {/* Items List */}
-              <div>
-                <h4 style={{ fontSize: '0.9rem', marginBottom: 10, color: 'var(--m-text-muted)' }}>Purchased Items</h4>
-                <div style={{ background: 'rgba(15, 23, 42, 0.4)', borderRadius: 8, border: '1px solid var(--m-border)', overflow: 'hidden' }}>
-                  {selectedOrder.items?.map((item: any, idx: number) => {
-                    const snap = typeof item.product_snap === 'string' ? JSON.parse(item.product_snap) : item.product_snap;
-                    return (
-                      <div key={item.id || idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', borderBottom: idx < selectedOrder.items.length - 1 ? '1px solid var(--m-border)' : 'none' }}>
-                        <div>
-                          <strong>{snap?.name || 'Product Item'}</strong>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--m-text-muted)' }}>Qty: {item.qty} · Unit Price: {formatINR(item.unit_price)}</div>
-                        </div>
-                        <div style={{ fontWeight: 600 }}>{formatINR(item.line_total)}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Status Update Form */}
-              <div style={{ borderTop: '1px solid var(--m-border)', paddingTop: 16 }}>
-                <h4 style={{ fontSize: '0.9rem', marginBottom: 12, color: 'var(--m-text-muted)' }}>Workflow Dispatch Status</h4>
-                <form onSubmit={handleStatusSubmit} className="form-grid">
-                  <div className="form-row">
-                    <div className="field-group">
-                      <label>Update Status</label>
-                      <select value={newStatus} onChange={e => setNewStatus(e.target.value)}>
-                        {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                      </select>
-                    </div>
-                    <div className="field-group" style={{ flex: 1.5 }}>
-                      <label>Status Change Note (Internal)</label>
-                      <input value={statusNote} onChange={e => setStatusNote(e.target.value)} placeholder="e.g. Handed over to delivery agent..." />
-                    </div>
-                  </div>
-                  <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-start' }} disabled={updating}>
-                    {updating ? 'Saving Status…' : 'Update Order Status'}
-                  </button>
-                </form>
-              </div>
-
-              {/* Status Log History */}
-              {selectedOrder.status_logs && selectedOrder.status_logs.length > 0 && (
-                <div style={{ borderTop: '1px solid var(--m-border)', paddingTop: 16 }}>
-                  <h4 style={{ fontSize: '0.9rem', marginBottom: 10, color: 'var(--m-text-muted)' }}>Status Change Log</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {selectedOrder.status_logs.map((log: any, idx: number) => (
-                      <div key={log.id || idx} style={{ fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.01)', padding: '6px 12px', borderRadius: 4 }}>
-                        <div>
-                          Status changed to <strong style={{ color: 'var(--m-primary)' }}>{log.to_status.toUpperCase()}</strong>
-                          {log.note && <div style={{ color: 'var(--m-text-muted)', marginTop: 2 }}>Note: {log.note}</div>}
-                        </div>
-                        <div style={{ color: 'var(--m-text-muted)', textAlign: 'right' }}>
-                          {new Date(log.created_at).toLocaleString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
+            {/* Month Filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--m-text-muted)' }}>Month:</span>
+              <select
+                value={filterMonth}
+                onChange={e => { setFilterMonth(e.target.value); setCurrentPage(1); }}
+                style={filterSelectStyle}
+              >
+                <option value="">All Months</option>
+                {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+              </select>
             </div>
-            
-            <div className="modal-footer">
-              <button className="btn-primary" onClick={() => setSelectedOrder(null)}>Done, Close</button>
+
+            {/* Day Filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--m-text-muted)' }}>Day:</span>
+              <select
+                value={filterDay}
+                onChange={e => { setFilterDay(e.target.value); setCurrentPage(1); }}
+                style={filterSelectStyle}
+              >
+                <option value="">All Days</option>
+                {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
           </div>
         </div>
-      )}
+
+        {loading ? <LoadingSpinner message="Fetching orders..." /> : filteredOrders.length === 0 ? (
+          <EmptyState message={
+            filterDay || filterMonth || filterYear 
+              ? "No transactions found matching the selected date filters."
+              : "No orders placed yet. Storefront checkouts will show up here."
+          } />
+        ) : (
+          <>
+            <div className="db-table-container">
+              <table className="db-table">
+                <thead>
+                  <tr>
+                    <th>Order Number</th>
+                    <th>Customer Info</th>
+                    <th>Total Payable</th>
+                    <th>Payment / Status</th>
+                    <th>Date</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedOrders.map(o => {
+                    const addr = typeof o.shipping_address === 'string' ? JSON.parse(o.shipping_address) : o.shipping_address;
+                    const name = o.customer?.name || addr?.full_name || addr?.name || 'Guest User';
+                    const email = o.customer?.email || addr?.email || '';
+
+                    return (
+                      <tr key={o.id}>
+                        <td><strong>#{o.order_number}</strong></td>
+                        <td>
+                          <div>
+                            <strong>{name}</strong>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--m-text-muted)', marginTop: 2 }}>{email}</div>
+                          </div>
+                        </td>
+                        <td>{formatINR(o.total)}</td>
+                        <td>
+                          <Badge type={
+                            o.status === 'confirmed' || o.status === 'completed' ? 'success' :
+                            o.status === 'pending' ? 'warn' :
+                            o.status === 'cancelled' ? 'danger' : 'info'
+                          }>
+                            {o.status.toUpperCase()}
+                          </Badge>
+                        </td>
+                        <td style={{ fontSize: '0.8rem', color: 'var(--m-text-muted)' }}>
+                          {new Date(o.created_at).toLocaleString()}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button className="btn-ghost-sm" onClick={() => handleOpenOrder(o)}>
+                            <Icons.Eye /> View &amp; Update
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--m-border)', flexWrap: 'wrap', gap: 12 }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--m-text-muted)' }}>
+                  Showing <strong>{((currentPage - 1) * itemsPerPage) + 1}</strong> to <strong>{Math.min(currentPage * itemsPerPage, filteredOrders.length)}</strong> of <strong>{filteredOrders.length}</strong> transactions
+                </span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button 
+                    className="btn-ghost-sm" 
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <Icons.ArrowLeft /> Prev
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                    <button
+                      key={pageNum}
+                      className="btn-ghost-sm"
+                      style={{
+                        background: currentPage === pageNum ? 'var(--m-primary-light)' : 'transparent',
+                        color: currentPage === pageNum ? 'var(--m-primary)' : 'var(--m-text-main)',
+                        borderColor: currentPage === pageNum ? 'var(--m-primary)' : 'var(--m-border)',
+                        fontWeight: 600
+                      }}
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                  <button 
+                    className="btn-ghost-sm" 
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next <Icons.ArrowRight />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </>
   );
 };
-

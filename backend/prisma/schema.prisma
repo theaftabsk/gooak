@@ -18,6 +18,7 @@ model Shop {
   description       String?            @db.Text
   currency          String             @default("BDT") @db.Char(3)
   timezone          String             @default("Asia/Dhaka") @db.VarChar(60)
+  db_connection_url String?            @db.Text
   created_at        DateTime           @default(now()) @db.Timestamptz
   updated_at        DateTime           @default(now()) @updatedAt @db.Timestamptz
 
@@ -697,4 +698,15 @@ model PlatformAdmin {
   updated_at    DateTime @default(now()) @updatedAt @db.Timestamptz
 
   @@map("platform_admins")
+}
+
+model SystemSetting {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String   @unique @db.VarChar(100)
+  value       String   @db.Text
+  description String?  @db.Text
+  is_public   Boolean  @default(true)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  @@map("system_settings")
 }

@@ -7,8 +7,8 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
+  const [email, setEmail] = React.useState('admin@oaksol.in');
+  const [password, setPassword] = React.useState('1234');
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
@@ -69,6 +69,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             {loading ? 'Authenticating...' : <><Icons.Lock /> Login as Super Admin</>}
           </button>
         </form>
+
+        <div style={{
+          marginTop: '20px',
+          padding: '12px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '8px',
+          fontSize: '0.8rem',
+          color: '#94A3B8',
+          lineHeight: '1.4'
+        }}>
+          <strong style={{ color: '#F1F5F9', display: 'block', marginBottom: '4px' }}>🔑 Developer Sandbox Credentials</strong>
+          <div style={{ marginBottom: '2px' }}>Email: <code style={{ color: '#38BDF8', userSelect: 'all', fontFamily: 'monospace' }}>admin@oaksol.in</code></div>
+          <div>Password: <code style={{ color: '#38BDF8', userSelect: 'all', fontFamily: 'monospace' }}>1234</code></div>
+        </div>
       </div>
     </div>
   );

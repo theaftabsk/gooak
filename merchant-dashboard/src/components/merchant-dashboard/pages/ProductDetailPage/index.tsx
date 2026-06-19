@@ -300,7 +300,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '30px', alignItems: 'start' }}>
+      {activeTab === 'variants' ? (
+        <div className="card" style={{ marginTop: 0 }}>
+          <VariantsStockTab productId={productId} />
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '30px', alignItems: 'start' }}>
         
         {/* Main Work Area based on active tab */}
         <div className="card" style={{ minHeight: 450 }}>
@@ -740,12 +745,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         </div>
 
       </div>
-
-      {/* TAB 6: VARIANTS & STOCK — full width, no sidebar */}
-      {activeTab === 'variants' && (
-        <div className="card" style={{ marginTop: 0 }}>
-          <VariantsStockTab productId={productId} />
-        </div>
       )}
     </>
   );

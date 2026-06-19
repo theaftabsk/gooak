@@ -642,3 +642,14 @@ model PlatformAdmin {
 
   @@map("platform_admins")
 }
+
+model SystemSetting {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String   @unique @db.VarChar(100)
+  value       String   @db.Text
+  description String?  @db.Text
+  is_public   Boolean  @default(true)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  @@map("system_settings")
+}

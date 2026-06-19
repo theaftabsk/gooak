@@ -15,23 +15,83 @@ const PLANS = [
   { id: 'enterprise', name: 'Enterprise', desc: 'White-label, custom SLA, dedicated infrastructure.' },
 ];
 
+const INDUSTRIES = [
+  { id: 'fashion', name: '🛍 Fashion Store', themes: [
+      { id: 'classic', name: 'Classic (Charcoal, Amber, Cream)' },
+      { id: 'modern', name: 'Modern (Slate, Pink, Warm White)' },
+      { id: 'luxury', name: 'Luxury (Gold, Premium Dark, Ivory)' }
+    ]
+  },
+  { id: 'electronics', name: '📱 Electronics Store', themes: [
+      { id: 'dark', name: 'Tech Dark (Blue, Emerald, Midnight)' },
+      { id: 'modern', name: 'Tech Modern (Indigo, Orange, Slate)' },
+      { id: 'premium', name: 'Tech Premium (Violet, Dark Gray, Light Gray)' }
+    ]
+  },
+  { id: 'grocery', name: '🥬 Grocery Store', themes: [
+      { id: 'fresh', name: 'Fresh Organic (Green, Yellow, Pale Green)' },
+      { id: 'organic', name: 'Pure Organic (Green, Teal, Mint)' },
+      { id: 'wholesale', name: 'Wholesale Pallets (Dark Green, Amber, Stone)' }
+    ]
+  },
+  { id: 'restaurant', name: '🍔 Restaurant Store', themes: [
+      { id: 'gourmet', name: 'Gourmet Classic (Orange, Amber, Warm Beige)' },
+      { id: 'fastfood', name: 'Fast Food Dark (Red, Yellow, Cream)' },
+      { id: 'cafe', name: 'Cafe Warm (Brown, Amber, Light Cream)' }
+    ]
+  },
+  { id: 'furniture', name: '🛋 Furniture Store', themes: [
+      { id: 'minimalist', name: 'Minimalist Light (Brown, Yellow, Warm Linen)' },
+      { id: 'vintage', name: 'Vintage Wood (Teak, Gold, Linen)' },
+      { id: 'luxury', name: 'Luxury Velvet (Dark Gray, Brass, Ivory)' }
+    ]
+  },
+  { id: 'beauty', name: '💄 Beauty Store', themes: [
+      { id: 'organic', name: 'Organic Beauty (Rose, Green, Pale Rose)' },
+      { id: 'luxury', name: 'Luxury Radiance (Dark Rose, Amber, Ivory)' },
+      { id: 'glam', name: 'Glam High-Pigment (Hot Pink, Rose, Warm Pink)' }
+    ]
+  },
+  { id: 'pharmacy', name: '💊 Pharmacy Store', themes: [
+      { id: 'clinical', name: 'Clinical Clean (Cyan, Emerald, Pale Teal)' },
+      { id: 'wellness', name: 'Wellness Green (Teal, Yellow, Mint)' },
+      { id: 'express', name: 'First Aid Express (Blue, Red, White)' }
+    ]
+  },
+  { id: 'petstore', name: '🐶 Pet Store', themes: [
+      { id: 'playful', name: 'Playful Pets (Orange, Blue, Warm Yellow)' },
+      { id: 'premium', name: 'Premium Animals (Slate, Gold, Cream)' },
+      { id: 'nature', name: 'Nature Friendly (Green, Gold, Pale Green)' }
+    ]
+  }
+];
+
 export const OnboardPage: React.FC<OnboardPageProps> = ({ onProvision, provisioning }) => {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [category, setCategory] = useState('');
+  const [industry, setIndustry] = useState('fashion');
+  const [theme, setTheme] = useState('classic');
   const [plan, setPlan] = useState('starter');
   const [credentials, setCredentials] = useState<any>(null);
 
   const derivedSlug = slug || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   const genPwd = genPassword(derivedSlug);
 
+  const handleIndustryChange = (val: string) => {
+    setIndustry(val);
+    const ind = INDUSTRIES.find(i => i.id === val);
+    if (ind && ind.themes.length > 0) {
+      setTheme(ind.themes[0].id);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !ownerName || !ownerEmail) return;
-    const result = await onProvision({ name, slug: derivedSlug, ownerName, ownerEmail, phone, category, plan });
+    const result = await onProvision({ name, slug: derivedSlug, ownerName, ownerEmail, phone, industry, theme, plan });
     if (result?.shopId) {
       setCredentials({
         shopSlug: derivedSlug,
@@ -44,7 +104,7 @@ export const OnboardPage: React.FC<OnboardPageProps> = ({ onProvision, provision
         },
       });
       setName(''); setSlug(''); setOwnerName(''); setOwnerEmail('');
-      setPhone(''); setCategory(''); setPlan('starter');
+      setPhone(''); setIndustry('fashion'); setTheme('classic'); setPlan('starter');
     }
   };
 
@@ -86,23 +146,30 @@ export const OnboardPage: React.FC<OnboardPageProps> = ({ onProvision, provision
             </div>
             <div className="field-row">
               <div className="field-group">
+                <label>Industry *</label>
+                <select value={industry} onChange={e => handleIndustryChange(e.target.value)}>
+                  {INDUSTRIES.map(ind => (
+                    <option key={ind.id} value={ind.id}>{ind.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="field-group">
+                <label>Design Theme *</label>
+                <select value={theme} onChange={e => setTheme(e.target.value)}>
+                  {INDUSTRIES.find(i => i.id === industry)?.themes.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field-group">
                 <label>Phone</label>
                 <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 98765 43210" />
               </div>
-              <div className="field-group">
-                <label>Category</label>
-                <select value={category} onChange={e => setCategory(e.target.value)}>
-                  <option value="">— Select Category —</option>
-                  <option>Skincare</option>
-                  <option>Haircare</option>
-                  <option>Wellness</option>
-                  <option>Supplements</option>
-                  <option>Clothing</option>
-                  <option>Electronics</option>
-                  <option>Home &amp; Living</option>
-                  <option>Food &amp; Beverages</option>
-                  <option>Other</option>
-                </select>
+              <div className="field-group" style={{ visibility: 'hidden' }}>
+                <label>Placeholder</label>
+                <input disabled />
               </div>
             </div>
 

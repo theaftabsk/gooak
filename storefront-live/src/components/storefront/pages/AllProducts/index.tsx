@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { catalogApi, pageBuilderApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
 import { WidgetRenderer } from '../../WidgetRenderer';
+import { getCurrencySymbol } from '../../../../lib/utils';
 
 export const AllProducts: React.FC = () => {
   const { theme, cssVariables } = usePageTheme('products');
@@ -194,7 +195,7 @@ export const AllProducts: React.FC = () => {
             <form onSubmit={handleApplyPrice} className="price-filter-form">
               <div className="price-inputs">
                 <div className="price-input-box">
-                  <span className="price-input-prefix">₹</span>
+                  <span className="price-input-prefix">{getCurrencySymbol()}</span>
                   <input
                     type="number"
                     placeholder="Min"
@@ -205,7 +206,7 @@ export const AllProducts: React.FC = () => {
                 </div>
                 <span className="price-divider">to</span>
                 <div className="price-input-box">
-                  <span className="price-input-prefix">₹</span>
+                  <span className="price-input-prefix">{getCurrencySymbol()}</span>
                   <input
                     type="number"
                     placeholder="Max"
@@ -312,13 +313,13 @@ export const AllProducts: React.FC = () => {
                 )}
                 {minPriceQuery !== undefined && (
                   <span className="filter-chip">
-                    Min: ₹{minPriceQuery}
+                    Min: {getCurrencySymbol()}{minPriceQuery}
                     <button onClick={() => { setMinPrice(''); setMinPriceQuery(undefined); }} className="chip-remove-btn">×</button>
                   </span>
                 )}
                 {maxPriceQuery !== undefined && (
                   <span className="filter-chip">
-                    Max: ₹{maxPriceQuery}
+                    Max: {getCurrencySymbol()}{maxPriceQuery}
                     <button onClick={() => { setMaxPrice(''); setMaxPriceQuery(undefined); }} className="chip-remove-btn">×</button>
                   </span>
                 )}
@@ -400,9 +401,9 @@ export const AllProducts: React.FC = () => {
                         
                         <div className="product-card-footer">
                           <div className="price-wrapper">
-                            <span className="price-amount">₹{p.price}</span>
+                            <span className="price-amount">{getCurrencySymbol()}{p.price}</span>
                             {p.compare_price && Number(p.compare_price) > Number(p.price) && (
-                              <span className="price-compare">₹{p.compare_price}</span>
+                              <span className="price-compare">{getCurrencySymbol()}{p.compare_price}</span>
                             )}
                           </div>
                           <a 
@@ -510,7 +511,7 @@ export const AllProducts: React.FC = () => {
                 <form onSubmit={handleApplyPrice} className="price-filter-form">
                   <div className="price-inputs">
                     <div className="price-input-box">
-                      <span className="price-input-prefix">₹</span>
+                      <span className="price-input-prefix">{getCurrencySymbol()}</span>
                       <input
                         type="number"
                         placeholder="Min"
@@ -521,7 +522,7 @@ export const AllProducts: React.FC = () => {
                     </div>
                     <span className="price-divider">to</span>
                     <div className="price-input-box">
-                      <span className="price-input-prefix">₹</span>
+                      <span className="price-input-prefix">{getCurrencySymbol()}</span>
                       <input
                         type="number"
                         placeholder="Max"

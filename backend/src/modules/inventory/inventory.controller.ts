@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { InventoryService } from './inventory.service';
 

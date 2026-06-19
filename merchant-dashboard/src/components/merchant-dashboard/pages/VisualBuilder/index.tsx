@@ -518,6 +518,107 @@ const vbStyles = `
     to   { opacity: 1; transform: translateY(0) scale(1); }
   }
 
+  /* ── Header/Footer Drawer ── */
+  .vb-drawer-backdrop {
+    position: fixed; inset: 0; z-index: 9998;
+    background: rgba(15,23,42,0.5);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+  .vb-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 400px; max-width: 92vw;
+    background: #ffffff;
+    border-left: 1px solid #e2e8f0;
+    z-index: 9999;
+    display: flex; flex-direction: column;
+    box-shadow: -20px 0 60px rgba(0,0,0,0.15);
+    animation: slideInRight 0.28s cubic-bezier(0.16,1,0.3,1);
+  }
+  @keyframes slideInRight {
+    from { transform: translateX(100%); opacity:0; }
+    to   { transform: translateX(0); opacity:1; }
+  }
+
+  .vb-drawer-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  }
+  .vb-drawer-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem; font-weight: 800; color: #0f172a;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .vb-drawer-title-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .vb-drawer-close {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: #f1f5f9; border: 1px solid #e2e8f0;
+    color: #64748b; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.15s;
+  }
+  .vb-drawer-close:hover { background: #fee2e2; border-color: #fca5a5; color: #ef4444; }
+
+  .vb-drawer-body {
+    flex: 1; overflow-y: auto; padding: 20px;
+  }
+  .vb-drawer-body::-webkit-scrollbar { width: 4px; }
+  .vb-drawer-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+
+  .vb-drawer-footer {
+    padding: 14px 20px;
+    border-top: 1px solid #e2e8f0;
+    display: flex; gap: 10px;
+    flex-shrink: 0; background: #f8fafc;
+  }
+  .vb-drawer-save {
+    flex: 1; padding: 10px; background: linear-gradient(135deg, #10b981, #059669);
+    border: none; color: #fff; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 700;
+    cursor: pointer; font-family: inherit; transition: all 0.2s;
+  }
+  .vb-drawer-save:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+  .vb-drawer-cancel {
+    padding: 10px 16px; background: transparent;
+    border: 1px solid #cbd5e1; color: #475569; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all 0.2s;
+  }
+  .vb-drawer-cancel:hover { background: #f1f5f9; }
+
+  /* Header/Footer edit buttons in topbar */
+  .vb-btn-hf {
+    background: #ffffff; border: 1px solid #cbd5e1; color: #475569;
+    border-radius: 8px; padding: 6px 12px; font-size: 0.78rem;
+    font-weight: 600; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .vb-btn-hf:hover { border-color: #0284c7; color: #0284c7; background: #f0f9ff; }
+  .vb-btn-hf.header-btn:hover { border-color: #7c3aed; color: #7c3aed; background: #f5f3ff; }
+  .vb-btn-hf.footer-btn:hover { border-color: #ea580c; color: #ea580c; background: #fff7ed; }
+
+  /* Section divider in drawers */
+  .vb-drawer-section {
+    margin-bottom: 20px; padding-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .vb-drawer-section:last-child { border-bottom: none; margin-bottom: 0; }
+  .vb-drawer-section-title {
+    font-size: 0.72rem; font-weight: 800; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 0 0 12px; display: flex; align-items: center; gap: 6px;
+  }
+
   /* ── Responsive Builder Editor ── */
   @media (max-width: 1024px) {
     .vb-workspace { flex-direction: column; }
@@ -532,6 +633,7 @@ const vbStyles = `
     .vb-canvas { width: 100%; height: 100%; }
     .vb-mobile-tabs { display: grid !important; }
     .vb-sidebar-toggle { display: none !important; }
+    .vb-drawer { width: 100vw; }
   }
 `;
 
@@ -630,6 +732,7 @@ const IconStar = () => (
 // ─── Widget type info ─────────────────────────────────────────────────────────
 const WIDGET_META: Record<string, { label: string; icon: React.ReactNode; iconClass: string }> = {
   HERO_BANNER:  { label: 'Hero Banner',   icon: <IconHero />,   iconClass: 'icon-hero' },
+  DOUBLE_HERO:  { label: 'Double Hero',   icon: <IconHero />,   iconClass: 'icon-hero' },
   PRODUCT_GRID: { label: 'Product Grid',  icon: <IconGrid />,   iconClass: 'icon-grid' },
   TEXT_BLOCK:   { label: 'Text Block',    icon: <IconText />,   iconClass: 'icon-text' },
   PROMO_GRID:   { label: 'Promo Grid',    icon: <IconGrid />,   iconClass: 'icon-grid' },
@@ -684,6 +787,10 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [mobileTab, setMobileTab] = useState<'preview' | 'structure' | 'settings'>('preview');
+
+  // Header / Footer drawer
+  const [showHeaderDrawer, setShowHeaderDrawer] = useState(false);
+  const [showFooterDrawer, setShowFooterDrawer] = useState(false);
 
   // storefront_url is always set by VisualBuilderPage as http://slug.localhost:3001
   const slug = shopInfo?.slug || 'store';
@@ -923,6 +1030,183 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     setSelectedPage(updated);
   };
 
+  const handleLoadTemplate = (templateKey: string) => {
+    if (!selectedPage) return;
+    if (!window.confirm(`Are you sure you want to load the ${templateKey.toUpperCase()} template? This will replace your current page layout and theme colors.`)) return;
+
+    let theme = { primaryColor: '#15803D', secondaryColor: '#ffffff', backgroundColor: '#FAF7F2' };
+    let widgets: any[] = [];
+
+    if (templateKey === 'fashion') {
+      theme = { primaryColor: '#1E293B', secondaryColor: '#ffffff', backgroundColor: '#F9F6F0' };
+      widgets = [
+        {
+          type: 'hero-banner',
+          sort_order: 0,
+          content: {
+            title: 'SARTORIAL CHIC',
+            subtitle: 'Curated summer menswear and styling, crafted from sustainable organic materials.',
+            image_url: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=1200',
+            buttonText: 'SHOP COLLECTION',
+            buttonLink: '/products',
+          },
+          styles: { paddingY: '100px', textAlign: 'center' },
+        },
+        {
+          type: 'rich-text',
+          sort_order: 1,
+          content: {
+            title: 'Sustainable Modern Luxury',
+            body: 'We design classic essentials for the contemporary closet. Sourced ethically and crafted meticulously to last.',
+          },
+          styles: { paddingY: '40px', textAlign: 'center' },
+        }
+      ];
+    } else if (templateKey === 'electronics') {
+      theme = { primaryColor: '#3B82F6', secondaryColor: '#ffffff', backgroundColor: '#0B0F19' };
+      widgets = [
+        {
+          type: 'hero-banner',
+          sort_order: 0,
+          content: {
+            title: 'NEXT-GEN TECH',
+            subtitle: 'Uncompromising performance. Discover the future of personal audio and gadgets.',
+            image_url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1200',
+            buttonText: 'EXPLORE INNOVATIONS',
+            buttonLink: '/products',
+          },
+          styles: { paddingY: '120px', textAlign: 'center' },
+        },
+        {
+          type: 'rich-text',
+          sort_order: 1,
+          content: {
+            title: 'Pure Digital Performance',
+            body: 'Engineered for audio purists and tech enthusiasts. Seamless integration, extreme durability, and industry-leading performance.',
+          },
+          styles: { paddingY: '40px', textAlign: 'center' },
+        }
+      ];
+    } else if (templateKey === 'grocery') {
+      theme = { primaryColor: '#10B981', secondaryColor: '#ffffff', backgroundColor: '#F4FBF7' };
+      widgets = [
+        {
+          type: 'hero-banner',
+          sort_order: 0,
+          content: {
+            title: 'FRESH & ORGANIC',
+            subtitle: '100% certified farm fresh organic produce delivered straight to your door.',
+            image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1200',
+            buttonText: 'SHOP FRESH GROCERIES',
+            buttonLink: '/products',
+          },
+          styles: { paddingY: '90px', textAlign: 'center' },
+        },
+        {
+          type: 'rich-text',
+          sort_order: 1,
+          content: {
+            title: 'Grown with Love, Hand-picked with Care',
+            body: 'We partner with local sustainable farmers to ensure you receive the freshest pesticide-free vegetables, fruits, and dairy.',
+          },
+          styles: { paddingY: '40px', textAlign: 'center' },
+        }
+      ];
+    } else if (templateKey === 'furniture') {
+      theme = { primaryColor: '#D97706', secondaryColor: '#ffffff', backgroundColor: '#FCFBF7' };
+      widgets = [
+        {
+          type: 'hero-banner',
+          sort_order: 0,
+          content: {
+            title: 'MINIMALIST COMFORT',
+            subtitle: 'Elevate your living space with custom mid-century modern solid wood furniture.',
+            image_url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=1200',
+            buttonText: 'EXPLORE SPACES',
+            buttonLink: '/products',
+          },
+          styles: { paddingY: '110px', textAlign: 'center' },
+        },
+        {
+          type: 'rich-text',
+          sort_order: 1,
+          content: {
+            title: 'Crafted to Last Generations',
+            body: 'Every piece is constructed from sustainably harvested hardwoods. Designed to bring harmony, utility, and comfort to your home.',
+          },
+          styles: { paddingY: '40px', textAlign: 'center' },
+        }
+      ];
+    } else if (templateKey === 'beauty') {
+      theme = { primaryColor: '#BE185D', secondaryColor: '#ffffff', backgroundColor: '#FFF1F2' };
+      widgets = [
+        {
+          type: 'hero-banner',
+          sort_order: 0,
+          content: {
+            title: 'GLOW NATURALLY',
+            subtitle: 'Rich organic botanical serums to nourish, repair, and illuminate your skin.',
+            image_url: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=1200',
+            buttonText: 'SHOP SKINCARE',
+            buttonLink: '/products',
+          },
+          styles: { paddingY: '100px', textAlign: 'center' },
+        },
+        {
+          type: 'rich-text',
+          sort_order: 1,
+          content: {
+            title: 'Pure Organic Elixirs',
+            body: 'Pesticide-free, cruelty-free, and chemical-free cosmetics designed to harmonize with your skin and bring out your natural glow.',
+          },
+          styles: { paddingY: '40px', textAlign: 'center' },
+        }
+      ];
+    } else if (templateKey === 'restaurant') {
+      theme = { primaryColor: '#EA580C', secondaryColor: '#ffffff', backgroundColor: '#FFF7ED' };
+      widgets = [
+        {
+          type: 'hero-banner',
+          sort_order: 0,
+          content: {
+            title: 'CULINARY ARTISTRY',
+            subtitle: 'Exquisite signature dishes prepared by master chefs using premium local ingredients.',
+            image_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200',
+            buttonText: 'BOOK A TABLE / ORDER NOW',
+            buttonLink: '/products',
+          },
+          styles: { paddingY: '110px', textAlign: 'center' },
+        },
+        {
+          type: 'rich-text',
+          sort_order: 1,
+          content: {
+            title: 'A Fine Gastronomic Experience',
+            body: 'From farm to table, we offer a carefully crafted menu that blends traditional flavors with modern culinary innovations.',
+          },
+          styles: { paddingY: '40px', textAlign: 'center' },
+        }
+      ];
+    }
+
+    const updatedPage: LivePageData = {
+      ...selectedPage,
+      theme,
+      widgets,
+    };
+
+    setSelectedPage(updatedPage);
+    setSelectedWidgetId(null);
+    showToast(`✨ Loaded ${templateKey.toUpperCase()} template! Click Save to apply.`);
+
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: 'LAYOUT_UPDATE',
+        payload: updatedPage
+      }, '*');
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedPage) return;
     setSaving(true);
@@ -1067,6 +1351,27 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
     const base = { id, type, order: selectedPage.widgets.length, styles: { paddingTop: '2rem', paddingBottom: '2rem' } };
     const content =
       type === 'HERO_BANNER' ? { title: 'New Hero Section', subtitle: 'Add a subtitle here', backgroundImageUrl: '', buttonText: 'Shop Now', buttonLink: '/products' }
+      : type === 'DOUBLE_HERO' ? {
+          left: {
+            title: 'Hero Panel One',
+            subtitle: 'A bold statement for your left panel.',
+            backgroundImageUrl: '',
+            buttonText: 'Shop Now',
+            buttonLink: '/products',
+            bgColor: '#1e3a2f',
+            textColor: '#ffffff',
+          },
+          right: {
+            title: 'Hero Panel Two',
+            subtitle: 'A different look for the right panel.',
+            backgroundImageUrl: '',
+            buttonText: 'Explore',
+            buttonLink: '/products',
+            bgColor: '#f0fdf4',
+            textColor: '#0f172a',
+          },
+          height: '480',
+        }
       : type === 'PRODUCT_GRID' ? { collectionId: categories?.[0]?.id || '', itemsPerPage: 4, showPrice: true }
       : type === 'PROMO_GRID' ? {
           title: 'Complete Skin & Hair Solutions',
@@ -1171,8 +1476,50 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
 
           {/* Actions */}
           <div className="vb-topbar-actions">
+            {/* Header & Footer Edit Buttons - always visible */}
+            <button className="vb-btn-hf header-btn" onClick={() => setShowHeaderDrawer(true)} title="Edit Header, Navigation & Theme">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="5" rx="1"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="15" y2="17"/>
+              </svg>
+              Header
+            </button>
+            <button className="vb-btn-hf footer-btn" onClick={() => setShowFooterDrawer(true)} title="Edit Footer & Social Links">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="7" x2="21" y2="7"/><rect x="3" y="12" width="18" height="9" rx="1"/>
+              </svg>
+              Footer
+            </button>
+            <div className="vb-topbar-sep"/>
             {selectedPage && (
               <>
+                <select
+                  className="vb-template-select"
+                  onChange={(e) => {
+                    handleLoadTemplate(e.target.value);
+                    e.target.value = "";
+                  }}
+                  defaultValue=""
+                  style={{
+                    background: 'rgba(79, 70, 229, 0.08)',
+                    border: '1px solid rgba(79, 70, 229, 0.2)',
+                    color: '#6366F1',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    outline: 'none',
+                    marginRight: '8px',
+                  }}
+                >
+                  <option value="" disabled>✨ Load Template</option>
+                  <option value="fashion">Fashion Store</option>
+                  <option value="electronics">Electronics Store</option>
+                  <option value="grocery">Grocery Store</option>
+                  <option value="furniture">Furniture Store</option>
+                  <option value="beauty">Beauty Store</option>
+                  <option value="restaurant">Restaurant Store</option>
+                </select>
                 <button className="vb-btn-save" onClick={handleSave} disabled={saving}>
                   {saving ? 'Saving…' : 'Save'}
                 </button>
@@ -1211,6 +1558,9 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                 <div className="vb-add-btns">
                   <button className="vb-add-btn" onClick={() => addWidget('HERO_BANNER')}>
                     <span className="vb-add-btn-icon">+</span> Hero
+                  </button>
+                  <button className="vb-add-btn" onClick={() => addWidget('DOUBLE_HERO')}>
+                    <span className="vb-add-btn-icon">+</span> Dual Hero
                   </button>
                   <button className="vb-add-btn" onClick={() => addWidget('PRODUCT_GRID')}>
                     <span className="vb-add-btn-icon">+</span> Grid
@@ -1454,7 +1804,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                           {(['primaryColor', 'secondaryColor', 'backgroundColor'] as const).map(key => (
                             <div key={key} className="vb-color-item">
                               <input type="color" className="vb-color-input"
-                                value={(selectedPage.theme as any)[key]}
+                                value={(selectedPage.theme as any)?.[key] || '#ffffff'}
                                 onChange={e => handlePageChange({ ...selectedPage, theme: { ...selectedPage.theme, [key]: e.target.value } })}
                               />
                               <span className="vb-color-label">{key === 'primaryColor' ? 'Primary' : key === 'secondaryColor' ? 'Accent' : 'BG'}</span>
@@ -1679,7 +2029,7 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                           {(['primaryColor', 'secondaryColor', 'backgroundColor'] as const).map(key => (
                             <div key={key} className="vb-color-item">
                               <input type="color" className="vb-color-input"
-                                value={(selectedPage.theme as any)[key]}
+                                value={(selectedPage.theme as any)?.[key] || '#ffffff'}
                                 onChange={e => handlePageChange({ ...selectedPage, theme: { ...selectedPage.theme, [key]: e.target.value } })}
                               />
                               <span className="vb-color-label">{key === 'primaryColor' ? 'Primary' : key === 'secondaryColor' ? 'Accent' : 'BG'}</span>
@@ -1708,15 +2058,15 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                 </>
               ) : (
                 <>
-                  {/* Theme Colors */}
+                  {/* Page Theme Colors (quick access) */}
                   {selectedPage && (
                     <div className="vb-field-section" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
-                      <label className="vb-label" style={{ marginBottom: '8px', display: 'block' }}>Theme colors</label>
+                      <label className="vb-label" style={{ marginBottom: '8px', display: 'block' }}>Page Theme Colors</label>
                       <div className="vb-color-row">
                         {(['primaryColor', 'secondaryColor', 'backgroundColor'] as const).map(key => (
                           <div key={key} className="vb-color-item">
                             <input type="color" className="vb-color-input"
-                              value={(selectedPage.theme as any)[key]}
+                              value={(selectedPage.theme as any)?.[key] || '#ffffff'}
                               onChange={e => handlePageChange({ ...selectedPage, theme: { ...selectedPage.theme, [key]: e.target.value } })}
                             />
                             <span className="vb-color-label">{key === 'primaryColor' ? 'Primary' : key === 'secondaryColor' ? 'Accent' : 'BG'}</span>
@@ -1725,19 +2075,6 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                       </div>
                     </div>
                   )}
-
-                  {/* Logo Customization */}
-                  <div className="vb-field-section" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
-                    <div className="vb-field-group">
-                      <label className="vb-label">Store Logo Image URL</label>
-                      <input 
-                        className="vb-input" 
-                        value={policySettings.logo_url || ''} 
-                        onChange={e => handlePolicySettingChange('logo_url', e.target.value)} 
-                        placeholder="https://example.com/logo.png" 
-                      />
-                    </div>
-                  </div>
 
                   {selectedPage?.slug === 'index' && (
                     <>
@@ -1873,98 +2210,212 @@ export const VisualBuilder: React.FC<VisualBuilderProps> = ({ shopInfo, onExit }
                     </>
                   )}
 
-                  {/* Navbar Menu Customization */}
-                  <div className="vb-field-section" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
-                    <label className="vb-label" style={{ marginBottom: '10px', display: 'block' }}>Navbar Menu Links</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                      {navbarMenu.map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', gap: '6px' }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <strong style={{ fontSize: '0.75rem', color: '#1e293b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</strong>
-                            <span style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.url}</span>
-                          </div>
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            <button type="button" onClick={() => handleMoveNavItem(idx, 'up')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Move Up">▲</button>
-                            <button type="button" onClick={() => handleMoveNavItem(idx, 'down')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Move Down">▼</button>
-                            <button type="button" onClick={() => handleRemoveNavItem(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Remove">✕</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Add Nav Item form */}
-                    <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <input 
-                        className="vb-input" 
-                        style={{ fontSize: '0.75rem', padding: '4px 8px' }} 
-                        value={newNavTitle} 
-                        onChange={e => setNewNavTitle(e.target.value)} 
-                        placeholder="Link Title (e.g. Offers)" 
-                      />
-                      <input 
-                        className="vb-input" 
-                        style={{ fontSize: '0.75rem', padding: '4px 8px' }} 
-                        value={newNavUrl} 
-                        onChange={e => setNewNavUrl(e.target.value)} 
-                        placeholder="Link URL (e.g. /offers)" 
-                      />
-                      <button 
-                        type="button" 
-                        onClick={handleAddNavItem}
-                        style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
-                      >
-                        + Add Navbar Link
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Footer Links Customization */}
-                  <div className="vb-field-section" style={{ paddingBottom: '14px' }}>
-                    <label className="vb-label" style={{ marginBottom: '10px', display: 'block' }}>Footer Menu Links</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                      {footerMenu.map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', gap: '6px' }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <strong style={{ fontSize: '0.75rem', color: '#1e293b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</strong>
-                            <span style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.url}</span>
-                          </div>
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            <button type="button" onClick={() => handleMoveFootItem(idx, 'up')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Move Up">▲</button>
-                            <button type="button" onClick={() => handleMoveFootItem(idx, 'down')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Move Down">▼</button>
-                            <button type="button" onClick={() => handleRemoveFootItem(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px', fontSize: '10px' }} title="Remove">✕</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Add Footer Item form */}
-                    <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <input 
-                        className="vb-input" 
-                        style={{ fontSize: '0.75rem', padding: '4px 8px' }} 
-                        value={newFootTitle} 
-                        onChange={e => setNewFootTitle(e.target.value)} 
-                        placeholder="Link Title (e.g. Terms)" 
-                      />
-                      <input 
-                        className="vb-input" 
-                        style={{ fontSize: '0.75rem', padding: '4px 8px' }} 
-                        value={newFootUrl} 
-                        onChange={e => setNewFootUrl(e.target.value)} 
-                        placeholder="Link URL (e.g. /terms)" 
-                      />
-                      <button 
-                        type="button" 
-                        onClick={handleAddFootItem}
-                        style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
-                      >
-                        + Add Footer Link
-                      </button>
-                    </div>
-                  </div>
                 </>
               )}
             </div>
           </div>
         </div>
+
+        {/* ── Header Edit Drawer ── */}
+        {showHeaderDrawer && (
+          <>
+            <div className="vb-drawer-backdrop" onClick={() => setShowHeaderDrawer(false)} />
+            <div className="vb-drawer">
+              <div className="vb-drawer-header">
+                <div className="vb-drawer-title">
+                  <div className="vb-drawer-title-icon" style={{ background: 'linear-gradient(135deg,#7c3aed,#a78bfa)', color: '#fff' }}>🎨</div>
+                  Header &amp; Navigation
+                </div>
+                <button className="vb-drawer-close" onClick={() => setShowHeaderDrawer(false)}>✕</button>
+              </div>
+              <div className="vb-drawer-body">
+
+                {/* Theme Colors */}
+                <div className="vb-drawer-section">
+                  <p className="vb-drawer-section-title">🎨 Theme Colors</p>
+                  <div className="vb-field-group">
+                    <label className="vb-label">Page Colors (applies to current page)</label>
+                    <div className="vb-color-row">
+                      {(['primaryColor', 'secondaryColor', 'backgroundColor'] as const).map(key => (
+                        <div key={key} className="vb-color-item">
+                          <input type="color" className="vb-color-input"
+                            value={selectedPage ? ((selectedPage.theme as any)?.[key] || '#ffffff') : '#ffffff'}
+                            onChange={e => selectedPage && handlePageChange({ ...selectedPage, theme: { ...selectedPage.theme, [key]: e.target.value } })}
+                          />
+                          <span className="vb-color-label">{key === 'primaryColor' ? 'Primary' : key === 'secondaryColor' ? 'Accent' : 'BG'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Store Logo */}
+                <div className="vb-drawer-section">
+                  <p className="vb-drawer-section-title">🖼️ Store Branding</p>
+                  <div className="vb-field-group">
+                    <label className="vb-label">Store Logo Image URL</label>
+                    <input className="vb-input" value={policySettings.logo_url || ''}
+                      onChange={e => handlePolicySettingChange('logo_url', e.target.value)}
+                      placeholder="https://example.com/logo.png" />
+                    {policySettings.logo_url && (
+                      <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0', padding: 8, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={policySettings.logo_url} alt="Logo" style={{ maxHeight: 60, maxWidth: '100%', objectFit: 'contain' }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Announcement Bar */}
+                <div className="vb-drawer-section">
+                  <p className="vb-drawer-section-title">📢 Announcement Bar</p>
+                  <div className="vb-field-group" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                    <input type="checkbox" id="hd_announcement_bar_active"
+                      checked={policySettings.announcement_bar_active !== 'false'}
+                      onChange={e => handlePolicySettingChange('announcement_bar_active', e.target.checked ? 'true' : 'false')}
+                    />
+                    <label htmlFor="hd_announcement_bar_active" style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600, cursor: 'pointer' }}>Show Announcement Bar</label>
+                  </div>
+                  <div className="vb-field-group">
+                    <label className="vb-label">Announcement Text</label>
+                    <input className="vb-input" value={policySettings.announcement_bar || ''}
+                      onChange={e => handlePolicySettingChange('announcement_bar', e.target.value)}
+                      placeholder="🌿 FREE SHIPPING FOR ORDERS ABOVE ₹499" />
+                  </div>
+                </div>
+
+                {/* Navbar Menu */}
+                <div className="vb-drawer-section">
+                  <p className="vb-drawer-section-title">🔗 Navbar Menu Links</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                    {navbarMenu.map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', gap: 8 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <strong style={{ fontSize: '0.8rem', color: '#1e293b', display: 'block' }}>{item.title}</strong>
+                          <span style={{ fontSize: '0.68rem', color: '#64748b' }}>{item.url}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                          <button type="button" onClick={() => handleMoveNavItem(idx, 'up')} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 4, color: '#64748b', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}>▲</button>
+                          <button type="button" onClick={() => handleMoveNavItem(idx, 'down')} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 4, color: '#64748b', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}>▼</button>
+                          <button type="button" onClick={() => handleRemoveNavItem(idx)} style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4, color: '#ef4444', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}>✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input className="vb-input" style={{ fontSize: '0.78rem', padding: '6px 10px' }}
+                      value={newNavTitle} onChange={e => setNewNavTitle(e.target.value)} placeholder="Link title (e.g. Offers)" />
+                    <input className="vb-input" style={{ fontSize: '0.78rem', padding: '6px 10px' }}
+                      value={newNavUrl} onChange={e => setNewNavUrl(e.target.value)} placeholder="Link URL (e.g. /offers)" />
+                    <button type="button" onClick={handleAddNavItem}
+                      style={{ background: '#7c3aed', color: '#fff', border: 'none', padding: '8px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
+                      + Add Nav Link
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+              <div className="vb-drawer-footer">
+                <button className="vb-drawer-cancel" onClick={() => setShowHeaderDrawer(false)}>Cancel</button>
+                <button className="vb-drawer-save" onClick={() => { handleSave(); setShowHeaderDrawer(false); }}>
+                  💾 Save Header Settings
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Footer Edit Drawer ── */}
+        {showFooterDrawer && (
+          <>
+            <div className="vb-drawer-backdrop" onClick={() => setShowFooterDrawer(false)} />
+            <div className="vb-drawer">
+              <div className="vb-drawer-header">
+                <div className="vb-drawer-title">
+                  <div className="vb-drawer-title-icon" style={{ background: 'linear-gradient(135deg,#ea580c,#fb923c)', color: '#fff' }}>🦶</div>
+                  Footer &amp; Social Links
+                </div>
+                <button className="vb-drawer-close" onClick={() => setShowFooterDrawer(false)}>✕</button>
+              </div>
+              <div className="vb-drawer-body">
+
+                {/* Footer Menu Links */}
+                <div className="vb-drawer-section">
+                  <p className="vb-drawer-section-title">🔗 Footer Menu Links</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                    {footerMenu.map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', gap: 8 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <strong style={{ fontSize: '0.8rem', color: '#1e293b', display: 'block' }}>{item.title}</strong>
+                          <span style={{ fontSize: '0.68rem', color: '#64748b' }}>{item.url}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                          <button type="button" onClick={() => handleMoveFootItem(idx, 'up')} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 4, color: '#64748b', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}>▲</button>
+                          <button type="button" onClick={() => handleMoveFootItem(idx, 'down')} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 4, color: '#64748b', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}>▼</button>
+                          <button type="button" onClick={() => handleRemoveFootItem(idx)} style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4, color: '#ef4444', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}>✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input className="vb-input" style={{ fontSize: '0.78rem', padding: '6px 10px' }}
+                      value={newFootTitle} onChange={e => setNewFootTitle(e.target.value)} placeholder="Link title (e.g. Terms)" />
+                    <input className="vb-input" style={{ fontSize: '0.78rem', padding: '6px 10px' }}
+                      value={newFootUrl} onChange={e => setNewFootUrl(e.target.value)} placeholder="Link URL (e.g. /terms)" />
+                    <button type="button" onClick={handleAddFootItem}
+                      style={{ background: '#ea580c', color: '#fff', border: 'none', padding: '8px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
+                      + Add Footer Link
+                    </button>
+                  </div>
+                </div>
+
+                {/* Social Media Links */}
+                <div className="vb-drawer-section">
+                  <p className="vb-drawer-section-title">📱 Social Media</p>
+                  {[
+                    { key: 'social_instagram', label: '📸 Instagram', placeholder: 'https://instagram.com/yourshop' },
+                    { key: 'social_facebook', label: '📘 Facebook', placeholder: 'https://facebook.com/yourshop' },
+                    { key: 'social_twitter', label: '🐦 Twitter / X', placeholder: 'https://twitter.com/yourshop' },
+                    { key: 'social_youtube', label: '▶️ YouTube', placeholder: 'https://youtube.com/@yourshop' },
+                    { key: 'social_whatsapp', label: '💬 WhatsApp', placeholder: 'https://wa.me/91XXXXXXXXXX' },
+                  ].map(({ key, label, placeholder }) => (
+                    <div className="vb-field-group" key={key}>
+                      <label className="vb-label">{label}</label>
+                      <input className="vb-input" value={policySettings[key] || ''}
+                        onChange={e => handlePolicySettingChange(key, e.target.value)}
+                        placeholder={placeholder} />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer Text */}
+                <div className="vb-drawer-section">
+                  <p className="vb-drawer-section-title">📝 Footer Text</p>
+                  <div className="vb-field-group">
+                    <label className="vb-label">Footer About / Tagline</label>
+                    <textarea className="vb-textarea" rows={3}
+                      value={policySettings.footer_about || ''}
+                      onChange={e => handlePolicySettingChange('footer_about', e.target.value)}
+                      placeholder="A short description about your store..." />
+                  </div>
+                  <div className="vb-field-group">
+                    <label className="vb-label">Copyright Text</label>
+                    <input className="vb-input"
+                      value={policySettings.footer_copyright || ''}
+                      onChange={e => handlePolicySettingChange('footer_copyright', e.target.value)}
+                      placeholder={`© ${new Date().getFullYear()} Your Store Name`} />
+                  </div>
+                </div>
+
+              </div>
+              <div className="vb-drawer-footer">
+                <button className="vb-drawer-cancel" onClick={() => setShowFooterDrawer(false)}>Cancel</button>
+                <button className="vb-drawer-save" onClick={() => { handleSave(); setShowFooterDrawer(false); }}>
+                  💾 Save Footer Settings
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Bottom tab bar for mobile viewports */}
         <div className="vb-mobile-tabs">
@@ -2355,6 +2806,80 @@ const WidgetSettingsForm: React.FC<{
         >
           ➕ Add Another Slide
         </button>
+      </>
+    );
+  }
+
+  if (widget.type === 'DOUBLE_HERO') {
+    const c = widget.content as any;
+    const updatePanel = (side: 'left' | 'right', key: string, val: any) => {
+      onChange({ ...widget, content: { ...c, [side]: { ...c[side], [key]: val } } });
+    };
+
+    return (
+      <>
+        <div className="vb-field-section">
+          <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 14px', lineHeight: 1.5 }}>
+            A side-by-side dual hero layout. Each panel has its own image, text, and button.
+          </p>
+          <div className="vb-field-group">
+            <label className="vb-label">Panel Height (px)</label>
+            <input
+              className="vb-input"
+              type="number" min={200} max={900}
+              value={c.height || '480'}
+              onChange={e => onChange({ ...widget, content: { ...c, height: e.target.value } })}
+            />
+          </div>
+        </div>
+
+        {(['left', 'right'] as const).map(side => (
+          <div key={side} className="vb-field-section">
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', display: 'block', marginBottom: 12 }}>
+              {side === 'left' ? '⬅️ Left Panel' : '➡️ Right Panel'}
+            </span>
+
+            <div className="vb-field-group">
+              <label className="vb-label">Heading</label>
+              <input className="vb-input" value={c[side]?.title || ''} onChange={e => updatePanel(side, 'title', e.target.value)} placeholder="Panel headline..." />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Subheading</label>
+              <textarea className="vb-textarea" rows={2} value={c[side]?.subtitle || ''} onChange={e => updatePanel(side, 'subtitle', e.target.value)} placeholder="Panel description..." />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Background Image URL</label>
+              <input className="vb-input" value={c[side]?.backgroundImageUrl || ''} onChange={e => updatePanel(side, 'backgroundImageUrl', e.target.value)} placeholder="https://images.unsplash.com/..." />
+              {c[side]?.backgroundImageUrl && (
+                <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', maxHeight: 80, border: '1px solid #cbd5e1' }}>
+                  <img src={c[side].backgroundImageUrl} alt="Preview" style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} />
+                </div>
+              )}
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Background Color</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type="color" className="vb-color-input" value={c[side]?.bgColor || '#1e3a2f'} onChange={e => updatePanel(side, 'bgColor', e.target.value)} />
+                <input className="vb-input" value={c[side]?.bgColor || '#1e3a2f'} onChange={e => updatePanel(side, 'bgColor', e.target.value)} style={{ flex: 1 }} />
+              </div>
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Text Color</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type="color" className="vb-color-input" value={c[side]?.textColor || '#ffffff'} onChange={e => updatePanel(side, 'textColor', e.target.value)} />
+                <input className="vb-input" value={c[side]?.textColor || '#ffffff'} onChange={e => updatePanel(side, 'textColor', e.target.value)} style={{ flex: 1 }} />
+              </div>
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Button Label</label>
+              <input className="vb-input" value={c[side]?.buttonText || ''} onChange={e => updatePanel(side, 'buttonText', e.target.value)} placeholder="Shop Now" />
+            </div>
+            <div className="vb-field-group">
+              <label className="vb-label">Button Link</label>
+              <input className="vb-input" value={c[side]?.buttonLink || ''} onChange={e => updatePanel(side, 'buttonLink', e.target.value)} placeholder="/products" />
+            </div>
+          </div>
+        ))}
       </>
     );
   }

@@ -4,6 +4,7 @@ import { catalogApi, pageBuilderApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
 import { WidgetRenderer } from '../../WidgetRenderer';
 import { useCart } from '../../context/CartContext';
+import { getCurrencySymbol } from '../../../../lib/utils';
 
 export const Product: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -157,10 +158,10 @@ export const Product: React.FC = () => {
             {/* Pricing Section */}
             <div className="product-pricing-card">
               <div className="price-row">
-                <span className="price-large">₹{displayPrice}</span>
+                <span className="price-large">{getCurrencySymbol()}{displayPrice}</span>
                 {comparePrice && Number(comparePrice) > Number(displayPrice) && (
                   <div className="compare-price-wrapper">
-                    <span className="price-compare-striked">₹{comparePrice}</span>
+                    <span className="price-compare-striked">{getCurrencySymbol()}{comparePrice}</span>
                     <span className="save-badge-pill">
                       Save {Math.round(((Number(comparePrice) - Number(displayPrice)) / Number(comparePrice)) * 100)}%
                     </span>
@@ -194,7 +195,7 @@ export const Product: React.FC = () => {
                         } : {}}
                       >
                         <span className="variant-chip-label">{v.label || v.sku}</span>
-                        <span className="variant-chip-price">₹{v.price}</span>
+                        <span className="variant-chip-price">{getCurrencySymbol()}{v.price}</span>
                       </button>
                     );
                   })}

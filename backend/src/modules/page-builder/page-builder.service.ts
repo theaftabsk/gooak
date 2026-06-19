@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
 const RESERVED_SLUGS = [
@@ -13,9 +17,11 @@ const RESERVED_SLUGS = [
   'privacy',
   'terms',
   'refund',
-  'track-order'
+  'track-order',
+  'faq',
+  'blog',
+  'shipping',
 ];
-
 
 @Injectable()
 export class PageBuilderService {
@@ -61,18 +67,23 @@ export class PageBuilderService {
     return page;
   }
 
-  async savePage(shopId: string, payload: {
-    id?: string;
-    title: string;
-    slug: string;
-    type: 'NORMAL' | 'COLLECTION';
-    theme: any;
-    widgets: any[];
-  }) {
+  async savePage(
+    shopId: string,
+    payload: {
+      id?: string;
+      title: string;
+      slug: string;
+      type: 'NORMAL' | 'COLLECTION';
+      theme: any;
+      widgets: any[];
+    },
+  ) {
     const { id, title, slug, type, theme, widgets } = payload;
 
     if (!RESERVED_SLUGS.includes(slug)) {
-      throw new BadRequestException('Creating or renaming custom pages is disabled. Only existing system pages can be edited.');
+      throw new BadRequestException(
+        'Creating or renaming custom pages is disabled. Only existing system pages can be edited.',
+      );
     }
 
     // Use transaction to ensure page and widgets are saved atomically
@@ -156,6 +167,8 @@ export class PageBuilderService {
   }
 
   async deletePage(shopId: string, id: string) {
-    throw new BadRequestException('Page deletion is disabled. Only existing pages can be edited.');
+    throw new BadRequestException(
+      'Page deletion is disabled. Only existing pages can be edited.',
+    );
   }
 }

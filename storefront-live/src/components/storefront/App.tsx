@@ -420,12 +420,15 @@ function App() {
                   <Route path="/account" element={<MyAccount />} />
                   <Route path="/account/orders" element={<MyOrders />} />
                   <Route path="/wishlist" element={<Wishlist />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/privacy" element={<Privacy />} />
-                  <Route path="/terms" element={<Terms />} />
-                  <Route path="/refund" element={<Refund />} />
-                  <Route path="/track-order" element={<TrackOrder />} />
+                  <Route path="/about" element={<DynamicPage fallback={<About />} />} />
+                  <Route path="/contact" element={<DynamicPage fallback={<Contact />} />} />
+                  <Route path="/privacy" element={<DynamicPage fallback={<Privacy />} />} />
+                  <Route path="/terms" element={<DynamicPage fallback={<Terms />} />} />
+                  <Route path="/refund" element={<DynamicPage fallback={<Refund />} />} />
+                  <Route path="/track-order" element={<DynamicPage fallback={<TrackOrder />} />} />
+                  <Route path="/faq" element={<DynamicPage />} />
+                  <Route path="/blog" element={<DynamicPage />} />
+                  <Route path="/shipping" element={<DynamicPage />} />
                 </Routes>
               </main>
               <Footer />

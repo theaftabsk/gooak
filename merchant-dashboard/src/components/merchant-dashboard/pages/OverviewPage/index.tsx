@@ -11,12 +11,54 @@ interface OverviewPageProps {
 }
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({ shopInfo, products, orders, onNavigate }) => {
-  // Calculate total sales from confirmed/paid/completed orders
-  const paidOrders = orders.filter(o => ['confirmed', 'completed', 'paid'].includes(o.status.toLowerCase()));
-  const totalSales = paidOrders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
+  // Calculate start of 7 days ago (today - 6 days)
+  const startOf7DaysAgo = new Date();
+  startOf7DaysAgo.setDate(startOf7DaysAgo.getDate() - 6);
+  startOf7DaysAgo.setHours(0, 0, 0, 0);
+
+  // Filter orders from the last 7 days
+  const last7DaysOrders = orders.filter(o => new Date(o.created_at) >= startOf7DaysAgo);
+
+  const last7DaysPaidOrders = last7DaysOrders.filter(o =>
+    ['confirmed', 'completed', 'paid'].includes(o.status.toLowerCase())
+  );
+  const totalSales7Days = last7DaysPaidOrders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
+  const totalOrders7Days = last7DaysOrders.length;
 
   const slug = shopInfo?.slug || 'store';
   const domain = shopInfo?.domains?.[0]?.domain || `${slug}.localhost:3001`;
+
+  // Generate 7-day data points for chart
+  const daysArray = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return d;
+  });
+
+  const chartData = daysArray.map(date => {
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const dayOrders = orders.filter(o => {
+      const oDate = new Date(o.created_at);
+      return oDate >= dayStart && oDate <= dayEnd;
+    });
+
+    const daySales = dayOrders
+      .filter(o => ['confirmed', 'completed', 'paid'].includes(o.status.toLowerCase()))
+      .reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
+
+    return {
+      dateLabel: date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }),
+      sales: daySales,
+      ordersCount: dayOrders.length,
+    };
+  });
+
+  const maxSales = Math.max(...chartData.map(d => d.sales), 100);
 
   return (
     <>
@@ -32,10 +74,91 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ shopInfo, products, 
 
       {/* Metrics Row */}
       <div className="metrics-grid">
-        <StatCard label="Total Sales" value={formatINR(totalSales)} icon={<Icons.Currency />} />
-        <StatCard label="Total Orders" value={orders.length} icon={<Icons.Clipboard />} type="indigo" onClick={() => onNavigate('orders')} />
+        <StatCard label="Total Sales (Last 7 Days)" value={formatINR(totalSales7Days)} icon={<Icons.Currency />} />
+        <StatCard label="Total Orders (Last 7 Days)" value={totalOrders7Days} icon={<Icons.Clipboard />} type="indigo" onClick={() => onNavigate('orders')} />
         <StatCard label="Active Catalog" value={`${products.length} Products`} icon={<Icons.Package />} type="warn" onClick={() => onNavigate('products')} />
-        <StatCard label="SaaS Plan" value={(shopInfo?.plan || 'starter').toUpperCase()} icon={<Icons.ShieldCheck />} />
+      </div>
+
+      {/* Sales Trend Chart */}
+      <div className="card" style={{ marginBottom: '30px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 className="card-title" style={{ margin: 0 }}>Sales &amp; Orders Trend (Last 7 Days)</h3>
+          <span style={{ fontSize: '0.8rem', color: 'var(--m-text-muted)', fontWeight: 500 }}>
+            Active stats: {daysArray[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - {daysArray[6].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+          </span>
+        </div>
+
+        <div style={{ height: 260, position: 'relative', marginTop: 20 }}>
+          {/* Y-axis Grid Lines */}
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 30 }}>
+            {[4, 3, 2, 1, 0].map(i => {
+              const val = (maxSales * i) / 4;
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', width: '100%', fontSize: '0.75rem', color: 'var(--m-text-muted)' }}>
+                  <span style={{ width: 70, textAlign: 'right', paddingRight: 10 }}>{formatINR(val)}</span>
+                  <div style={{ flex: 1, height: 1, background: 'var(--m-border)' }} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Dynamic Graph Bars */}
+          <div style={{ position: 'absolute', left: 70, right: 0, top: 0, bottom: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingBottom: 30 }}>
+            {chartData.map((d, i) => {
+              const heightPercent = (d.sales / maxSales) * 100;
+              return (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, position: 'relative' }}>
+                  
+                  {/* Tooltip on Hover */}
+                  <div className="chart-tooltip" style={{
+                    position: 'absolute',
+                    bottom: `${heightPercent + 10}%`,
+                    background: 'var(--m-text-main)',
+                    color: '#fff',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.7rem',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    opacity: 0,
+                    transition: 'opacity 0.15s ease',
+                    zIndex: 10,
+                    boxShadow: 'var(--m-shadow-lg)'
+                  }}>
+                    <strong>{formatINR(d.sales)}</strong> ({d.ordersCount} orders)
+                  </div>
+                  
+                  {/* Bar */}
+                  <div 
+                    style={{
+                      width: '36%',
+                      height: `${heightPercent}%`,
+                      minHeight: d.sales > 0 ? 4 : 0,
+                      background: 'linear-gradient(180deg, var(--m-primary) 0%, #059669 100%)',
+                      borderRadius: '4px 4px 0 0',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    className="chart-bar"
+                    onMouseEnter={(e) => {
+                      const tooltip = e.currentTarget.previousSibling as HTMLDivElement;
+                      if (tooltip) tooltip.style.opacity = '1';
+                    }}
+                    onMouseLeave={(e) => {
+                      const tooltip = e.currentTarget.previousSibling as HTMLDivElement;
+                      if (tooltip) tooltip.style.opacity = '0';
+                    }}
+                  />
+
+                  {/* Date Label */}
+                  <span style={{ position: 'absolute', bottom: -24, fontSize: '0.75rem', color: 'var(--m-text-muted)', whiteSpace: 'nowrap' }}>
+                    {d.dateLabel}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px', alignItems: 'start' }}>
@@ -62,7 +185,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ shopInfo, products, 
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.slice(0, 5).map(order => (
+                  {orders.slice(0, 7).map(order => (
                     <tr key={order.id}>
                       <td><strong>#{order.order_number}</strong></td>
                       <td>{formatINR(order.total)}</td>
@@ -119,4 +242,3 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ shopInfo, products, 
     </>
   );
 };
-

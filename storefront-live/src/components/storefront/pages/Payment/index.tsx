@@ -2,33 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { catalogApi, paymentApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
+import { getCurrencySymbol } from '../../../../lib/utils';
 
-// Function to compute HMAC-SHA256 signature locally for sandbox testing
-async function generateMockSignature(orderId: string, paymentId: string): Promise<string> {
-  const secret = 'placeholder_secret';
-  const text = `${orderId}|${paymentId}`;
-  const encoder = new TextEncoder();
-  const keyBuffer = encoder.encode(secret);
-  const messageBuffer = encoder.encode(text);
-  
-  const cryptoKey = await window.crypto.subtle.importKey(
-    'raw',
-    keyBuffer,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  
-  const signatureBuffer = await window.crypto.subtle.sign(
-    'HMAC',
-    cryptoKey,
-    messageBuffer
-  );
-  
-  const hashArray = Array.from(new Uint8Array(signatureBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex;
-}
+
 
 export const Payment: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -149,29 +125,17 @@ export const Payment: React.FC = () => {
     setErrorMsg('');
 
     try {
-      // 1. Initialize payment data to retrieve the razorpay_order_id
-      const details = await paymentApi.initializeRazorpayPayment(orderId);
-      const mockPaymentId = `pay_sim_${Math.random().toString(36).substring(2, 12)}`;
-      
-      // 2. Generate a valid signature client-side using the default placeholder secret
-      const mockSignature = await generateMockSignature(details.razorpay_order_id, mockPaymentId);
-
-      // 3. Verify payment on backend
-      await paymentApi.verifyPayment({
-        orderId,
-        razorpay_payment_id: mockPaymentId,
-        razorpay_order_id: details.razorpay_order_id,
-        razorpay_signature: mockSignature
-      });
-
-      // 4. Redirect on success
+      // Backend generates a valid HMAC signature using the real stored key_secret
+      const result = await paymentApi.simulatePayment(orderId);
       navigate('/order-success', { state: { orderId, orderNumber: order.order_number } });
+      console.log('Sandbox simulation success:', result);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Sandbox verification failed. Ensure backend uses standard test credentials.');
+      setErrorMsg(err.message || 'Sandbox simulation failed.');
     } finally {
       setPaying(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -207,7 +171,7 @@ export const Payment: React.FC = () => {
           <div className="payment-secure-badge">
             <span className="lock-icon">🔒</span> SECURE CHECKOUT GATEWAY
           </div>
-          <h1 className="payment-amount">₹{order.total}</h1>
+          <h1 className="payment-amount">{getCurrencySymbol(order.currency)}{order.total}</h1>
           <p className="payment-order-meta">
             Order Number: <strong>{order.order_number}</strong> • Status: <span className="status-badge pending">Pending Payment</span>
           </p>
@@ -240,13 +204,13 @@ export const Payment: React.FC = () => {
               {order.items?.map((item: any) => (
                 <div key={item.id} className="payment-summary-item-row">
                   <span className="item-name">{item.product_snap?.name || 'Skincare Product'} x {item.qty}</span>
-                  <span className="item-price">₹{item.line_total}</span>
+                  <span className="item-price">{getCurrencySymbol(order.currency)}{item.line_total}</span>
                 </div>
               ))}
               <div className="payment-total-divider"></div>
               <div className="payment-total-summary-row">
                 <span>Grand Total:</span>
-                <span>₹{order.total}</span>
+                <span>{getCurrencySymbol(order.currency)}{order.total}</span>
               </div>
             </div>
           </div>

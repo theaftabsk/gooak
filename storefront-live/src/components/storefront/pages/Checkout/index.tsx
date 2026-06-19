@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { catalogApi } from '../../../../lib/api-client';
+import { catalogApi, paymentApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
 import { useCart } from '../../context/CartContext';
 import { useCustomer } from '../../context/CustomerContext';
+import { getCurrencySymbol } from '../../../../lib/utils';
 
 export const Checkout: React.FC = () => {
   const { theme, cssVariables } = usePageTheme('checkout');
   const { cartItems, cartTotal, clearCart } = useCart();
-  const { customer } = useCustomer();
+  const { customer, isLoading } = useCustomer();
   const navigate = useNavigate();
+
+  // Enforce login redirect
+  useEffect(() => {
+    if (!isLoading && !customer) {
+      navigate('/login?redirect=/checkout');
+    }
+  }, [customer, isLoading, navigate]);
 
   // Contact Info
   const [name, setName] = useState('');
@@ -23,7 +31,10 @@ export const Checkout: React.FC = () => {
   const [zip, setZip] = useState('');
   const [notes, setNotes] = useState('');
   
-  const [paymentMethod, setPaymentMethod] = useState('cod');
+  // Active payment gateways (fetched from backend)
+  const [activeGateways, setActiveGateways] = useState<any[]>([]);
+  const [gatewaysLoaded, setGatewaysLoaded] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -36,6 +47,22 @@ export const Checkout: React.FC = () => {
     }
   }, [customer]);
 
+  // Fetch active payment gateways from backend
+  useEffect(() => {
+    paymentApi.getPaymentGateways()
+      .then((gateways: any[]) => {
+        const active = (gateways || []).filter((g: any) => g.is_active);
+        setActiveGateways(active);
+        if (active.length > 0) setPaymentMethod(active[0].slug);
+      })
+      .catch(() => {
+        // Fallback to COD if fetch fails
+        setActiveGateways([{ slug: 'cod', name: 'Cash on Delivery', is_active: true }]);
+        setPaymentMethod('cod');
+      })
+      .finally(() => setGatewaysLoaded(true));
+  }, []);
+
   // Calculate pricing values
   const shippingCharge = cartTotal > 500 ? 0 : 50;
   const taxAmount = Math.round(cartTotal * 0.05); // 5% flat GST
@@ -43,10 +70,8 @@ export const Checkout: React.FC = () => {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (cartItems.length === 0) {
-      setErrorMsg('Your shopping cart is empty!');
-      return;
-    }
+    if (cartItems.length === 0) { setErrorMsg('Your shopping cart is empty!'); return; }
+    if (!paymentMethod) { setErrorMsg('Please select a payment method.'); return; }
 
     setLoading(true);
     setErrorMsg('');
@@ -58,6 +83,7 @@ export const Checkout: React.FC = () => {
       shipping_address: {
         full_name: name,
         phone,
+        email,
         address_line1: addressLine,
         city,
         state,
@@ -73,9 +99,10 @@ export const Checkout: React.FC = () => {
     };
 
     try {
-      const order = await catalogApi.placeOrder(orderPayload);
+      const response = await catalogApi.placeOrder(orderPayload);
       clearCart();
       
+      const order = response?.order || response;
       if (paymentMethod === 'razorpay') {
         // Redirect to payment processor page
         navigate(`/checkout/payment/${order.id}`);
@@ -89,6 +116,16 @@ export const Checkout: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div style={cssVariables} className="checkout-empty-wrapper">
+        <div className="payment-shimmer-circle" style={{ margin: '0 auto 20px' }}></div>
+        <h1 className="checkout-empty-title">Securing Checkout...</h1>
+        <p className="checkout-empty-desc">Verifying your customer credentials.</p>
+      </div>
+    );
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -217,51 +254,53 @@ export const Checkout: React.FC = () => {
             {/* 3. Payment Method Card */}
             <div className="checkout-card">
               <h3 className="checkout-card-header">Payment Option</h3>
-              <div className="payment-options-list">
-                
-                <label 
-                  className={`payment-option-label ${paymentMethod === 'cod' ? 'active' : ''}`}
-                  style={paymentMethod === 'cod' ? { 
-                    borderColor: theme.primaryColor || '#15803D',
-                    background: `${theme.primaryColor || '#15803D'}05` 
-                  } : {}}
-                >
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    value="cod" 
-                    checked={paymentMethod === 'cod'} 
-                    onChange={() => setPaymentMethod('cod')} 
-                    className="payment-radio-input"
-                  />
-                  <div className="payment-option-text">
-                    <span className="payment-option-title">💵 Cash on Delivery (COD)</span>
-                    <span className="payment-option-subtitle">Pay with cash upon delivery of your products</span>
-                  </div>
-                </label>
-                
-                <label 
-                  className={`payment-option-label ${paymentMethod === 'razorpay' ? 'active' : ''}`}
-                  style={paymentMethod === 'razorpay' ? { 
-                    borderColor: theme.primaryColor || '#15803D',
-                    background: `${theme.primaryColor || '#15803D'}05` 
-                  } : {}}
-                >
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    value="razorpay" 
-                    checked={paymentMethod === 'razorpay'} 
-                    onChange={() => setPaymentMethod('razorpay')} 
-                    className="payment-radio-input"
-                  />
-                  <div className="payment-option-text">
-                    <span className="payment-option-title">💳 Pay Online Securely</span>
-                    <span className="payment-option-subtitle">UPI, Netbanking, Credit & Debit Cards (Razorpay)</span>
-                  </div>
-                </label>
-              </div>
+              {!gatewaysLoaded ? (
+                <div style={{ color: '#6B7280', fontSize: '0.85rem', padding: '12px 0' }}>Loading payment options…</div>
+              ) : activeGateways.length === 0 ? (
+                <div style={{ color: '#DC2626', fontSize: '0.85rem', padding: '12px 0', fontWeight: 600 }}>
+                  ⚠️ No payment methods available. Please contact the store.
+                </div>
+              ) : (
+                <div className="payment-options-list">
+                  {activeGateways.map(gw => {
+                    const isCod = gw.slug === 'cod';
+                    const isRzp = gw.slug === 'razorpay';
+                    return (
+                      <label
+                        key={gw.slug}
+                        className={`payment-option-label ${paymentMethod === gw.slug ? 'active' : ''}`}
+                        style={paymentMethod === gw.slug ? {
+                          borderColor: theme.primaryColor || '#15803D',
+                          background: `${theme.primaryColor || '#15803D'}05`
+                        } : {}}
+                      >
+                        <input
+                          type="radio"
+                          name="payment"
+                          value={gw.slug}
+                          checked={paymentMethod === gw.slug}
+                          onChange={() => setPaymentMethod(gw.slug)}
+                          className="payment-radio-input"
+                        />
+                        <div className="payment-option-text">
+                          <span className="payment-option-title">
+                            {isCod ? '💵 Cash on Delivery (COD)' : isRzp ? '💳 Pay Online Securely' : `💰 ${gw.name}`}
+                          </span>
+                          <span className="payment-option-subtitle">
+                            {isCod
+                              ? 'Pay with cash upon delivery of your products'
+                              : isRzp
+                              ? 'UPI, Netbanking, Credit & Debit Cards (Razorpay)'
+                              : gw.name}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
+
 
           </div>
 
@@ -281,7 +320,7 @@ export const Checkout: React.FC = () => {
                       <h4 className="checkout-item-name">{item.name}</h4>
                       <span className="checkout-item-variant">{item.variantLabel || 'Standard'} x {item.qty}</span>
                     </div>
-                    <span className="checkout-item-total-price">₹{item.price * item.qty}</span>
+                    <span className="checkout-item-total-price">{getCurrencySymbol()}{item.price * item.qty}</span>
                   </div>
                 ))}
               </div>
@@ -290,19 +329,19 @@ export const Checkout: React.FC = () => {
               <div className="checkout-calculations">
                 <div className="calc-row">
                   <span>Cart Subtotal</span>
-                  <span className="calc-value">₹{cartTotal}</span>
+                  <span className="calc-value">{getCurrencySymbol()}{cartTotal}</span>
                 </div>
                 <div className="calc-row">
                   <span>Shipping & Handling</span>
-                  <span className="calc-value">{shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`}</span>
+                  <span className="calc-value">{shippingCharge === 0 ? 'FREE' : `${getCurrencySymbol()}${shippingCharge}`}</span>
                 </div>
                 <div className="calc-row">
                   <span>Flat tax (5% GST)</span>
-                  <span className="calc-value">₹{taxAmount}</span>
+                  <span className="calc-value">{getCurrencySymbol()}{taxAmount}</span>
                 </div>
                 <div className="grand-total-row">
                   <span>Order Total</span>
-                  <span className="grand-total-price">₹{grandTotal}</span>
+                  <span className="grand-total-price">{getCurrencySymbol()}{grandTotal}</span>
                 </div>
               </div>
 

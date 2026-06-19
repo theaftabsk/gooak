@@ -4,6 +4,11 @@ import { PrismaService } from '../../database/prisma.service';
 import { TenantConnectionPoolService } from '../../database/tenant-connection-pool.service';
 import { tenantLocalStorage } from '../../database/tenant-context';
 
+/**
+ * TenantMiddleware is responsible for inspecting incoming requests,
+ * resolving the tenant (shop) associated with the request hostname,
+ * and establishing the tenant-specific Prisma Client context using AsyncLocalStorage.
+ */
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
   constructor(
@@ -11,25 +16,34 @@ export class TenantMiddleware implements NestMiddleware {
     private tenantConnectionPool: TenantConnectionPoolService,
   ) {}
 
-  async use(req: Request & { shopId?: string }, res: Response, next: NextFunction) {
+  async use(
+    req: Request & { shopId?: string },
+    res: Response,
+    next: NextFunction,
+  ) {
+    // 1. Bypass tenant verification for merchant login
     // The merchant login endpoint resolves shop access by email and should not require a tenant domain mapping.
-    if (req.method === 'POST' && req.path === '/catalog/merchant/login') {
+    if (req.method === 'POST' && req.path.endsWith('/catalog/merchant/login')) {
       next();
       return;
     }
 
-    const tenantDomain = (req.headers['x-tenant-domain'] as string) || req.headers.host;
+    // Resolve domain/hostname from headers (or standard HTTP Host header)
+    const tenantDomain =
+      (req.headers['x-tenant-domain'] as string) || req.headers.host;
 
     if (!tenantDomain) {
-      throw new NotFoundException('Host header or X-Tenant-Domain header missing');
+      throw new NotFoundException(
+        'Host header or X-Tenant-Domain header missing',
+      );
     }
 
-    // Extract hostname (remove port if exists)
+    // Extract hostname (remove port if exists, e.g., 'localhost:5001' -> 'localhost')
     const hostname = tenantDomain.split(':')[0];
 
-    // If it is the platform admin or API subdomain, bypass tenant verification
+    // 2. Bypass tenant verification for Platform Administrators or direct API subdomains
     if (
-      hostname === 'admin.localhost' || 
+      hostname === 'admin.localhost' ||
       hostname.startsWith('admin.') ||
       hostname === 'api.localhost' ||
       hostname.startsWith('api.')
@@ -56,9 +70,14 @@ export class TenantMiddleware implements NestMiddleware {
     let shopSlug: string | undefined;
     let dbConnectionUrl: string | null | undefined;
 
-    // 1. Try to match the exact domain hostname in shop_domains (works for custom domains and exact matches)
-    const domainRecord = await this.prisma.shopDomain.findUnique({
-      where: { domain: hostname },
+    // 3. Match the exact domain hostname in shop_domains registry (supports custom domains and exact matches)
+    const domainRecord = await this.prisma.shopDomain.findFirst({
+      where: {
+        domain: {
+          equals: hostname,
+          mode: 'insensitive',
+        },
+      },
       select: { shop_id: true },
     });
 
@@ -73,30 +92,43 @@ export class TenantMiddleware implements NestMiddleware {
         dbConnectionUrl = shop.db_connection_url;
       }
     } else {
-      // 2. If no exact match, check if it's a subdomain slug
-      const isSubdomain = hostname.endsWith(`.${platformDomain}`) || hostname.endsWith('.localhost');
-      
+      // 4. Subdomain lookup (e.g., "nature-glow.localhost" or "nature-glow.posix.digital")
+      const isSubdomain =
+        hostname.endsWith(`.${platformDomain}`) ||
+        hostname.endsWith('.localhost');
+
       if (isSubdomain) {
-        // Extract the subdomain slug (e.g., "nature-glow" from "nature-glow.posix.digital" or "nature-glow.localhost")
+        // Extract the subdomain slug (first segment before the dot)
         const slug = hostname.split('.')[0];
-        const shop = await this.prisma.shop.findUnique({
-          where: { slug },
-          select: { id: true, db_connection_url: true },
+        const shop = await this.prisma.shop.findFirst({
+          where: {
+            slug: {
+              equals: slug,
+              mode: 'insensitive',
+            },
+          },
+          select: { id: true, db_connection_url: true, slug: true },
         });
         if (shop) {
           shopId = shop.id;
-          shopSlug = slug;
+          shopSlug = shop.slug;
           dbConnectionUrl = shop.db_connection_url;
         }
       }
     }
 
-    // Local development fallback: if domain registry not matched, fallback to first active shop
+    // 5. Local development fallback: if domain is localhost/127.0.0.1 and not matched, fallback to testShop or first active shop
     if (!shopId && (hostname === 'localhost' || hostname === '127.0.0.1')) {
-      const fallbackShop = await this.prisma.shop.findFirst({
-        where: { status: 'active' },
+      let fallbackShop = await this.prisma.shop.findFirst({
+        where: { slug: { equals: 'testShop', mode: 'insensitive' } },
         select: { id: true, slug: true, db_connection_url: true },
       });
+      if (!fallbackShop) {
+        fallbackShop = await this.prisma.shop.findFirst({
+          where: { status: 'active' },
+          select: { id: true, slug: true, db_connection_url: true },
+        });
+      }
       if (fallbackShop) {
         shopId = fallbackShop.id;
         shopSlug = fallbackShop.slug;
@@ -105,15 +137,19 @@ export class TenantMiddleware implements NestMiddleware {
     }
 
     if (!shopId) {
-      throw new NotFoundException(`Store domain mapping for '${hostname}' not found`);
+      throw new NotFoundException(
+        `Store domain mapping for '${hostname}' not found`,
+      );
     }
 
     req.shopId = shopId;
 
-    // Resolve tenant database connection string (fallback to central DB if not specified)
+    // 6. Resolve or create the dynamic connection string and client for this tenant
     const connectionString = dbConnectionUrl || process.env.DATABASE_URL!;
-    const tenantClient = this.tenantConnectionPool.getTenantClient(connectionString);
+    const tenantClient =
+      this.tenantConnectionPool.getTenantClient(connectionString);
 
+    // 7. Store tenant details in AsyncLocalStorage context so downstream services can access the correct db client
     tenantLocalStorage.run(
       {
         tenantId: shopId,

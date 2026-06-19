@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 import { PrismaService } from '../../database/prisma.service';
 import { TenantPrismaService } from '../../database/tenant-prisma.service';
@@ -23,10 +27,18 @@ export class CustomerService {
 
     // Check if email is already taken in this shop's isolated customer base
     const existing = await this.tenantPrisma.customer.findFirst({
-      where: { shop_id: shopId, email: dto.email },
+      where: {
+        shop_id: shopId,
+        email: {
+          equals: dto.email.trim(),
+          mode: 'insensitive',
+        },
+      },
     });
     if (existing) {
-      throw new BadRequestException('An account with this email already exists.');
+      throw new BadRequestException(
+        'An account with this email already exists.',
+      );
     }
 
     const password_hash = await bcrypt.hash(dto.password, 10);
@@ -39,20 +51,39 @@ export class CustomerService {
         password_hash,
         is_verified: false,
       },
-      select: { id: true, name: true, email: true, phone: true, avatar_url: true, created_at: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        avatar_url: true,
+        created_at: true,
+      },
     });
 
-    const secret = process.env.CUSTOMER_JWT_SECRET || 'customer_secret_oaksol_2026';
-    const token = jwt.sign({ customerId: customer.id, shopId }, secret, { expiresIn: '30d' });
+    const secret =
+      process.env.CUSTOMER_JWT_SECRET || 'customer_secret_oaksol_2026';
+    const token = jwt.sign({ customerId: customer.id, shopId }, secret, {
+      expiresIn: '30d',
+    });
 
     return { customer, token };
   }
 
-  async customerLogin(shopId: string, dto: { email: string; password: string }) {
+  async customerLogin(
+    shopId: string,
+    dto: { email: string; password: string },
+  ) {
     const bcrypt = await import('bcryptjs');
 
     const customer = await this.tenantPrisma.customer.findFirst({
-      where: { shop_id: shopId, email: dto.email },
+      where: {
+        shop_id: shopId,
+        email: {
+          equals: dto.email.trim(),
+          mode: 'insensitive',
+        },
+      },
     });
     if (!customer || !customer.password_hash) {
       throw new BadRequestException('Invalid email or password.');
@@ -63,8 +94,11 @@ export class CustomerService {
       throw new BadRequestException('Invalid email or password.');
     }
 
-    const secret = process.env.CUSTOMER_JWT_SECRET || 'customer_secret_oaksol_2026';
-    const token = jwt.sign({ customerId: customer.id, shopId }, secret, { expiresIn: '30d' });
+    const secret =
+      process.env.CUSTOMER_JWT_SECRET || 'customer_secret_oaksol_2026';
+    const token = jwt.sign({ customerId: customer.id, shopId }, secret, {
+      expiresIn: '30d',
+    });
 
     return {
       customer: {
@@ -118,18 +152,33 @@ export class CustomerService {
 
     if (dto.new_password) {
       if (!dto.current_password) {
-        throw new BadRequestException('Current password is required to set a new password.');
+        throw new BadRequestException(
+          'Current password is required to set a new password.',
+        );
       }
-      const customer = await this.tenantPrisma.customer.findUnique({ where: { id: customerId } });
-      const valid = await bcrypt.compare(dto.current_password, customer?.password_hash || '');
-      if (!valid) throw new BadRequestException('Current password is incorrect.');
+      const customer = await this.tenantPrisma.customer.findUnique({
+        where: { id: customerId },
+      });
+      const valid = await bcrypt.compare(
+        dto.current_password,
+        customer?.password_hash || '',
+      );
+      if (!valid)
+        throw new BadRequestException('Current password is incorrect.');
       data.password_hash = await bcrypt.hash(dto.new_password, 10);
     }
 
     const updated = await this.tenantPrisma.customer.update({
       where: { id: customerId },
       data,
-      select: { id: true, name: true, email: true, phone: true, avatar_url: true, created_at: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        avatar_url: true,
+        created_at: true,
+      },
     });
     return updated;
   }
@@ -153,8 +202,11 @@ export class CustomerService {
     }));
   }
 
-  async verifyCustomerToken(token: string): Promise<{ customerId: string; shopId: string }> {
-    const secret = process.env.CUSTOMER_JWT_SECRET || 'customer_secret_oaksol_2026';
+  async verifyCustomerToken(
+    token: string,
+  ): Promise<{ customerId: string; shopId: string }> {
+    const secret =
+      process.env.CUSTOMER_JWT_SECRET || 'customer_secret_oaksol_2026';
     try {
       const payload = jwt.verify(token, secret) as any;
       return { customerId: payload.customerId, shopId: payload.shopId };

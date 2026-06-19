@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Delete, Body, Param, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { PageBuilderService } from './page-builder.service';
 
@@ -18,7 +27,7 @@ export class PageBuilderController {
   @Get('pages/by-slug/:slug')
   async getPageBySlug(
     @Req() req: Request & { shopId?: string },
-    @Param('slug') slug: string
+    @Param('slug') slug: string,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -30,7 +39,7 @@ export class PageBuilderController {
   @Get('pages/:id')
   async getPageById(
     @Req() req: Request & { shopId?: string },
-    @Param('id') id: string
+    @Param('id') id: string,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -42,14 +51,15 @@ export class PageBuilderController {
   @Post('pages')
   async savePage(
     @Req() req: Request & { shopId?: string },
-    @Body() dto: {
+    @Body()
+    dto: {
       id?: string;
       title: string;
       slug: string;
       type: 'NORMAL' | 'COLLECTION';
       theme: any;
       widgets: any[];
-    }
+    },
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -61,7 +71,7 @@ export class PageBuilderController {
   @Post('pages/:id/publish')
   async publishPage(
     @Req() req: Request & { shopId?: string },
-    @Param('id') id: string
+    @Param('id') id: string,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -73,7 +83,7 @@ export class PageBuilderController {
   @Delete('pages/:id')
   async deletePage(
     @Req() req: Request & { shopId?: string },
-    @Param('id') id: string
+    @Param('id') id: string,
   ) {
     const shopId = req.shopId;
     if (!shopId) {

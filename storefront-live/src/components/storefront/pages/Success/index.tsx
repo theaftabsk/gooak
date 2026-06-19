@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { catalogApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
+import { getCurrencySymbol } from '../../../../lib/utils';
 
 export const Success: React.FC = () => {
   const location = useLocation();
@@ -90,9 +91,9 @@ export const Success: React.FC = () => {
                   <div key={item.id} className="invoice-item-row">
                     <div className="invoice-item-info">
                       <h4 className="invoice-item-name">{item.product_snap?.name || 'Skincare Product'}</h4>
-                      <span className="invoice-item-qty">Qty: {item.qty} × ₹{item.unit_price}</span>
+                      <span className="invoice-item-qty">Qty: {item.qty} × {getCurrencySymbol(order.currency)}{item.unit_price}</span>
                     </div>
-                    <span className="invoice-item-price">₹{item.line_total}</span>
+                    <span className="invoice-item-price">{getCurrencySymbol(order.currency)}{item.line_total}</span>
                   </div>
                 ))}
               </div>
@@ -100,22 +101,22 @@ export const Success: React.FC = () => {
               <div className="invoice-totals">
                 <div className="totals-row">
                   <span>Subtotal</span>
-                  <span>₹{order.subtotal}</span>
+                  <span>{getCurrencySymbol(order.currency)}{order.subtotal}</span>
                 </div>
                 <div className="totals-row">
                   <span>Shipping Fee</span>
-                  <span>{Number(order.shipping_amount) === 0 ? 'FREE' : `₹${order.shipping_amount}`}</span>
+                  <span>{Number(order.shipping_amount) === 0 ? 'FREE' : `${getCurrencySymbol(order.currency)}${order.shipping_amount}`}</span>
                 </div>
                 {Number(order.discount_amount) > 0 && (
                   <div className="totals-row discount">
                     <span>Discount</span>
-                    <span>-₹{order.discount_amount}</span>
+                    <span>-{getCurrencySymbol(order.currency)}{order.discount_amount}</span>
                   </div>
                 )}
                 <div className="totals-divider"></div>
                 <div className="totals-grand-row">
                   <span>Paid Total</span>
-                  <span>₹{order.total}</span>
+                  <span>{getCurrencySymbol(order.currency)}{order.total}</span>
                 </div>
               </div>
             </div>

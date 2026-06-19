@@ -11,13 +11,26 @@ export const Contact: React.FC = () => {
   const { shop, content: c } = useLiveSettings();
   const { customer } = useCustomer();
 
-  const [pageData, setPageData] = useState<any>(null);
+  const [pageData, setPageData] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('oaksol_preview_page_contact');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return null;
+  });
 
   useEffect(() => {
     const fetchPage = async () => {
       try {
         const data = await pageBuilderApi.getPageBySlug('contact');
         setPageData(data);
+        if (data && typeof window !== 'undefined') {
+          localStorage.setItem('oaksol_preview_page_contact', JSON.stringify(data));
+        }
       } catch (err: any) {
         console.error('Failed to load contact page widgets:', err);
       }
@@ -29,15 +42,17 @@ export const Contact: React.FC = () => {
   const isPreview = searchParams.get('preview') === 'true';
 
   useEffect(() => {
-    if (!isPreview) return;
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'LAYOUT_UPDATE' && event.data.payload?.slug === 'contact') {
         setPageData(event.data.payload);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('oaksol_preview_page_contact', JSON.stringify(event.data.payload));
+        }
       }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [isPreview]);
+  }, []);
 
   // Contact Form fields
   const [name, setName] = useState('');

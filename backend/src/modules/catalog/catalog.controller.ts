@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Req,
+  BadRequestException,
+  Header,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { CatalogService } from './catalog.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -23,7 +35,7 @@ export class CatalogController {
   @Get('products')
   async getProducts(
     @Req() req: Request & { shopId?: string },
-    @Query() query: any
+    @Query() query: any,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -36,7 +48,7 @@ export class CatalogController {
   @Get('products/:slug')
   async getProduct(
     @Req() req: Request & { shopId?: string },
-    @Param('slug') slug: string
+    @Param('slug') slug: string,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -69,7 +81,8 @@ export class CatalogController {
   @Post('orders')
   async placeOrder(
     @Req() req: Request & { shopId?: string },
-    @Body() dto: {
+    @Body()
+    dto: {
       customer_name: string;
       customer_email: string;
       customer_phone: string;
@@ -77,7 +90,7 @@ export class CatalogController {
       payment_method: string;
       notes?: string;
       items: { variant_id: string; qty: number }[];
-    }
+    },
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -99,12 +112,17 @@ export class CatalogController {
     return this.catalogService.getPublicOrderById(shopId, id);
   }
 
+  @Get('system-settings')
+  async getSystemSettings() {
+    return this.catalogService.getPublicSystemSettings();
+  }
+
   // ================= ADMIN ENDPOINTS =================
 
   @Post('admin/products')
   async createProduct(
     @Req() req: Request & { shopId?: string },
-    @Body() dto: CreateProductDto
+    @Body() dto: CreateProductDto,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -116,7 +134,7 @@ export class CatalogController {
   @Post('admin/banners')
   async createBanner(
     @Req() req: Request & { shopId?: string },
-    @Body() dto: CreateBannerDto
+    @Body() dto: CreateBannerDto,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -128,7 +146,7 @@ export class CatalogController {
   @Post('admin/sections')
   async createSection(
     @Req() req: Request & { shopId?: string },
-    @Body() dto: CreateSectionDto
+    @Body() dto: CreateSectionDto,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -139,7 +157,7 @@ export class CatalogController {
   @Get('admin/products/:id')
   async getProductById(
     @Req() req: Request & { shopId?: string },
-    @Param('id') id: string
+    @Param('id') id: string,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -152,7 +170,7 @@ export class CatalogController {
   async updateProduct(
     @Req() req: Request & { shopId?: string },
     @Param('id') id: string,
-    @Body() dto: any
+    @Body() dto: any,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -164,7 +182,7 @@ export class CatalogController {
   @Delete('admin/products/:id')
   async deleteProduct(
     @Req() req: Request & { shopId?: string },
-    @Param('id') id: string
+    @Param('id') id: string,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -176,7 +194,7 @@ export class CatalogController {
   @Post('admin/categories')
   async createCategory(
     @Req() req: Request & { shopId?: string },
-    @Body() dto: any
+    @Body() dto: any,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -189,7 +207,7 @@ export class CatalogController {
   async updateCategory(
     @Req() req: Request & { shopId?: string },
     @Param('id') id: string,
-    @Body() dto: any
+    @Body() dto: any,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -201,7 +219,7 @@ export class CatalogController {
   @Delete('admin/categories/:id')
   async deleteCategory(
     @Req() req: Request & { shopId?: string },
-    @Param('id') id: string
+    @Param('id') id: string,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -213,7 +231,7 @@ export class CatalogController {
   @Delete('admin/banners/:id')
   async deleteBanner(
     @Req() req: Request & { shopId?: string },
-    @Param('id') id: string
+    @Param('id') id: string,
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -235,16 +253,19 @@ export class CatalogController {
   async updateOrderStatus(
     @Req() req: Request & { shopId?: string },
     @Param('id') id: string,
-    @Body() body: { status: string; note?: string }
+    @Body() body: { status: string; note?: string },
   ) {
     const shopId = req.shopId;
     if (!shopId) {
       throw new BadRequestException('Shop context missing from request');
     }
-    return this.catalogService.updateOrderStatus(shopId, id, body.status, body.note);
+    return this.catalogService.updateOrderStatus(
+      shopId,
+      id,
+      body.status,
+      body.note,
+    );
   }
-
-
 
   // ── Variant Management (Admin) ────────────────────────────────────────────
 
@@ -290,33 +311,40 @@ export class CatalogController {
     return this.catalogService.deleteVariant(shopId, id);
   }
 
-
   // 6. Public Platform tenant signup request submission
   @Post('tenant-requests')
   async createTenantRequest(
-    @Body() dto: { name: string; slug: string; ownerName: string; ownerEmail: string; phone?: string; category?: string }
+    @Body()
+    dto: {
+      name: string;
+      slug: string;
+      ownerName: string;
+      ownerEmail: string;
+      phone?: string;
+      category?: string;
+    },
   ) {
     return this.catalogService.createTenantRequest(dto);
   }
-
-
 
   // ─── Pages Content ────────────────────────────────────────────────────────────
 
   @Get('pages')
   async getPages(@Req() req: Request & { shopId?: string }) {
     const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    if (!shopId)
+      throw new BadRequestException('Shop context missing from request');
     return this.catalogService.getPageContent(shopId);
   }
 
   @Patch('pages')
   async savePages(
     @Req() req: Request & { shopId?: string },
-    @Body() dto: Record<string, string>
+    @Body() dto: Record<string, string>,
   ) {
     const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    if (!shopId)
+      throw new BadRequestException('Shop context missing from request');
     return this.catalogService.savePageContent(shopId, dto);
   }
 
@@ -325,10 +353,12 @@ export class CatalogController {
   @Post('contact')
   async submitContact(
     @Req() req: Request & { shopId?: string },
-    @Body() dto: { name: string; email: string; subject?: string; message: string }
+    @Body()
+    dto: { name: string; email: string; subject?: string; message: string },
   ) {
     const shopId = req.shopId;
-    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    if (!shopId)
+      throw new BadRequestException('Shop context missing from request');
     return this.catalogService.submitContactForm(shopId, dto);
   }
 
@@ -337,5 +367,168 @@ export class CatalogController {
   async merchantLogin(@Body() dto: { email: string; password: string }) {
     return this.catalogService.merchantLogin(dto);
   }
-}
 
+  // Merchant Settings Update Endpoint
+  @Patch('merchant/settings')
+  async updateMerchantSettings(
+    @Req() req: Request & { shopId?: string },
+    @Body() dto: {
+      name?: string;
+      description?: string;
+      logo_url?: string;
+      currency?: string;
+      timezone?: string;
+    },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) {
+      throw new BadRequestException('Shop context missing from request');
+    }
+    return this.catalogService.updateShopSettings(shopId, dto);
+  }
+
+  // Merchant Theme Switch Endpoint
+  @Post('merchant/switch-theme')
+  async switchTheme(
+    @Req() req: Request & { shopId?: string },
+    @Body() dto: { industry: string; theme: string },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) {
+      throw new BadRequestException('Shop context missing from request');
+    }
+    return this.catalogService.switchShopTheme(shopId, dto.industry, dto.theme);
+  }
+
+  // Get Store statistics counts
+  @Get('admin/stats')
+  async getShopStats(@Req() req: Request & { shopId?: string }) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.getShopStats(shopId);
+  }
+
+  // Staff/Users Endpoints
+  @Get('admin/users')
+  async getShopUsers(@Req() req: Request & { shopId?: string }) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.getShopUsers(shopId);
+  }
+
+  @Post('admin/users')
+  async addShopUser(
+    @Req() req: Request & { shopId?: string },
+    @Body() dto: { name: string; email: string; password?: string; role?: string },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.addShopUser(shopId, dto);
+  }
+
+  @Delete('admin/users/:id')
+  async deleteShopUser(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.deleteShopUser(shopId, id);
+  }
+
+  // Custom Domains Endpoints
+  @Get('admin/domains')
+  async getShopDomains(@Req() req: Request & { shopId?: string }) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.getShopDomains(shopId);
+  }
+
+  @Post('admin/domains')
+  async addShopDomain(
+    @Req() req: Request & { shopId?: string },
+    @Body() dto: { domain: string; type?: string },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.addShopDomain(shopId, dto);
+  }
+
+  @Patch('admin/domains/:id/primary')
+  async setPrimaryDomain(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.setPrimaryDomain(shopId, id);
+  }
+
+  @Delete('admin/domains/:id')
+  async deleteShopDomain(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.deleteShopDomain(shopId, id);
+  }
+
+  // Config Overrides Endpoints
+  @Get('admin/configs')
+  async getConfigOverrides(@Req() req: Request & { shopId?: string }) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.getConfigOverrides(shopId);
+  }
+
+  @Post('admin/configs/override')
+  async saveConfigOverride(
+    @Req() req: Request & { shopId?: string },
+    @Body() dto: { key: string; value: string },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.saveConfigOverride(shopId, dto);
+  }
+
+  @Delete('admin/configs/override/:key')
+  async deleteConfigOverride(
+    @Req() req: Request & { shopId?: string },
+    @Param('key') key: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.deleteConfigOverride(shopId, key);
+  }
+
+  // Backups / Exports Endpoints
+  @Get('admin/backup/json')
+  @Header('Content-Type', 'application/json')
+  @Header('Content-Disposition', 'attachment; filename="shop_backup.json"')
+  async getJsonBackup(@Req() req: Request & { shopId?: string }) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.getJsonBackup(shopId);
+  }
+
+  @Get('admin/backup/sql')
+  @Header('Content-Type', 'application/sql')
+  @Header('Content-Disposition', 'attachment; filename="db_export.sql"')
+  async getSqlBackup(@Req() req: Request & { shopId?: string }) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.getSqlBackup();
+  }
+
+  // Advanced Shop Settings Endpoints
+  @Patch('admin/settings/advanced')
+  async updateAdvancedSettings(
+    @Req() req: Request & { shopId?: string },
+    @Body() dto: { slug?: string; status?: string; db_connection_url?: string },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing from request');
+    return this.catalogService.updateAdvancedSettings(shopId, dto);
+  }
+}

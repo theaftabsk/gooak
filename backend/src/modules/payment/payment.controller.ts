@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Patch, Param, Body, Req, Headers, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Req,
+  Headers,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { PaymentService } from './payment.service';
 
@@ -28,7 +39,13 @@ export class PaymentController {
   async updateGateway(
     @Req() req: Request & { shopId?: string },
     @Param('id') id: string,
-    @Body() dto: { name?: string; is_active?: boolean; config?: any; sort_order?: number }
+    @Body()
+    dto: {
+      name?: string;
+      is_active?: boolean;
+      config?: any;
+      sort_order?: number;
+    },
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -51,7 +68,12 @@ export class PaymentController {
     if (!amount || !receiptId) {
       throw new BadRequestException('Amount and receiptId are required');
     }
-    return this.paymentService.createRazorpayOrder(shopId, amount, currency || 'INR', receiptId);
+    return this.paymentService.createRazorpayOrder(
+      shopId,
+      amount,
+      currency || 'INR',
+      receiptId,
+    );
   }
 
   @Post('razorpay/initialize/:orderId')
@@ -69,12 +91,13 @@ export class PaymentController {
   @Post('razorpay/verify')
   async verifyPayment(
     @Req() req: Request & { shopId?: string },
-    @Body() dto: {
+    @Body()
+    dto: {
       orderId: string;
       razorpay_payment_id: string;
       razorpay_order_id: string;
       razorpay_signature: string;
-    }
+    },
   ) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -102,12 +125,28 @@ export class PaymentController {
       : typeof rawBodyBuffer === 'string'
         ? rawBodyBuffer
         : JSON.stringify(payload);
-    
-    const isValid = await this.paymentService.verifyWebhookSignature(shopId, rawBody, signature);
+
+    const isValid = await this.paymentService.verifyWebhookSignature(
+      shopId,
+      rawBody,
+      signature,
+    );
     if (!isValid) {
       throw new UnauthorizedException('Invalid Razorpay signature');
     }
 
     return this.paymentService.handleWebhook(shopId, payload);
+  }
+
+  @Post('razorpay/simulate/:orderId')
+  async simulatePayment(
+    @Req() req: Request & { shopId?: string },
+    @Param('orderId') orderId: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) {
+      throw new BadRequestException('Shop context missing from request');
+    }
+    return this.paymentService.simulatePayment(shopId, orderId);
   }
 }

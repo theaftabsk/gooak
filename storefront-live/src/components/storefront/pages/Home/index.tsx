@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { pageBuilderApi, catalogApi, customerApi } from '../../../../lib/api-client';
 import { WidgetRenderer } from '../../WidgetRenderer';
+import { getCurrencySymbol } from '../../../../lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PageSettings {
@@ -25,8 +26,8 @@ const DEFAULT_HERO_WIDGET = {
   type: 'HERO_BANNER' as const,
   sort_order: 0,
   content: {
-    title: "Nourish Your Skin With Our Range Of Creams!",
-    subtitle: 'Discover our curated collection of premium organic skincare products designed to restore and rejuvenate your natural glow.',
+    title: "Welcome to Our Store",
+    subtitle: 'Explore our collections and discover premium products.',
     backgroundImageUrl: '',
     buttonText: 'SHOP NOW',
     buttonLink: '/products',
@@ -34,22 +35,8 @@ const DEFAULT_HERO_WIDGET = {
   styles: { paddingTop: '0px', paddingBottom: '0px' },
 };
 
-// ─── Static testimonial data (editable from builder in future) ────────────────
-const DEFAULT_TESTIMONIALS = [
-  { name: 'Abby Jones', rating: 5, text: 'My family has been using different products including Hibiscus Shampoo, Hibiscus Hair Oil, Geranium Cream and Lavender Oil. Super products and pure value of money. We are getting fantastic results.', time: '9 months ago' },
-  { name: 'Anand Daga', rating: 5, text: 'Me and my wife have been using Body Massage Oil since more than a year. It has given superb results in our knee pain and also to moisture our skin. Best product in market.', time: '9 months ago' },
-  { name: 'Sukanta Maity', rating: 5, text: 'Maheorthe Aloe Vera Facewash feels so refreshing and leaves my skin soft without dryness. Best natural facewash I have ever used!', time: '9 months ago' },
-  { name: 'Vaishali Agarwalla', rating: 5, text: 'From the time of trial and launch I have been using these products. Very good products specially the body oil, shampoo, anti aging cream. Very prompt service.', time: '9 months ago' },
-  { name: 'Anurag Pathak', rating: 5, text: 'Maheorthe products are amazing! Totally natural, gentle on skin and hair, and give visible results. Highly recommended!', time: '9 months ago' },
-  { name: 'Riddhika Agarwal', rating: 5, text: 'Authentic organic products at a fair price. Maheorthe has become my go-to brand for safe skin and hair care.', time: '9 months ago' },
-];
-
-const CARE_CARDS = [
-  { emoji: '💆', label: 'HAIR CARE', link: '/categories' },
-  { emoji: '🛁', label: 'BODY CARE', link: '/categories' },
-  { emoji: '✨', label: 'SKIN CARE', link: '/categories' },
-  { emoji: '🌿', label: 'HEALTH & WELLNESS', link: '/categories' },
-];
+// ─── Static testimonial data (disabled by default, loads dynamically if review tables seeded) ────────────────
+const DEFAULT_TESTIMONIALS: any[] = [];
 
 // ─── Banner Slider Component ───────────────────────────────────────────────────
 const BannerSlider: React.FC<{ banners: any[]; theme: any }> = ({ banners, theme }) => {
@@ -280,8 +267,35 @@ export const Home: React.FC = () => {
   const [searchParams] = useSearchParams();
   const isPreview = searchParams.get('preview') === 'true';
 
-  const [pageData, setPageData] = useState<any>(null);
-  const [theme, setTheme] = useState(DEFAULT_THEME);
+  const [pageData, setPageData] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('oaksol_preview_page_index');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return null;
+  });
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('oaksol_preview_page_index');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.theme) {
+            return {
+              primaryColor: parsed.theme.primaryColor || DEFAULT_THEME.primaryColor,
+              secondaryColor: parsed.theme.secondaryColor || DEFAULT_THEME.secondaryColor,
+              backgroundColor: parsed.theme.backgroundColor || DEFAULT_THEME.backgroundColor,
+            };
+          }
+        } catch {}
+      }
+    }
+    return DEFAULT_THEME;
+  });
   const [pageSettings, setPageSettings] = useState<PageSettings>({});
   const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -307,6 +321,9 @@ export const Home: React.FC = () => {
       ]);
       if (data.status === 'fulfilled' && data.value) {
         setPageData(data.value);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('oaksol_preview_page_index', JSON.stringify(data.value));
+        }
         if (data.value.theme) {
           setTheme({
             primaryColor: data.value.theme.primaryColor || DEFAULT_THEME.primaryColor,
@@ -347,20 +364,22 @@ export const Home: React.FC = () => {
 
   // ── Real-time preview messages from Visual Builder ───────────────────────
   useEffect(() => {
-    if (!isPreview) return;
     const handle = (event: MessageEvent) => {
       if (!event.data) return;
       if (event.data.type === 'LAYOUT_UPDATE') {
         const p = event.data.payload;
         if (p && (p.slug === 'index' || p.slug === '/')) {
           setPageData(p);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('oaksol_preview_page_index', JSON.stringify(p));
+          }
           if (p.theme) setTheme({ primaryColor: p.theme.primaryColor || DEFAULT_THEME.primaryColor, secondaryColor: p.theme.secondaryColor || DEFAULT_THEME.secondaryColor, backgroundColor: p.theme.backgroundColor || DEFAULT_THEME.backgroundColor });
         }
       }
     };
     window.addEventListener('message', handle);
     return () => window.removeEventListener('message', handle);
-  }, [isPreview]);
+  }, []);
 
   // ── Apply CSS vars ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -396,7 +415,7 @@ export const Home: React.FC = () => {
 
   const aboutTitle = pageSettings.about_title || 'About Us';
   const aboutContent = pageSettings.about_content || 'We are a natural beauty and health company. Our products are chemical-free, handcrafted following traditional methods and formulations.';
-  const announcementText = pageSettings.announcement_bar || '🌿 FREE SHIPPING FOR ORDERS ABOVE ₹500 — 100% Natural Products';
+  const announcementText = (pageSettings.announcement_bar || '🌿 FREE SHIPPING FOR ORDERS ABOVE ₹500 — 100% Natural Products').replace('₹', getCurrencySymbol());
   const showAnnouncement = pageSettings.announcement_bar_active !== 'false';
 
   return (
@@ -456,28 +475,33 @@ export const Home: React.FC = () => {
       )}
 
       {/* ── 4. Care Solutions Grid ── */}
-      <section className="home-section" style={{ background: bg, paddingTop: 56, paddingBottom: 56 }}>
-        <div className="home-container">
-          <div className="home-section-header">
-            <div>
-              <span className="home-badge" style={{ color: primary, background: `${primary}14` }}>Solutions</span>
-              <h2 className="home-section-title">Complete Skin, Hair &amp; Health Solution</h2>
+      {categories.length > 0 && (
+        <section className="home-section" style={{ background: bg, paddingTop: 56, paddingBottom: 56 }}>
+          <div className="home-container">
+            <div className="home-section-header">
+              <div>
+                <span className="home-badge" style={{ color: primary, background: `${primary}14` }}>Solutions</span>
+                <h2 className="home-section-title">Complete Solution</h2>
+              </div>
+            </div>
+            <div className="home-care-grid">
+              {categories.slice(0, 4).map((c, index) => {
+                const emojis = ['💆', '🛁', '✨', '🌿'];
+                return (
+                  <a key={c.id} href={`/categories/${c.slug}`} className="home-care-card" style={{ borderColor: `${primary}22` }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = primary; (e.currentTarget as HTMLElement).style.color = '#fff'; (e.currentTarget as HTMLElement).style.borderColor = primary; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; (e.currentTarget as HTMLElement).style.color = '#1F2937'; (e.currentTarget as HTMLElement).style.borderColor = `${primary}22`; }}
+                  >
+                    <span className="home-care-emoji">{emojis[index % emojis.length]}</span>
+                    <span className="home-care-label">{c.name.toUpperCase()}</span>
+                    <span className="home-care-btn">SHOP NOW</span>
+                  </a>
+                );
+              })}
             </div>
           </div>
-          <div className="home-care-grid">
-            {CARE_CARDS.map((c) => (
-              <a key={c.label} href={c.link} className="home-care-card" style={{ borderColor: `${primary}22` }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = primary; (e.currentTarget as HTMLElement).style.color = '#fff'; (e.currentTarget as HTMLElement).style.borderColor = primary; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; (e.currentTarget as HTMLElement).style.color = '#1F2937'; (e.currentTarget as HTMLElement).style.borderColor = `${primary}22`; }}
-              >
-                <span className="home-care-emoji">{c.emoji}</span>
-                <span className="home-care-label">{c.label}</span>
-                <span className="home-care-btn">SHOP NOW</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── 5. Best Sellers ── */}
       {!hasProductGrid && bestSellers.length > 0 && (
@@ -524,36 +548,38 @@ export const Home: React.FC = () => {
       )}
 
       {/* ── 8. Testimonials ── */}
-      <section className="home-section" style={{ background: '#fff', paddingTop: 56, paddingBottom: 56 }}>
-        <div className="home-container">
-          <div className="home-section-header" style={{ justifyContent: 'center', textAlign: 'center', flexDirection: 'column', alignItems: 'center' }}>
-            <span className="home-badge" style={{ color: primary, background: `${primary}14` }}>Customer Love</span>
-            <h2 className="home-section-title">Testimonials</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-              <div style={{ display: 'flex', gap: 2 }}>{'★★★★★'.split('').map((s, i) => <span key={i} style={{ color: '#F59E0B', fontSize: '1.1rem' }}>{s}</span>)}</div>
-              <span style={{ fontWeight: 700, color: '#1F2937', fontSize: '0.9rem' }}>EXCELLENT</span>
-              <span style={{ color: '#6B7280', fontSize: '0.8rem' }}>Based on 100+ reviews</span>
+      {DEFAULT_TESTIMONIALS.length > 0 && (
+        <section className="home-section" style={{ background: '#fff', paddingTop: 56, paddingBottom: 56 }}>
+          <div className="home-container">
+            <div className="home-section-header" style={{ justifyContent: 'center', textAlign: 'center', flexDirection: 'column', alignItems: 'center' }}>
+              <span className="home-badge" style={{ color: primary, background: `${primary}14` }}>Customer Love</span>
+              <h2 className="home-section-title">Testimonials</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                <div style={{ display: 'flex', gap: 2 }}>{'★★★★★'.split('').map((s, i) => <span key={i} style={{ color: '#F59E0B', fontSize: '1.1rem' }}>{s}</span>)}</div>
+                <span style={{ fontWeight: 700, color: '#1F2937', fontSize: '0.9rem' }}>EXCELLENT</span>
+                <span style={{ color: '#6B7280', fontSize: '0.8rem' }}>Based on 100+ reviews</span>
+              </div>
+            </div>
+            <div className="home-testimonials-grid">
+              {DEFAULT_TESTIMONIALS.map((t, i) => (
+                <div key={i} className="home-testimonial-card">
+                  <div style={{ display: 'flex', gap: 2, marginBottom: 10 }}>
+                    {[...Array(t.rating)].map((_, j) => <span key={j} style={{ color: '#F59E0B', fontSize: '1rem' }}>★</span>)}
+                  </div>
+                  <div className="home-testimonial-avatar" style={{ background: primary }}>
+                    {t.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111827' }}>{t.name}</div>
+                    <div style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>{t.time}</div>
+                  </div>
+                  <p className="home-testimonial-text">"{t.text}"</p>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="home-testimonials-grid">
-            {DEFAULT_TESTIMONIALS.map((t, i) => (
-              <div key={i} className="home-testimonial-card">
-                <div style={{ display: 'flex', gap: 2, marginBottom: 10 }}>
-                  {[...Array(t.rating)].map((_, j) => <span key={j} style={{ color: '#F59E0B', fontSize: '1rem' }}>★</span>)}
-                </div>
-                <div className="home-testimonial-avatar" style={{ background: primary }}>
-                  {t.name.charAt(0)}
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111827' }}>{t.name}</div>
-                  <div style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>{t.time}</div>
-                </div>
-                <p className="home-testimonial-text">"{t.text}"</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── 9. Features Strip ── */}
       <section className="home-section" style={{ background: bg, paddingTop: 40, paddingBottom: 40 }}>
@@ -680,8 +706,8 @@ const ProductCard: React.FC<{ p: any; primary: string; size?: 'large' | 'small' 
         <p style={{ fontSize: '0.78rem', color: '#6B7280', margin: 0 }}>100% Natural</p>
         <div style={{ marginTop: 'auto', paddingTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontWeight: 800, color: primary, fontSize: '1rem' }}>₹{p.price}</span>
-            {isOnSale && <span style={{ fontSize: '0.75rem', color: '#9CA3AF', textDecoration: 'line-through' }}>₹{p.compare_price}</span>}
+            <span style={{ fontWeight: 800, color: primary, fontSize: '1rem' }}>{getCurrencySymbol()}{p.price}</span>
+            {isOnSale && <span style={{ fontSize: '0.75rem', color: '#9CA3AF', textDecoration: 'line-through' }}>{getCurrencySymbol()}{p.compare_price}</span>}
           </div>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: primary }}>View →</span>
         </div>

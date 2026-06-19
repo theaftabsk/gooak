@@ -4,7 +4,10 @@ import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 @Injectable()
-export class PrismaService extends CentralPrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends CentralPrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   constructor() {
     // 1. Create a standard PostgreSQL connection pool for Central DB
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });

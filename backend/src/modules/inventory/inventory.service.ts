@@ -41,7 +41,12 @@ export class InventoryService {
       });
     }
 
-    return { variantId, previousQty: variant.stock_qty, newQty, adjustment: dto.adjustment };
+    return {
+      variantId,
+      previousQty: variant.stock_qty,
+      newQty,
+      adjustment: dto.adjustment,
+    };
   }
 
   async getStockLogs(shopId: string, productId: string) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useCustomer } from '../../context/CustomerContext';
 import { usePageTheme } from '../../hooks/usePageTheme';
 
@@ -7,6 +7,8 @@ export const Login: React.FC = () => {
   const { customer, login, isLoading } = useCustomer();
   const navigate = useNavigate();
   const { cssVariables } = usePageTheme('login');
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/account';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,9 +17,9 @@ export const Login: React.FC = () => {
 
   useEffect(() => {
     if (!isLoading && customer) {
-      navigate('/account');
+      navigate(redirectTo);
     }
-  }, [customer, isLoading, navigate]);
+  }, [customer, isLoading, navigate, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +27,7 @@ export const Login: React.FC = () => {
     setErrorMsg('');
     try {
       await login(email, password);
-      navigate('/account');
+      navigate(redirectTo);
     } catch (err: any) {
       setErrorMsg(err.message || 'Invalid email or password. Please try again.');
     } finally {
@@ -81,7 +83,7 @@ export const Login: React.FC = () => {
         </form>
 
         <div className="login-footer">
-          Don't have an account? <Link to="/register" className="login-link">Create Account</Link>
+          Don't have an account? <Link to={searchParams.has('redirect') ? `/register?redirect=${encodeURIComponent(redirectTo)}` : "/register"} className="login-link">Create Account</Link>
         </div>
       </div>
 

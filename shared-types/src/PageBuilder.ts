@@ -1,4 +1,4 @@
-export type WidgetType = 'HERO_BANNER' | 'PRODUCT_GRID' | 'TEXT_BLOCK' | 'PROMO_GRID' | 'TESTIMONIALS' | 'BEST_SELLERS' | 'CATEGORIES_LIST';
+export type WidgetType = 'HERO_BANNER' | 'DOUBLE_HERO' | 'PRODUCT_GRID' | 'TEXT_BLOCK' | 'PROMO_GRID' | 'TESTIMONIALS' | 'BEST_SELLERS' | 'CATEGORIES_LIST';
 
 export interface BaseWidgetData {
   id: string;
@@ -95,7 +95,27 @@ export interface CategoriesListData extends BaseWidgetData {
   };
 }
 
-export type WidgetLayout = HeroBannerData | ProductGridData | TextBlockData | PromoGridData | TestimonialsData | BestSellersData | CategoriesListData;
+export interface DoubleHeroPanel {
+  title: string;
+  subtitle: string;
+  backgroundImageUrl: string;
+  buttonText: string;
+  buttonLink: string;
+  bgColor: string;
+  textColor: string;
+}
+
+export interface DoubleHeroData extends BaseWidgetData {
+  type: 'DOUBLE_HERO';
+  content: {
+    left: DoubleHeroPanel;
+    right: DoubleHeroPanel;
+    height: string;
+  };
+}
+
+export type WidgetLayout = HeroBannerData | DoubleHeroData | ProductGridData | TextBlockData | PromoGridData | TestimonialsData | BestSellersData | CategoriesListData;
+
 
 export interface LivePageData {
   id: string;

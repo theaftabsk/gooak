@@ -214,6 +214,8 @@ function AdminDashboardAppContent() {
         ownerName: data.ownerName,
         ownerEmail: data.ownerEmail,
         ownerPassword: generatedPassword,
+        industry: data.industry,
+        theme: data.theme,
       });
       refreshAllData();
       setSavingEdit(false);

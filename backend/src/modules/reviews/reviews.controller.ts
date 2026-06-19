@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { ReviewsService } from './reviews.service';
 
@@ -9,7 +19,7 @@ export class ReviewsController {
   @Get('products/:productId/reviews')
   async getProductReviews(
     @Req() req: Request & { shopId?: string },
-    @Param('productId') productId: string
+    @Param('productId') productId: string,
   ) {
     const shopId = req.shopId;
     if (!shopId) throw new BadRequestException('Shop context missing');
@@ -20,7 +30,14 @@ export class ReviewsController {
   async createReview(
     @Req() req: Request & { shopId?: string },
     @Param('productId') productId: string,
-    @Body() dto: { reviewer_name?: string; rating: number; title?: string; body?: string; status?: string }
+    @Body()
+    dto: {
+      reviewer_name?: string;
+      rating: number;
+      title?: string;
+      body?: string;
+      status?: string;
+    },
   ) {
     const shopId = req.shopId;
     if (!shopId) throw new BadRequestException('Shop context missing');
@@ -31,7 +48,7 @@ export class ReviewsController {
   async updateReviewStatus(
     @Req() req: Request & { shopId?: string },
     @Param('id') id: string,
-    @Body() body: { status: string }
+    @Body() body: { status: string },
   ) {
     const shopId = req.shopId;
     if (!shopId) throw new BadRequestException('Shop context missing');
@@ -41,7 +58,7 @@ export class ReviewsController {
   @Delete('reviews/:id')
   async deleteReview(
     @Req() req: Request & { shopId?: string },
-    @Param('id') id: string
+    @Param('id') id: string,
   ) {
     const shopId = req.shopId;
     if (!shopId) throw new BadRequestException('Shop context missing');

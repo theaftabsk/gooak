@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useCustomer } from '../../context/CustomerContext';
 import { usePageTheme } from '../../hooks/usePageTheme';
 
@@ -7,6 +7,8 @@ export const Register: React.FC = () => {
   const { customer, register, isLoading } = useCustomer();
   const navigate = useNavigate();
   const { cssVariables } = usePageTheme('register');
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/account';
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -17,9 +19,9 @@ export const Register: React.FC = () => {
 
   useEffect(() => {
     if (!isLoading && customer) {
-      navigate('/account');
+      navigate(redirectTo);
     }
-  }, [customer, isLoading, navigate]);
+  }, [customer, isLoading, navigate, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +29,7 @@ export const Register: React.FC = () => {
     setErrorMsg('');
     try {
       await register(name, email, password, phone || undefined);
-      navigate('/account');
+      navigate(redirectTo);
     } catch (err: any) {
       setErrorMsg(err.message || 'Registration failed. Please check your credentials and try again.');
     } finally {
@@ -104,7 +106,7 @@ export const Register: React.FC = () => {
         </form>
 
         <div className="login-footer">
-          Already have an account? <Link to="/login" className="login-link">Sign In</Link>
+          Already have an account? <Link to={searchParams.has('redirect') ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login"} className="login-link">Sign In</Link>
         </div>
       </div>
 

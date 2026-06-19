@@ -11,14 +11,20 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 
 @Module({
-  imports: [PrismaModule, PageBuilderModule, PaymentModule, CatalogModule, CustomerModule, InventoryModule, ReviewsModule],
+  imports: [
+    PrismaModule,
+    PageBuilderModule,
+    PaymentModule,
+    CatalogModule,
+    CustomerModule,
+    InventoryModule,
+    ReviewsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(TenantMiddleware)
-      .forRoutes('*');
+    consumer.apply(TenantMiddleware).forRoutes('*');
   }
 }

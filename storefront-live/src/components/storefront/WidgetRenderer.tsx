@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { WidgetLayout } from '@oak-commerce/types';
 import { catalogApi } from '../../lib/api-client';
 import { useSearchParams } from 'react-router-dom';
+import { getCurrencySymbol } from '../../lib/utils';
 
 interface WidgetRendererProps {
   widgets: WidgetLayout[];
@@ -59,6 +60,12 @@ const WidgetBlock: React.FC<{ widget: WidgetLayout; theme: any }> = ({ widget, t
         return (
           <div style={blockStyle}>
             <HeroBanner block={widget} theme={theme} />
+          </div>
+        );
+      case 'DOUBLE_HERO':
+        return (
+          <div style={blockStyle}>
+            <DoubleHero block={widget} theme={theme} />
           </div>
         );
       case 'PRODUCT_GRID':
@@ -138,6 +145,124 @@ const WidgetBlock: React.FC<{ widget: WidgetLayout; theme: any }> = ({ widget, t
 
 
 /* 1. HERO_BANNER Component */
+
+// ─── Double Hero ──────────────────────────────────────────────────────────────
+const DoubleHero: React.FC<{ block: any; theme: any }> = ({ block, theme }) => {
+  const content = block.content || {};
+  const height = parseInt(content.height || '480');
+  const primary = theme.primaryColor || '#10B981';
+
+  const renderPanel = (panel: any, side: 'left' | 'right') => {
+    const hasBg = !!panel?.backgroundImageUrl;
+    const bg = hasBg
+      ? `url(${panel.backgroundImageUrl}) center/cover no-repeat`
+      : (panel?.bgColor || (side === 'left' ? '#1e3a2f' : '#f0fdf4'));
+    const textColor = panel?.textColor || (side === 'left' ? '#ffffff' : '#0f172a');
+    const btnBorder = side === 'left' ? '#ffffff' : primary;
+    const btnText = side === 'left' ? '#ffffff' : primary;
+
+    return (
+      <div
+        key={side}
+        style={{
+          flex: 1,
+          minHeight: height,
+          background: bg,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          padding: '48px 56px',
+          boxSizing: 'border-box',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {hasBg && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: side === 'left' ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.25)',
+            zIndex: 1,
+          }} />
+        )}
+        <div style={{ position: 'relative', zIndex: 2, maxWidth: 420 }}>
+          {panel?.title && (
+            <h2 style={{
+              fontSize: 'clamp(1.5rem, 3vw, 2.4rem)',
+              fontWeight: 800,
+              color: textColor,
+              margin: '0 0 14px',
+              lineHeight: 1.2,
+              fontFamily: "'Outfit', sans-serif",
+            }}>
+              {panel.title}
+            </h2>
+          )}
+          {panel?.subtitle && (
+            <p style={{
+              fontSize: '1rem',
+              color: hasBg ? 'rgba(255,255,255,0.88)' : textColor,
+              margin: '0 0 28px',
+              lineHeight: 1.6,
+              opacity: 0.9,
+            }}>
+              {panel.subtitle}
+            </p>
+          )}
+          {panel?.buttonText && (
+            <a
+              href={panel.buttonLink || '/products'}
+              style={{
+                display: 'inline-block',
+                padding: '12px 28px',
+                border: `2px solid ${hasBg ? '#ffffff' : btnBorder}`,
+                color: hasBg ? '#ffffff' : btnText,
+                borderRadius: 8,
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+                transition: 'all 0.2s',
+                fontFamily: "'Inter', sans-serif",
+                background: 'transparent',
+                letterSpacing: '0.04em',
+              }}
+              onMouseEnter={e => {
+                (e.target as HTMLElement).style.background = hasBg ? 'rgba(255,255,255,0.15)' : btnBorder;
+                (e.target as HTMLElement).style.color = hasBg ? '#ffffff' : '#ffffff';
+              }}
+              onMouseLeave={e => {
+                (e.target as HTMLElement).style.background = 'transparent';
+                (e.target as HTMLElement).style.color = hasBg ? '#ffffff' : btnText;
+              }}
+            >
+              {panel.buttonText}
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div
+      style={{
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'row' as const,
+      }}
+      className="sf-double-hero"
+    >
+      <style>{`
+        @media (max-width: 768px) {
+          .sf-double-hero { flex-direction: column !important; }
+        }
+      `}</style>
+      {renderPanel(content.left, 'left')}
+      {renderPanel(content.right, 'right')}
+    </div>
+  );
+};
+
 const HeroBanner: React.FC<{ block: any; theme: any }> = ({ block, theme }) => {
   const content = block.content || {};
   const overlayColor = content.overlayColor || '#000000';
@@ -862,8 +987,8 @@ const ProductGrid: React.FC<{ block: any; theme: any }> = ({ block, theme }) => 
                 <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   {showPrice && (
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                      <span style={{ fontWeight: 800, color: theme.primaryColor, fontSize: '0.95rem' }}>₹{p.price}</span>
-                      {isOnSale && <span style={{ fontSize: '0.75rem', color: '#9ca3af', textDecoration: 'line-through' }}>₹{p.compare_price}</span>}
+                      <span style={{ fontWeight: 800, color: theme.primaryColor, fontSize: '0.95rem' }}>{getCurrencySymbol()}{p.price}</span>
+                      {isOnSale && <span style={{ fontSize: '0.75rem', color: '#9ca3af', textDecoration: 'line-through' }}>{getCurrencySymbol()}{p.compare_price}</span>}
                     </div>
                   )}
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: theme.primaryColor }}>View →</span>
@@ -1497,8 +1622,8 @@ const BestSellers: React.FC<{ block: any; theme: any }> = ({ block, theme }) => 
                     {p.name}
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: '4px' }}>
-                    <span style={{ fontWeight: 800, color: primary, fontSize: '1rem' }}>₹{p.price}</span>
-                    {isOnSale && <span style={{ fontSize: '0.75rem', color: '#9ca3af', textDecoration: 'line-through' }}>₹{p.compare_price}</span>}
+                    <span style={{ fontWeight: 800, color: primary, fontSize: '1rem' }}>{getCurrencySymbol()}{p.price}</span>
+                    {isOnSale && <span style={{ fontSize: '0.75rem', color: '#9ca3af', textDecoration: 'line-through' }}>{getCurrencySymbol()}{p.compare_price}</span>}
                   </div>
                 </div>
 

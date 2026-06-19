@@ -19,7 +19,6 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
   const [name, setName] = useState('');
   const [sortOrder, setSortOrder] = useState('0');
   const [parentId, setParentId] = useState('');
-  const [showInMenu, setShowInMenu] = useState(true);
 
   // Flatten categories for full list table and parent dropdown selection
   const flattenCategories = (list: any[]): any[] => {
@@ -37,14 +36,13 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
       slug,
       sort_order: parseInt(sortOrder) || 0,
       is_active: true,
-      show_in_menu: showInMenu,
+      show_in_menu: true,
       parent_id: parentId || null
     });
 
     setName('');
     setSortOrder('0');
     setParentId('');
-    setShowInMenu(true);
     setShowAddForm(false);
   };
 
@@ -62,7 +60,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
           <p className="header-sub">{allCategoriesFlat.length} categories configured for store navigation</p>
         </div>
         {!showAddForm && (
-          <button className="btn-primary" onClick={() => { setShowAddForm(true); setShowInMenu(true); setParentId(''); }}>
+          <button className="btn-primary" onClick={() => { setShowAddForm(true); setParentId(''); }}>
             <Icons.Plus /> Add Category
           </button>
         )}
@@ -94,18 +92,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
                 </select>
               </div>
             </div>
-            <div className="form-row">
-              <div className="field-group" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  id="showInMenu"
-                  checked={showInMenu}
-                  onChange={e => setShowInMenu(e.target.checked)}
-                  style={{ width: 'auto', cursor: 'pointer', margin: 0 }}
-                />
-                <label htmlFor="showInMenu" style={{ cursor: 'pointer', margin: 0 }}>Show In Navigation Menu</label>
-              </div>
-            </div>
+
             <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-start' }} disabled={creating}>
               {creating ? 'Creating…' : 'Create Category'}
             </button>
@@ -126,7 +113,6 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
                   <th>Parent Category</th>
                   <th>URL Slug</th>
                   <th>Sort Order</th>
-                  <th>In Navbar</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
@@ -150,42 +136,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
                       </td>
                       <td><code>/{c.slug}</code></td>
                       <td>{c.sort_order}</td>
-                      <td style={{ verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '20px', margin: 0 }}>
-                            <input
-                              type="checkbox"
-                              checked={c.show_in_menu !== false}
-                              onChange={() => onUpdateCategory(c.id, { show_in_menu: c.show_in_menu === false })}
-                              style={{ opacity: 0, width: 0, height: 0 }}
-                            />
-                            <span style={{
-                              position: 'absolute',
-                              cursor: 'pointer',
-                              top: 0, left: 0, right: 0, bottom: 0,
-                              backgroundColor: c.show_in_menu !== false ? 'var(--m-primary)' : '#CBD5E1',
-                              transition: '0.2s',
-                              borderRadius: '20px'
-                            }}>
-                              <span style={{
-                                position: 'absolute',
-                                content: '""',
-                                height: '14px',
-                                width: '14px',
-                                left: '3px',
-                                bottom: '3px',
-                                backgroundColor: 'white',
-                                transition: '0.2s',
-                                borderRadius: '50%',
-                                transform: c.show_in_menu !== false ? 'translateX(18px)' : 'none'
-                              }} />
-                            </span>
-                          </label>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: c.show_in_menu !== false ? 'var(--m-primary)' : 'var(--m-text-muted)' }}>
-                            {c.show_in_menu !== false ? 'ON' : 'OFF'}
-                          </span>
-                        </div>
-                      </td>
+
                       <td>
                         <Badge type={c.is_active ? 'success' : 'warn'}>
                           {c.is_active ? 'ACTIVE' : 'INACTIVE'}
