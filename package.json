@@ -9,6 +9,7 @@
     "start:easy": "pnpm --filter backend run start:easy",
     "dev": "turbo run dev --filter=!backend",
     "dev:all": "turbo run dev",
+    "dev:pnpm": "pnpm -r --parallel dev",
     "dev:clean": "node scripts/clean-all.js && pnpm install && node scripts/bootstrap.js && pnpm run dev:all",
     "lint": "turbo run lint",
     "clean": "node scripts/clean-all.js",
