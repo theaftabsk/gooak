@@ -76,8 +76,8 @@ export const StoreDetailPage: React.FC<StoreDetailPageProps> = ({
               <InfoRow label="Created" value={new Date(shop.created_at).toLocaleString()} />
               {shop.description && <InfoRow label="Description" value={shop.description} />}
               <InfoRow label="Store URL" value={
-                <a href={shop.domains?.[0]?.domain ? `https://${shop.domains[0].domain}` : storeUrl(shop.slug)} target="_blank" rel="noreferrer" className="link-primary" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  {shop.domains?.[0]?.domain || storeDomainLabel(shop.slug)} <Icons.ExternalLink />
+                <a href={storeUrl(shop.slug)} target="_blank" rel="noreferrer" className="link-primary" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {storeDomainLabel(shop.slug)} <Icons.ExternalLink />
                 </a>
               } />
             </div>
@@ -90,7 +90,6 @@ export const StoreDetailPage: React.FC<StoreDetailPageProps> = ({
                   <InfoRow label="Owner ID" value={shop.owner.id} mono />
                   <InfoRow label="Email" value={shop.owner.email} copy highlight />
                   <InfoRow label="Password" value={shop.owner.password || `${shop.slug}@OakSol2026`} copy highlight />
-                  <InfoRow label="Admin URL" value={storeAdminUrl(shop.slug)} copy highlight />
                   <div className="hash-block">
                     <div className="hash-label">Password Hash (bcrypt)</div>
                     <div className="hash-value">{shop.owner.password_hash}</div>
