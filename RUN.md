@@ -4,7 +4,17 @@ This file documents the recommended commands to install, bootstrap, seed, and ru
 
 ---
 
-## 📦 1. Installation & Initial Setup
+## ⚡ One-Command Instant Setup (Recommended)
+
+If you have just cloned the repository, you can set up the environment, install dependencies, spin up the database container, bootstrap schemas/seeds, and start all servers in a single command. **Make sure Docker Desktop is running**, then execute:
+
+* **Windows:** `start.bat`
+* **macOS / Linux:** `./start.sh`
+* **Or via package manager:** `npm start` (or `pnpm start`)
+
+---
+
+## 📦 1. Installation & Initial Setup (Manual)
 
 To clean any existing cached node modules, install all monorepo workspace dependencies, and prepare the prisma client libraries:
 

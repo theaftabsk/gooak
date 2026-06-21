@@ -4,6 +4,7 @@
   "private": true,
   "description": "Oak Commerce Monorepo",
   "scripts": {
+    "start": "node scripts/start-all.js",
     "build": "turbo run build",
     "init:easy": "node scripts/bootstrap.js",
     "start:easy": "pnpm --filter backend run start:easy",

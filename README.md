@@ -21,7 +21,17 @@ Before you begin, ensure you have the following installed on your machine:
 * [pnpm](https://pnpm.io/installation) (v10+)
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Required for local PostgreSQL)
 
-## 🚀 Quick Start (Local Setup)
+## ⚡ One-Command Instant Setup (Recommended)
+
+After cloning the repository, make sure your **Docker Desktop** is running, and then you can set up and start the entire project (installing dependencies, configuring environment variables, starting the PostgreSQL container, bootstrapping schemas/seeds, and launching all dev servers) with a single command:
+
+* **Windows:** Double-click or run `start.bat`
+* **macOS / Linux:** Run `./start.sh`
+* **Or via Node:** Run `npm start` (or `pnpm start`) in the root directory.
+
+---
+
+## 🚀 Quick Start (Local Setup - Manual)
 
 ### 1. Clone & Install
 Clone the repository and install all dependencies from the root. `pnpm` will automatically link local packages and install everything required for all apps.
