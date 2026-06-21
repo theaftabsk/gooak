@@ -175,34 +175,7 @@ function AdminDashboardAppContent() {
     }
   };
 
-  const handleSeedDemoData = async (shopId: string) => {
-    setSeedingId(shopId);
-    try {
-      await catalogApi.seedDemoData(shopId);
-      alert('Demo data seeded successfully!');
-      refreshAllData();
-    } catch (err: any) {
-      alert(err.message || 'Failed to seed demo data');
-    } finally {
-      setSeedingId(null);
-    }
-  };
 
-  const handleDeleteDemoData = async (shopId: string) => {
-    if (!confirm('Are you sure you want to delete all seeded demo/cleanser products, categories, and banners from this store?')) {
-      return;
-    }
-    setSeedingId(shopId);
-    try {
-      await catalogApi.deleteDemoData(shopId);
-      alert('Demo data deleted successfully!');
-      refreshAllData();
-    } catch (err: any) {
-      alert(err.message || 'Failed to delete demo data');
-    } finally {
-      setSeedingId(null);
-    }
-  };
 
   const handleProvisionStore = async (data: any) => {
     setSavingEdit(true);
@@ -292,9 +265,6 @@ function AdminDashboardAppContent() {
               <StoreDetailPage
                 onEdit={setEditingShop}
                 onDelete={handleDeleteShop}
-                onSeedDemo={handleSeedDemoData}
-                onDeleteDemo={handleDeleteDemoData}
-                seedingId={seedingId}
                 deletingId={deletingShopId}
               />
             } />

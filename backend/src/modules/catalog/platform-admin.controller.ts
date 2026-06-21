@@ -151,27 +151,6 @@ export class PlatformAdminController {
     return this.catalogService.deleteShop(id);
   }
 
-  @Post('admin/shops/:id/seed-demo')
-  async seedDemoData(@Req() req: AdminRequest, @Param('id') id: string) {
-    await this.verifyAdmin(req);
-    if (!hasPermission(req.admin!, 'SEED_DEMO')) {
-      throw new UnauthorizedException(
-        'Access denied. SEED_DEMO permission required.',
-      );
-    }
-    return this.catalogService.seedDemoData(id);
-  }
-
-  @Post('admin/shops/:id/delete-demo')
-  async deleteDemoData(@Req() req: AdminRequest, @Param('id') id: string) {
-    await this.verifyAdmin(req);
-    if (!hasPermission(req.admin!, 'SEED_DEMO')) {
-      throw new UnauthorizedException(
-        'Access denied. SEED_DEMO permission required.',
-      );
-    }
-    return this.catalogService.deleteDemoData(id);
-  }
 
   // ── TENANT REQUESTS ───────────────────────────────────────────────────────
   @Get('admin/tenant-requests')

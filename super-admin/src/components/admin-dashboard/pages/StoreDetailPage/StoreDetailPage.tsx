@@ -8,14 +8,11 @@ import { storeDomainLabel, storeUrl, storeAdminUrl } from '../../utils';
 interface StoreDetailPageProps {
   onEdit: (shop: any) => void;
   onDelete: (shop: any) => void;
-  onSeedDemo: (shopId: string) => void;
-  onDeleteDemo: (shopId: string) => void;
-  seedingId: string | null;
   deletingId: string | null;
 }
 
 export const StoreDetailPage: React.FC<StoreDetailPageProps> = ({
-  onEdit, onDelete, onSeedDemo, onDeleteDemo, seedingId, deletingId
+  onEdit, onDelete, deletingId
 }) => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -38,19 +35,9 @@ export const StoreDetailPage: React.FC<StoreDetailPageProps> = ({
     if (slug) {
       fetchShopDetail(slug);
     }
-  }, [slug, seedingId]);
+  }, [slug]);
 
-  const handleSeed = async () => {
-    if (!shop?.id) return;
-    await onSeedDemo(shop.id);
-    fetchShopDetail(slug!);
-  };
 
-  const handleDeleteDemo = async () => {
-    if (!shop?.id) return;
-    await onDeleteDemo(shop.id);
-    fetchShopDetail(slug!);
-  };
 
   return (
     <>
@@ -64,12 +51,6 @@ export const StoreDetailPage: React.FC<StoreDetailPageProps> = ({
         </div>
         {shop && (
           <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn-ghost-sm" onClick={handleSeed} disabled={seedingId === shop.id}>
-              <Icons.Seed /> {seedingId === shop.id ? 'Seeding…' : 'Seed Demo Data'}
-            </button>
-            <button className="btn-danger-sm" onClick={handleDeleteDemo} disabled={seedingId === shop.id}>
-              <Icons.Trash /> {seedingId === shop.id ? 'Clearing…' : 'Clear Demo Data'}
-            </button>
             <button className="btn-ghost-sm" onClick={() => onEdit(shop)}>
               <Icons.Edit /> Edit
             </button>
@@ -137,14 +118,6 @@ export const StoreDetailPage: React.FC<StoreDetailPageProps> = ({
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h3 className="card-title" style={{ margin: 0 }}>Product Catalog ({shop.products.length})</h3>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn-ghost-sm" onClick={handleSeed} disabled={seedingId === shop.id}>
-                    <Icons.Seed /> {seedingId === shop.id ? 'Adding…' : 'Add Demo Products'}
-                  </button>
-                  <button className="btn-danger-sm" onClick={handleDeleteDemo} disabled={seedingId === shop.id}>
-                    <Icons.Trash /> {seedingId === shop.id ? 'Deleting…' : 'Delete Demo Products'}
-                  </button>
-                </div>
               </div>
               <DataTable
                 headers={['Product', 'Category', 'Price', 'Compare Price', 'Status']}

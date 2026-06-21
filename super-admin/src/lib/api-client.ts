@@ -305,11 +305,6 @@ export const catalogApi = {
   deleteShop: async (id: string) =>
     request<any>(`/catalog/admin/shops/${id}`, { method: 'DELETE' }),
 
-  seedDemoData: async (shopId: string) =>
-    request<any>(`/catalog/admin/shops/${shopId}/seed-demo`, { method: 'POST' }),
-
-  deleteDemoData: async (shopId: string) =>
-    request<any>(`/catalog/admin/shops/${shopId}/delete-demo`, { method: 'POST' }),
 
   switchMerchantTheme: async (dto: { industry: string; theme: string }) =>
     request<any>('/catalog/merchant/switch-theme', {

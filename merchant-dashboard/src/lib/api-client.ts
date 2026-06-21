@@ -355,8 +355,6 @@ export const catalogApi = {
   deleteShop: async (id: string) =>
     request<any>(`/catalog/admin/shops/${id}`, { method: 'DELETE' }),
 
-  seedDemoData: async (shopId: string) =>
-    request<any>(`/catalog/admin/shops/${shopId}/seed-demo`, { method: 'POST' }),
 
   registerShop: async (shopData: {
     name: string; slug: string; ownerEmail: string; ownerName: string; ownerPassword?: string; industry?: string; theme?: string;
