@@ -46,13 +46,13 @@ If you want to run only a particular service to save local CPU/RAM overhead:
 # Run NestJS Backend only
 pnpm run dev:backend
 
-# Run Storefront Live (http://*.localhost:3001) only
+# Run Storefront Live (http://[slug].localhost:3001) only
 pnpm run dev:storefront
 
-# Run Merchant Console Dashboard (http://localhost:3000/admin) only
+# Run Merchant Console Dashboard (http://[slug].localhost:3000/dashboard) only
 pnpm run dev:dashboard
 
-# Run Super Admin Platform Panel (http://admin.localhost:3002) only
+# Run Super Admin Platform Panel (http://localhost:3002) only
 pnpm run dev:admin
 ```
 
