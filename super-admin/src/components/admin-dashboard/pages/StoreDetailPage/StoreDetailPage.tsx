@@ -113,39 +113,6 @@ export const StoreDetailPage: React.FC<StoreDetailPageProps> = ({
             <StatCard label="Sections" value={shop.product_sections?.length || 0} icon={<Icons.Settings />} />
           </div>
 
-          {/* Products Table */}
-          {shop.products && shop.products.length > 0 && (
-            <div className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h3 className="card-title" style={{ margin: 0 }}>Product Catalog ({shop.products.length})</h3>
-              </div>
-              <DataTable
-                headers={['Product', 'Category', 'Price', 'Compare Price', 'Status']}
-                rows={shop.products.map((p: any) => [
-                  <strong>{p.name}</strong>,
-                  p.category?.name || '—',
-                  `₹${parseFloat(p.price).toFixed(2)}`,
-                  p.compare_price ? `₹${parseFloat(p.compare_price).toFixed(2)}` : '—',
-                  <Badge type="success">{p.status.toUpperCase()}</Badge>
-                ])}
-              />
-            </div>
-          )}
-
-          {/* Categories Table */}
-          {shop.categories && shop.categories.length > 0 && (
-            <div className="card">
-              <h3 className="card-title">Categories ({shop.categories.length})</h3>
-              <DataTable
-                headers={['Name', 'Slug', 'Status']}
-                rows={shop.categories.map((c: any) => [
-                  <strong>{c.name}</strong>,
-                  <code>{c.slug}</code>,
-                  <Badge type={c.is_active ? 'success' : 'warn'}>{c.is_active ? 'ACTIVE' : 'INACTIVE'}</Badge>
-                ])}
-              />
-            </div>
-          )}
         </div>
       ) : null}
     </>
