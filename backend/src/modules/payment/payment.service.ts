@@ -285,10 +285,14 @@ export class PaymentService {
         },
       });
 
-      // Update order status to confirmed
+      // Update order status to confirmed, record paid amount and payment method
       await tx.order.update({
         where: { id: order.id },
-        data: { status: 'confirmed' },
+        data: {
+          status: 'confirmed',
+          paid_amount: order.total,
+          payment_method: 'razorpay'
+        },
       });
 
       // Add status log

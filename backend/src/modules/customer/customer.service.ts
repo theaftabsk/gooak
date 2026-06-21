@@ -75,7 +75,6 @@ export class CustomerService {
     dto: { email: string; password: string },
   ) {
     const bcrypt = await import('bcryptjs');
-
     const customer = await this.tenantPrisma.customer.findFirst({
       where: {
         shop_id: shopId,
@@ -85,11 +84,12 @@ export class CustomerService {
         },
       },
     });
-    if (!customer || !customer.password_hash) {
+
+    if (!customer) {
       throw new BadRequestException('Invalid email or password.');
     }
 
-    const valid = await bcrypt.compare(dto.password, customer.password_hash);
+    const valid = await bcrypt.compare(dto.password, customer.password_hash || '');
     if (!valid) {
       throw new BadRequestException('Invalid email or password.');
     }
@@ -100,17 +100,8 @@ export class CustomerService {
       expiresIn: '30d',
     });
 
-    return {
-      customer: {
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-        avatar_url: customer.avatar_url,
-        created_at: customer.created_at,
-      },
-      token,
-    };
+    const { password_hash, ...customerData } = customer;
+    return { customer: customerData, token };
   }
 
   async getCustomerMe(shopId: string, customerId: string) {

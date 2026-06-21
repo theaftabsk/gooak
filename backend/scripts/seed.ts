@@ -170,93 +170,27 @@ async function main() {
 
     // Seed default pages with theme palettes
     const pagesToSeed = [
-      {
-        title: 'Home Page',
-        slug: 'index',
-        type: 'home',
-        theme: { primaryColor: '#15803D', secondaryColor: '#ffffff', backgroundColor: '#FAF7F2' }
-      },
-      {
-        title: 'About Us',
-        slug: 'about',
-        type: 'about',
-        theme: { primaryColor: '#0D9488', secondaryColor: '#ffffff', backgroundColor: '#F0FDFA' }
-      },
-      {
-        title: 'Contact Us',
-        slug: 'contact',
-        type: 'contact',
-        theme: { primaryColor: '#4F46E5', secondaryColor: '#ffffff', backgroundColor: '#EEF2FF' }
-      },
-      {
-        title: 'FAQ',
-        slug: 'faq',
-        type: 'faq',
-        theme: { primaryColor: '#D97706', secondaryColor: '#ffffff', backgroundColor: '#FFFBEB' }
-      },
-      {
-        title: 'Blog',
-        slug: 'blog',
-        type: 'blog',
-        theme: { primaryColor: '#10B981', secondaryColor: '#ffffff', backgroundColor: '#F0FDF4' }
-      },
-      {
-        title: 'Privacy Policy',
-        slug: 'privacy',
-        type: 'privacy',
-        theme: { primaryColor: '#475569', secondaryColor: '#ffffff', backgroundColor: '#F8FAFC' }
-      },
-      {
-        title: 'Terms & Conditions',
-        slug: 'terms',
-        type: 'terms',
-        theme: { primaryColor: '#475569', secondaryColor: '#ffffff', backgroundColor: '#F8FAFC' }
-      },
-      {
-        title: 'Refund Policy',
-        slug: 'refund',
-        type: 'refund',
-        theme: { primaryColor: '#E11D48', secondaryColor: '#ffffff', backgroundColor: '#FFF1F2' }
-      },
-      {
-        title: 'Shipping Policy',
-        slug: 'shipping',
-        type: 'shipping',
-        theme: { primaryColor: '#475569', secondaryColor: '#ffffff', backgroundColor: '#F8FAFC' }
-      }
+      { title: 'Home Page', slug: 'index', content: 'Welcome to our store. We provide high-quality formulations.' },
+      { title: 'About Us', slug: 'about', content: 'Welcome to our store. We provide high-quality formulations.' },
+      { title: 'Contact Us', slug: 'contact', content: 'Get in touch with us at contact@oaksol.in' },
+      { title: 'FAQ', slug: 'faq', content: 'Frequently Asked Questions about our store.' },
+      { title: 'Blog', slug: 'blog', content: 'Read our latest insights and articles.' },
+      { title: 'Privacy Policy', slug: 'privacy', content: 'Your data safety is our highest priority.' },
+      { title: 'Terms & Conditions', slug: 'terms', content: 'Standard terms of service apply to all users.' },
+      { title: 'Refund Policy', slug: 'refund', content: 'Check our return and refund policies.' },
+      { title: 'Shipping Policy', slug: 'shipping', content: 'Fast and reliable shipping across India.' }
     ];
 
     for (const pageInfo of pagesToSeed) {
-      const page = await prisma.page.create({
+      await prisma.page.create({
         data: {
           shop_id: sampleShop.id,
           title: pageInfo.title,
           slug: pageInfo.slug,
-          type: pageInfo.type,
-          theme: pageInfo.theme,
-          is_published: true,
+          content: pageInfo.content,
+          status: 'published',
         },
       });
-
-      // Add default homepage widget
-      if (pageInfo.slug === 'index') {
-        await prisma.widget.create({
-          data: {
-            page_id: page.id,
-            type: 'hero-banner',
-            sort_order: 1,
-            content: {
-              title: 'Welcome to Test Shop',
-              subtitle: 'Explore our amazing new products!',
-              image_url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200',
-            },
-            styles: {
-              paddingY: '60px',
-              textAlign: 'center',
-            },
-          },
-        });
-      }
     }
 
     console.log(`Created sample shop: ${sampleShop.slug}`);

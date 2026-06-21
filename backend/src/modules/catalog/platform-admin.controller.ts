@@ -61,12 +61,6 @@ export class PlatformAdminController {
     }
   }
 
-  // ── SUPER ADMIN LOGIN ──────────────────────────────────────────────────────
-  @Post('admin/login')
-  async adminLogin(@Body() dto: { email: string; password: string }) {
-    return this.catalogService.adminLogin(dto);
-  }
-
   // ── DASHBOARD ─────────────────────────────────────────────────────────────
   @Get('admin/platform-stats')
   async getDashboardStats(@Req() req: AdminRequest) {

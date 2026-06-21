@@ -8,19 +8,15 @@ const getApiBaseUrl = (tenantDomain?: string): string => {
     const protocol = window.location.protocol;
     
     // Check if it's localhost / development
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost')) {
       return 'http://localhost:5005/api/v1';
-    }
-
-    if (hostname.endsWith('.localhost')) {
-      return `${protocol}//${hostname}:5005/api/v1`;
     }
 
     // For production subdomains/domains, route to the dynamic host
     if (tenantDomain) {
-      return `${protocol}//${tenantDomain.split(':')[0]}/api/v1`;
+      return `${protocol}//${tenantDomain.split(':')[0]}/api`;
     }
-    return `${protocol}//${hostname}/api/v1`;
+    return `${protocol}//${hostname}/api`;
   }
 
   if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) {
@@ -192,11 +188,22 @@ export const catalogApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     }),
 
-  updateOrderStatus: async (id: string, status: string, note?: string, token?: string) =>
+  updateOrderStatus: async (id: string, status: string, note?: string, extra?: {
+    courier_name?: string;
+    tracking_number?: string;
+    tracking_url?: string;
+    dispatched_at?: string;
+    expected_delivery_at?: string;
+    fulfillment_status?: string;
+    staff_notes?: string;
+    return_status?: string;
+    paid_amount?: number;
+    payment_method?: string;
+  }, token?: string) =>
     request<any>(`/catalog/admin/orders/${id}/status`, {
       method: 'PATCH',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify({ status, note }),
+      body: JSON.stringify({ status, note, ...(extra || {}) }),
     }),
 
   // ── Review Management ──────────────────────────────────────────────────────
@@ -439,26 +446,6 @@ export const customerApi = {
   submitContact: async (data: { name: string; email: string; subject?: string; message: string }) =>
     request<{ success: boolean; message: string }>('/catalog/contact', {
       method: 'POST', body: JSON.stringify(data),
-    }),
-};
-
-// ─── Page Builder APIs ─────────────────────────────────────────────────────────
-export const pageBuilderApi = {
-  getPages: async () => request<any[]>('/page-builder/pages'),
-  getPageById: async (id: string) => request<any>(`/page-builder/pages/${id}`),
-  getPageBySlug: async (slug: string) => request<any>(`/page-builder/pages/by-slug/${slug}`),
-  savePage: async (data: any) =>
-    request<any>('/page-builder/pages', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  publishPage: async (id: string) =>
-    request<any>(`/page-builder/pages/${id}/publish`, {
-      method: 'POST',
-    }),
-  deletePage: async (id: string) =>
-    request<any>(`/page-builder/pages/${id}`, {
-      method: 'DELETE',
     }),
 };
 

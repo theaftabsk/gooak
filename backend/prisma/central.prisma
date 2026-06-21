@@ -52,6 +52,15 @@ model Shop {
   reviews           Review[]
   notifications     Notification[]
   banners           Banner[]
+  tags             Tag[]
+  collections      Collection[]
+  product_media    ProductMedia[]
+  product_specifications ProductSpecification[]
+  blog_posts        BlogPost[]
+  media_library     MediaLibrary[]
+  faqs              Faq[]
+  testimonials      Testimonial[]
+  home_sections     HomeSection[]
   pages             Page[]
 
   @@map("shops")
@@ -188,6 +197,42 @@ model Product {
   meta_title       String?          @db.VarChar(255)
   meta_description String?          @db.Text
   custom_sections  Json?            @default("[]")
+  hsn_code         String?          @db.VarChar(50)
+  youtube_url      String?          @db.Text
+  supplier_name    String?          @db.VarChar(150)
+  supplier_cost    Decimal?         @db.Decimal(12, 2)
+  supplier_link    String?          @db.Text
+  weight           Decimal?         @db.Decimal(10, 2)
+  length           Decimal?         @db.Decimal(10, 2)
+  width            Decimal?         @db.Decimal(10, 2)
+  height           Decimal?         @db.Decimal(10, 2)
+  allow_backorders Boolean          @default(false)
+  visibility       String           @default("visible") @db.VarChar(30)
+  product_tags     String[]         @default([])
+  label            String?          @db.VarChar(50)
+  best_seller      Boolean          @default(false)
+  new_arrival      Boolean          @default(false)
+  trending         Boolean          @default(false)
+  enable_reviews   Boolean          @default(true)
+  verified_only    Boolean          @default(false)
+  seo_keywords     String?          @db.Text
+  canonical_url    String?          @db.Text
+  og_title         String?          @db.VarChar(255)
+  og_description   String?          @db.Text
+  og_image         String?          @db.Text
+  schema_markup    Json?            @default("{}")
+  is_digital       Boolean          @default(false)
+  download_url     String?          @db.Text
+  download_limit   Int?
+  license_key      String?          @db.Text
+  view_count       Int              @default(0)
+  wishlist_count   Int              @default(0)
+  cart_count       Int              @default(0)
+  purchase_count   Int              @default(0)
+  flash_sale       Boolean          @default(false)
+  deal_of_the_day  Boolean          @default(false)
+  recommended      Boolean          @default(false)
+  recently_added   Boolean          @default(false)
   created_at       DateTime         @default(now()) @db.Timestamptz
   updated_at       DateTime         @default(now()) @updatedAt @db.Timestamptz
 
@@ -199,6 +244,10 @@ model Product {
   variants         ProductVariant[]
   faqs             ProductFaq[]
   reviews          Review[]
+  tags             ProductTag[]
+  media            ProductMedia[]
+  collections      CollectionProduct[]
+  specifications   ProductSpecification[]
 
   @@unique([shop_id, slug])
   @@index([shop_id], name: "idx_products_shop")
@@ -230,14 +279,22 @@ model ProductVariant {
   price         Decimal            @db.Decimal(12, 2)
   compare_price Decimal?           @db.Decimal(12, 2)
   cost_price    Decimal?           @db.Decimal(12, 2)
-  stock_qty     Int                @default(0)
-  low_stock_at  Int                @default(5)
-  image_url     String?            @db.Text
-  total_sold    Int                @default(0)
-  is_active     Boolean            @default(true)
-  sort_order    Int                @default(0)
-  created_at    DateTime           @default(now()) @db.Timestamptz
-  updated_at    DateTime           @default(now()) @updatedAt @db.Timestamptz
+  stock_qty       Int                @default(0)
+  low_stock_at    Int                @default(5)
+  track_inventory Boolean            @default(true)
+  reserved_qty    Int                @default(0)
+  available_qty   Int                @default(0)
+  barcode         String?            @db.VarChar(100)
+  weight          Decimal?           @db.Decimal(10, 2)
+  length          Decimal?           @db.Decimal(10, 2)
+  width           Decimal?           @db.Decimal(10, 2)
+  height          Decimal?           @db.Decimal(10, 2)
+  image_url       String?            @db.Text
+  total_sold      Int                @default(0)
+  is_active       Boolean            @default(true)
+  sort_order      Int                @default(0)
+  created_at      DateTime           @default(now()) @db.Timestamptz
+  updated_at      DateTime           @default(now()) @updatedAt @db.Timestamptz
 
   shop          Shop               @relation(fields: [shop_id], references: [id], onDelete: Cascade)
   product       Product            @relation(fields: [product_id], references: [id], onDelete: Cascade)
@@ -386,6 +443,20 @@ model Order {
   shipping_address Json
   billing_address  Json?
   notes            String?          @db.Text
+  // Shipping & Tracking
+  courier_name         String?      @db.VarChar(100)
+  tracking_number      String?      @db.VarChar(100)
+  tracking_url         String?      @db.Text
+  dispatched_at        DateTime?    @db.Timestamptz
+  expected_delivery_at DateTime?    @db.Timestamptz
+  // Fulfillment
+  fulfillment_status   String       @default("unfulfilled") @db.VarChar(30)
+  // Staff Notes & Returns
+  staff_notes          String?      @db.Text
+  return_status        String?      @db.VarChar(30)
+  // Payment snapshot
+  paid_amount          Decimal?     @db.Decimal(12, 2)
+  payment_method       String?      @db.VarChar(50)
   created_at       DateTime         @default(now()) @db.Timestamptz
   updated_at       DateTime         @default(now()) @updatedAt @db.Timestamptz
 
@@ -567,16 +638,23 @@ model Notification {
 }
 
 model Banner {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  shop_id    String   @db.Uuid
-  title      String?  @db.VarChar(150)
-  image_url  String   @db.Text
-  link_url   String?  @db.Text
-  sort_order Int      @default(0)
-  is_active  Boolean  @default(true)
-  created_at DateTime @default(now()) @db.Timestamptz
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id      String    @db.Uuid
+  type         String    @default("hero") @db.VarChar(50) // hero, offer, category, popup, announcement
+  title        String?   @db.VarChar(150)
+  subtitle     String?   @db.Text
+  image_url    String    @db.Text // maps to image
+  mobile_image String?   @db.Text
+  button_text  String?   @db.VarChar(100)
+  button_url   String?   @db.Text // maps to button_url
+  link_url     String?   @db.Text // keep for backward compatibility
+  sort_order   Int       @default(0) // maps to priority
+  is_active    Boolean   @default(true) // maps to status
+  start_date   DateTime? @db.Timestamptz
+  end_date     DateTime? @db.Timestamptz
+  created_at   DateTime  @default(now()) @db.Timestamptz
 
-  shop       Shop     @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  shop         Shop      @relation(fields: [shop_id], references: [id], onDelete: Cascade)
 
   @@map("banners")
 }
@@ -596,38 +674,7 @@ model TenantRequest {
   @@map("tenant_requests")
 }
 
-// 8. PAGE BUILDER
-model Page {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  shop_id      String   @db.Uuid
-  title        String   @db.VarChar(150)
-  slug         String   @db.VarChar(150)
-  type         String   @db.VarChar(30)
-  theme        Json?    @default("{}")
-  is_published Boolean  @default(false)
-  created_at   DateTime @default(now()) @db.Timestamptz
-  updated_at   DateTime @default(now()) @updatedAt @db.Timestamptz
-  widgets      Widget[]
 
-  shop        Shop     @relation(fields: [shop_id], references: [id], onDelete: Cascade)
-
-  @@unique([shop_id, slug])
-  @@map("pages")
-}
-
-model Widget {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  page_id    String   @db.Uuid
-  page       Page     @relation(fields: [page_id], references: [id], onDelete: Cascade)
-  type       String   @db.VarChar(50)
-  sort_order Int
-  content    Json     @default("{}")
-  styles     Json     @default("{}")
-  created_at DateTime @default(now()) @db.Timestamptz
-  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz
-
-  @@map("widgets")
-}
 
 model PlatformAdmin {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -652,4 +699,184 @@ model SystemSetting {
   updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz
 
   @@map("system_settings")
+}
+
+model Tag {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id    String       @db.Uuid
+  name       String       @db.VarChar(100)
+  created_at DateTime     @default(now()) @db.Timestamptz
+
+  shop       Shop         @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  products   ProductTag[]
+
+  @@unique([shop_id, name])
+  @@map("tags")
+}
+
+model ProductTag {
+  product_id String   @db.Uuid
+  tag_id     String   @db.Uuid
+  product    Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([product_id, tag_id])
+  @@map("product_tags")
+}
+
+model ProductMedia {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id     String   @db.Uuid
+  product_id  String   @db.Uuid
+  type        String   @default("image") @db.VarChar(30) // image, video
+  url         String   @db.Text
+  alt_text    String?  @db.Text
+  sort_order  Int      @default(0)
+  is_cover    Boolean  @default(false)
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  shop        Shop     @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@map("product_media")
+}
+
+model Collection {
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id     String              @db.Uuid
+  name        String              @db.VarChar(150)
+  slug        String              @db.VarChar(150)
+  description String?             @db.Text
+  image_url   String?             @db.Text
+  is_active   Boolean             @default(true)
+  created_at  DateTime            @default(now()) @db.Timestamptz
+  updated_at  DateTime            @default(now()) @updatedAt @db.Timestamptz
+
+  shop        Shop                @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  products    CollectionProduct[]
+
+  @@unique([shop_id, slug])
+  @@map("collections")
+}
+
+model CollectionProduct {
+  collection_id String     @db.Uuid
+  product_id    String     @db.Uuid
+  collection    Collection @relation(fields: [collection_id], references: [id], onDelete: Cascade)
+  product       Product    @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@id([collection_id, product_id])
+  @@map("collection_products")
+}
+
+model ProductSpecification {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id    String   @db.Uuid
+  product_id String   @db.Uuid
+  name       String   @db.VarChar(100)
+  value      String   @db.VarChar(255)
+  sort_order Int      @default(0)
+
+  shop       Shop     @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@map("product_specifications")
+}
+
+model Page {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id         String   @db.Uuid
+  title           String   @db.VarChar(200)
+  slug            String   @db.VarChar(200)
+  banner_image    String?  @db.Text
+  seo_title       String?  @db.VarChar(255)
+  seo_description String?  @db.Text
+  content         String?  @db.Text
+  status          String   @default("draft") @db.VarChar(30)
+  created_at      DateTime @default(now()) @db.Timestamptz
+  updated_at      DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  shop            Shop     @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+
+  @@unique([shop_id, slug])
+  @@map("pages")
+}
+
+model BlogPost {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id      String    @db.Uuid
+  title        String    @db.VarChar(255)
+  slug         String    @db.VarChar(255)
+  cover_image  String?   @db.Text
+  content      String?   @db.Text
+  author       String?   @db.VarChar(150)
+  status       String    @default("draft") @db.VarChar(30)
+  published_at DateTime? @db.Timestamptz
+  created_at   DateTime  @default(now()) @db.Timestamptz
+  updated_at   DateTime  @default(now()) @updatedAt @db.Timestamptz
+
+  shop         Shop      @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+
+  @@unique([shop_id, slug])
+  @@map("blog_posts")
+}
+
+model MediaLibrary {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id    String   @db.Uuid
+  name       String   @db.VarChar(255)
+  url        String   @db.Text
+  type       String   @db.VarChar(50) // image, video, document
+  folder     String   @default("root") @db.VarChar(100)
+  size       Int      @default(0)
+  alt_text   String?  @db.Text
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  shop       Shop     @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+
+  @@map("media_library")
+}
+
+model Faq {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id    String   @db.Uuid
+  type       String   @default("general") @db.VarChar(50) // product, store, general
+  question   String   @db.Text
+  answer     String   @db.Text
+  sort_order Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  shop       Shop     @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+
+  @@map("faqs")
+}
+
+model Testimonial {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id       String   @db.Uuid
+  customer_name String   @db.VarChar(150)
+  photo         String?  @db.Text
+  rating        Int      @default(5) @db.SmallInt
+  review        String   @db.Text
+  status        String   @default("active") @db.VarChar(30)
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  shop          Shop     @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+
+  @@map("testimonials")
+}
+
+model HomeSection {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id       String   @db.Uuid
+  section_key   String   @db.VarChar(100)
+  enabled       Boolean  @default(true)
+  sort_order    Int      @default(0)
+  settings_json Json     @default("{}")
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  shop          Shop     @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+
+  @@unique([shop_id, section_key])
+  @@map("home_sections")
 }

@@ -4,8 +4,6 @@ import { catalogApi, paymentApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
 import { getCurrencySymbol } from '../../../../lib/utils';
 
-
-
 export const Payment: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
@@ -16,6 +14,7 @@ export const Payment: React.FC = () => {
   const [paying, setPaying] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<'upi' | 'card' | 'netbank' | 'wallet'>('upi');
 
   // Load Order details on mount
   useEffect(() => {
@@ -65,7 +64,6 @@ export const Payment: React.FC = () => {
     setErrorMsg('');
 
     try {
-      // Initialize Razorpay payment via backend
       const details = await paymentApi.initializeRazorpayPayment(orderId);
       
       if (!(window as any).Razorpay) {
@@ -98,7 +96,8 @@ export const Payment: React.FC = () => {
         prefill: {
           name: order.shipping_address?.full_name || '',
           email: order.customer_email || '',
-          contact: order.shipping_address?.phone || ''
+          contact: order.shipping_address?.phone || '',
+          method: selectedMethod
         },
         theme: {
           color: theme.primaryColor || '#15803D'
@@ -125,7 +124,6 @@ export const Payment: React.FC = () => {
     setErrorMsg('');
 
     try {
-      // Backend generates a valid HMAC signature using the real stored key_secret
       const result = await paymentApi.simulatePayment(orderId);
       navigate('/order-success', { state: { orderId, orderNumber: order.order_number } });
       console.log('Sandbox simulation success:', result);
@@ -135,7 +133,6 @@ export const Payment: React.FC = () => {
       setPaying(false);
     }
   };
-
 
   if (loading) {
     return (
@@ -151,7 +148,9 @@ export const Payment: React.FC = () => {
     return (
       <div style={cssVariables} className="payment-error-page">
         <div className="error-card">
-          <span className="error-icon">❌</span>
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 16px' }}>
+            <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
           <h2 className="error-title">Order Processing Error</h2>
           <p className="error-message">{errorMsg}</p>
           <button onClick={() => navigate('/products')} className="error-action-btn" style={{ background: theme.primaryColor || '#111827' }}>
@@ -162,6 +161,8 @@ export const Payment: React.FC = () => {
     );
   }
 
+  const currencySymbol = getCurrencySymbol(order.currency);
+
   return (
     <div style={cssVariables} className="payment-wrapper">
       <div className="payment-container">
@@ -169,9 +170,13 @@ export const Payment: React.FC = () => {
         {/* Header Summary */}
         <div className="payment-header-card">
           <div className="payment-secure-badge">
-            <span className="lock-icon">🔒</span> SECURE CHECKOUT GATEWAY
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            SECURE CHECKOUT GATEWAY
           </div>
-          <h1 className="payment-amount">{getCurrencySymbol(order.currency)}{order.total}</h1>
+          <h1 className="payment-amount">{currencySymbol}{parseFloat(order.total).toFixed(2)}</h1>
           <p className="payment-order-meta">
             Order Number: <strong>{order.order_number}</strong> • Status: <span className="status-badge pending">Pending Payment</span>
           </p>
@@ -191,9 +196,9 @@ export const Payment: React.FC = () => {
               <span className="info-label">Contact:</span>
               <span className="info-value">{order.shipping_address?.phone}</span>
             </div>
-            <div className="details-info-row">
+            <div className="details-info-row" style={{ borderBottom: 'none' }}>
               <span className="info-label">Shipping Address:</span>
-              <span className="info-value">
+              <span className="info-value" style={{ textAlign: 'right', maxWidth: '240px' }}>
                 {order.shipping_address?.address_line1}, {order.shipping_address?.city},{' '}
                 {order.shipping_address?.state} - {order.shipping_address?.postal_code}
               </span>
@@ -204,25 +209,98 @@ export const Payment: React.FC = () => {
               {order.items?.map((item: any) => (
                 <div key={item.id} className="payment-summary-item-row">
                   <span className="item-name">{item.product_snap?.name || 'Skincare Product'} x {item.qty}</span>
-                  <span className="item-price">{getCurrencySymbol(order.currency)}{item.line_total}</span>
+                  <span className="item-price">{currencySymbol}{parseFloat(item.line_total).toFixed(2)}</span>
                 </div>
               ))}
               <div className="payment-total-divider"></div>
               <div className="payment-total-summary-row">
                 <span>Grand Total:</span>
-                <span>{getCurrencySymbol(order.currency)}{order.total}</span>
+                <span style={{ color: theme.primaryColor || '#15803D' }}>{currencySymbol}{parseFloat(order.total).toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           {/* Gateways Action Column */}
           <div className="payment-actions-card">
-            <h3 className="section-title">Online Payment Options</h3>
-            <p className="gateway-desc">Secure payment processing via Razorpay. Choose to proceed with the live checkout or test in the mock sandbox simulator.</p>
+            <h3 className="section-title">Select Payment Method</h3>
+            
+            {/* Custom Payment Methods Selector List */}
+            <div className="payment-methods-grid">
+              <div 
+                className={`pm-option-box ${selectedMethod === 'upi' ? 'active' : ''}`}
+                onClick={() => setSelectedMethod('upi')}
+              >
+                <div className="pm-option-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                    <line x1="12" y1="18" x2="12.01" y2="18"/>
+                  </svg>
+                </div>
+                <div className="pm-option-text">
+                  <div className="pm-title">UPI / PhonePe / GPay</div>
+                  <div className="pm-sub">Pay via PhonePe, Google Pay, Paytm UPI</div>
+                </div>
+                <div className="pm-checkbox" />
+              </div>
+
+              <div 
+                className={`pm-option-box ${selectedMethod === 'card' ? 'active' : ''}`}
+                onClick={() => setSelectedMethod('card')}
+              >
+                <div className="pm-option-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                    <line x1="1" y1="10" x2="23" y2="10"/>
+                  </svg>
+                </div>
+                <div className="pm-option-text">
+                  <div className="pm-title">Credit & Debit Cards</div>
+                  <div className="pm-sub">Visa, Mastercard, RuPay, Maestro</div>
+                </div>
+                <div className="pm-checkbox" />
+              </div>
+
+              <div 
+                className={`pm-option-box ${selectedMethod === 'netbank' ? 'active' : ''}`}
+                onClick={() => setSelectedMethod('netbank')}
+              >
+                <div className="pm-option-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 22v-4h18v4H3zM6 18V9h3v9H6zm5 0V9h3v9h-3zm5 0V9h3v9h-3zM3 9l9-7 9 7H3z"/>
+                  </svg>
+                </div>
+                <div className="pm-option-text">
+                  <div className="pm-title">Net Banking</div>
+                  <div className="pm-sub">All major Indian banks supported</div>
+                </div>
+                <div className="pm-checkbox" />
+              </div>
+
+              <div 
+                className={`pm-option-box ${selectedMethod === 'wallet' ? 'active' : ''}`}
+                onClick={() => setSelectedMethod('wallet')}
+              >
+                <div className="pm-option-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h14v4M4 6v12a2 2 0 0 0 2 2h14v-4M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/>
+                  </svg>
+                </div>
+                <div className="pm-option-text">
+                  <div className="pm-title">Wallets</div>
+                  <div className="pm-sub">Mobikwik, Freecharge, etc.</div>
+                </div>
+                <div className="pm-checkbox" />
+              </div>
+            </div>
             
             {errorMsg && (
               <div className="payment-inline-error">
-                <span>⚠️</span> {errorMsg}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                {errorMsg}
               </div>
             )}
 
@@ -238,7 +316,12 @@ export const Payment: React.FC = () => {
 
             {/* Sandbox Simulation container */}
             <div className="sandbox-panel">
-              <div className="sandbox-badge">🛠️ TEST SANDBOX SIMULATOR</div>
+              <div className="sandbox-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 3h12M12 3v12M9 12h6M5 21h14M19 12a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V3h14v9z"/>
+                </svg>
+                TEST SANDBOX SIMULATOR
+              </div>
               <p className="sandbox-desc">Perform instant integration test ordering without loading third-party credentials. Uses local HMAC-SHA256 signature verification matching backend defaults.</p>
               
               <div className="sandbox-actions">
@@ -246,6 +329,7 @@ export const Payment: React.FC = () => {
                   onClick={handleSimulateSuccess}
                   disabled={paying}
                   className="sandbox-btn-success"
+                  style={{ background: theme.primaryColor || '#15803D' }}
                 >
                   {paying ? 'Verifying Sandbox...' : 'Simulate Payment Success'}
                 </button>
@@ -266,15 +350,15 @@ export const Payment: React.FC = () => {
 
       <style>{`
         .payment-wrapper {
-          background: var(--sf-bg, #FAF7F2);
+          background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
           min-height: 90vh;
           font-family: 'Inter', sans-serif;
-          color: #1F2937;
+          color: #1E293B;
           padding: 48px 24px 80px;
           box-sizing: border-box;
         }
         .payment-container {
-          max-width: 1000px;
+          max-width: 960px;
           margin: 0 auto;
         }
 
@@ -285,11 +369,11 @@ export const Payment: React.FC = () => {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          background: var(--sf-bg, #FAF7F2);
+          background: #F8FAFC;
         }
         .payment-shimmer-circle {
-          width: 60px;
-          height: 60px;
+          width: 50px;
+          height: 50px;
           border-radius: 50%;
           border: 4px solid rgba(0,0,0,0.05);
           border-top-color: var(--sf-accent, #15803D);
@@ -313,7 +397,7 @@ export const Payment: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--sf-bg, #FAF7F2);
+          background: #F8FAFC;
         }
         .error-card {
           background: #ffffff;
@@ -321,24 +405,19 @@ export const Payment: React.FC = () => {
           border-radius: 24px;
           max-width: 440px;
           text-align: center;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.03);
-          border: 1px solid rgba(0,0,0,0.02);
-        }
-        .error-icon {
-          font-size: 2.8rem;
-          display: block;
-          margin-bottom: 18px;
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+          border: 1px solid rgba(0,0,0,0.03);
         }
         .error-title {
           font-family: 'Outfit', sans-serif;
           font-size: 1.4rem;
           font-weight: 800;
-          color: #111827;
+          color: #0F172A;
           margin: 0 0 10px;
         }
         .error-message {
           font-size: 0.9rem;
-          color: #6B7280;
+          color: #64748B;
           line-height: 1.5;
           margin: 0 0 28px;
         }
@@ -364,33 +443,36 @@ export const Payment: React.FC = () => {
           padding: 32px;
           text-align: center;
           margin-bottom: 32px;
-          box-shadow: 0 10px 35px -10px rgba(0,0,0,0.02);
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.03);
           border: 1px solid rgba(0,0,0,0.03);
         }
         .payment-secure-badge {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          font-size: 0.7rem;
+          font-size: 0.72rem;
           font-weight: 800;
-          color: #4B5563;
+          color: #475569;
           letter-spacing: 0.08em;
-          background: #F3F4F6;
+          background: #F1F5F9;
           padding: 6px 14px;
           border-radius: 20px;
           margin-bottom: 16px;
+        }
+        .payment-secure-badge svg {
+          color: #10B981;
         }
         .payment-amount {
           font-family: 'Outfit', sans-serif;
           font-size: 3rem;
           font-weight: 900;
           margin: 0 0 8px;
-          color: #111827;
+          color: #0F172A;
           letter-spacing: -0.02em;
         }
         .payment-order-meta {
           font-size: 0.88rem;
-          color: #6B7280;
+          color: #64748B;
           margin: 0;
         }
         .status-badge {
@@ -417,7 +499,7 @@ export const Payment: React.FC = () => {
           background: #ffffff;
           border-radius: 24px;
           padding: 32px;
-          box-shadow: 0 10px 35px -10px rgba(0,0,0,0.02);
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.03);
           border: 1px solid rgba(0,0,0,0.03);
           text-align: left;
         }
@@ -425,11 +507,11 @@ export const Payment: React.FC = () => {
           font-family: 'Outfit', sans-serif;
           font-size: 1.05rem;
           font-weight: 800;
-          color: #111827;
+          color: #0F172A;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           margin: 0 0 20px;
-          border-bottom: 1px solid rgba(0,0,0,0.04);
+          border-bottom: 1px solid rgba(0,0,0,0.03);
           padding-bottom: 10px;
         }
         .mt-6 { margin-top: 28px; }
@@ -437,19 +519,20 @@ export const Payment: React.FC = () => {
         /* Information list */
         .details-info-row {
           display: flex;
-          margin-bottom: 12px;
-          font-size: 0.88rem;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px solid rgba(0,0,0,0.03);
+          font-size: 0.85rem;
           line-height: 1.5;
         }
         .info-label {
-          width: 120px;
-          color: #6B7280;
-          font-weight: 600;
-          flex-shrink: 0;
+          color: #64748B;
+          font-weight: 500;
         }
         .info-value {
-          color: #111827;
-          font-weight: 700;
+          color: #1E293B;
+          font-weight: 600;
+          text-align: right;
         }
 
         /* Items summary */
@@ -464,16 +547,16 @@ export const Payment: React.FC = () => {
           font-size: 0.85rem;
         }
         .item-name {
-          color: #4B5563;
+          color: #475569;
           font-weight: 600;
         }
         .item-price {
-          color: #111827;
+          color: #0F172A;
           font-weight: 700;
         }
         .payment-total-divider {
           height: 1px;
-          background: rgba(0,0,0,0.04);
+          background: rgba(0,0,0,0.03);
           margin: 4px 0;
         }
         .payment-total-summary-row {
@@ -482,16 +565,91 @@ export const Payment: React.FC = () => {
           font-family: 'Outfit', sans-serif;
           font-size: 1.05rem;
           font-weight: 800;
-          color: #111827;
+          color: #0F172A;
+        }
+
+        /* Payment Method Options Grid */
+        .payment-methods-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+        .pm-option-box {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px;
+          background: #FFFFFF;
+          border: 1.5px solid #E2E8F0;
+          border-radius: 14px;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+        }
+        .pm-option-box:hover {
+          border-color: var(--sf-accent, #15803D);
+          background: #F8FAFC;
+        }
+        .pm-option-box.active {
+          border-color: var(--sf-accent, #15803D);
+          background: rgba(21, 128, 61, 0.02);
+          box-shadow: 0 4px 12px rgba(21, 128, 61, 0.03);
+        }
+        .pm-option-icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          background: #F1F5F9;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #475569;
+          flex-shrink: 0;
+          transition: all 0.2s;
+        }
+        .pm-option-box.active .pm-option-icon {
+          background: var(--sf-accent, #15803D);
+          color: #FFFFFF;
+        }
+        .pm-option-text {
+          flex: 1;
+          text-align: left;
+        }
+        .pm-title {
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #0F172A;
+        }
+        .pm-sub {
+          font-size: 0.75rem;
+          color: #64748B;
+          margin-top: 2px;
+        }
+        .pm-checkbox {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          border: 2px solid #CBD5E1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+          flex-shrink: 0;
+        }
+        .pm-option-box.active .pm-checkbox {
+          border-color: var(--sf-accent, #15803D);
+          background: var(--sf-accent, #15803D);
+        }
+        .pm-option-box.active .pm-checkbox::after {
+          content: "";
+          width: 6px;
+          height: 6px;
+          background: #FFFFFF;
+          border-radius: 50%;
         }
 
         /* Action Panel */
-        .gateway-desc {
-          font-size: 0.85rem;
-          color: #6B7280;
-          line-height: 1.6;
-          margin: 0 0 24px;
-        }
         .payment-inline-error {
           padding: 12px 16px;
           background: #FEF2F2;
@@ -515,7 +673,7 @@ export const Payment: React.FC = () => {
           font-size: 0.9rem;
           cursor: pointer;
           transition: all 0.2s;
-          box-shadow: 0 8px 20px -4px rgba(21, 128, 61, 0.25);
+          box-shadow: 0 8px 20px -4px rgba(21, 128, 61, 0.2);
           margin-bottom: 28px;
         }
         .gateway-btn-primary:hover:not(:disabled) {
@@ -530,8 +688,8 @@ export const Payment: React.FC = () => {
 
         /* Sandbox Box */
         .sandbox-panel {
-          background: #FAF7F2;
-          border: 1.5px dashed rgba(21, 128, 61, 0.2);
+          background: #F8FAFC;
+          border: 1.5px dashed rgba(21, 128, 61, 0.15);
           border-radius: 16px;
           padding: 24px;
         }
@@ -541,10 +699,13 @@ export const Payment: React.FC = () => {
           color: #16A34A;
           letter-spacing: 0.05em;
           margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
         .sandbox-desc {
           font-size: 0.78rem;
-          color: #6B7280;
+          color: #64748B;
           line-height: 1.5;
           margin: 0 0 16px;
         }
@@ -554,7 +715,6 @@ export const Payment: React.FC = () => {
           gap: 12px;
         }
         .sandbox-btn-success {
-          background: #15803D;
           border: none;
           color: #ffffff;
           height: 40px;
@@ -565,12 +725,12 @@ export const Payment: React.FC = () => {
           transition: all 0.2s;
         }
         .sandbox-btn-success:hover:not(:disabled) {
-          background: #166534;
+          filter: brightness(1.08);
         }
         .sandbox-btn-fail {
-          background: #F3F4F6;
-          border: 1px solid rgba(0,0,0,0.08);
-          color: #4B5563;
+          background: #F1F5F9;
+          border: 1px solid #E2E8F0;
+          color: #475569;
           height: 40px;
           border-radius: 10px;
           font-weight: 700;
@@ -579,7 +739,7 @@ export const Payment: React.FC = () => {
           transition: all 0.2s;
         }
         .sandbox-btn-fail:hover:not(:disabled) {
-          background: #E5E7EB;
+          background: #E2E8F0;
         }
 
         @keyframes spin {

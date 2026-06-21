@@ -1,17 +1,76 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { catalogApi, pageBuilderApi } from '../../../../lib/api-client';
+import { catalogApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
-import { WidgetRenderer } from '../../WidgetRenderer';
 import { useCart } from '../../context/CartContext';
 import { getCurrencySymbol } from '../../../../lib/utils';
+
+// Helper to render dynamic product badges
+const renderProductBadge = (p: any, primaryColor?: string) => {
+  const isOnSale = p.compare_price && Number(p.compare_price) > Number(p.price);
+  
+  let labelText = '';
+  let badgeColor = primaryColor || '#3B82F6';
+
+  if (p.label) {
+    labelText = p.label;
+    const lower = p.label.toLowerCase();
+    if (lower.includes('hot') || lower.includes('limited')) badgeColor = '#EF4444';
+    else if (lower.includes('new') || lower.includes('fresh')) badgeColor = '#10B981';
+    else if (lower.includes('deal') || lower.includes('sale')) badgeColor = '#F59E0B';
+    else badgeColor = primaryColor || '#4F46E5';
+  } else if (p.flash_sale) {
+    labelText = 'Flash Sale';
+    badgeColor = '#EF4444';
+  } else if (p.deal_of_the_day) {
+    labelText = 'Deal Of The Day';
+    badgeColor = '#F59E0B';
+  } else if (p.recommended) {
+    labelText = 'Recommended';
+    badgeColor = '#8B5CF6';
+  } else if (p.recently_added) {
+    labelText = 'Recently Added';
+    badgeColor = '#10B981';
+  } else if (isOnSale) {
+    labelText = 'Sale';
+    badgeColor = '#EF4444';
+  } else if (p.best_seller) {
+    labelText = 'Best Seller';
+    badgeColor = '#10B981';
+  } else if (p.trending) {
+    labelText = 'Trending';
+    badgeColor = '#EC4899';
+  }
+
+  if (!labelText) return null;
+
+  return (
+    <span className="product-sale-pill" style={{
+      position: 'absolute',
+      top: 16,
+      left: 16,
+      background: badgeColor,
+      color: '#fff',
+      fontSize: '0.72rem',
+      fontWeight: 700,
+      padding: '5px 12px',
+      borderRadius: 8,
+      textTransform: 'uppercase',
+      letterSpacing: '0.06em',
+      boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+      border: 'none',
+      zIndex: 10
+    }}>
+      {labelText}
+    </span>
+  );
+};
 
 export const Product: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const { theme, cssVariables } = usePageTheme('product');
   const { addToCart } = useCart();
   
-  const [pageData, setPageData] = useState<any | null>(null);
   const [product, setProduct] = useState<any | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
   const [activeImage, setActiveImage] = useState<string>('');
@@ -20,10 +79,7 @@ export const Product: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
-    // 1. Fetch layout config (to check for Hero banner)
-    pageBuilderApi.getPageBySlug('product').then(setPageData).catch(() => {});
-
-    // 2. Fetch product details
+    // Fetch product details
     const loadDetails = async () => {
       if (!slug) return;
       setLoading(true);
@@ -104,7 +160,7 @@ export const Product: React.FC = () => {
     );
   }
 
-  const heroWidgets = pageData?.widgets?.filter((w: any) => w.type === 'HERO_BANNER') || [];
+
   
   // Calculate pricing coordinates
   const displayPrice = selectedVariant ? selectedVariant.price : product.price;
@@ -113,8 +169,6 @@ export const Product: React.FC = () => {
 
   return (
     <div style={cssVariables} className="product-detail-wrapper">
-      {/* 1. Editable Hero Banner */}
-      {heroWidgets.length > 0 && <WidgetRenderer widgets={heroWidgets} theme={theme} />}
 
       {/* 2. Main Page Container */}
       <div className="product-detail-container">
@@ -126,9 +180,7 @@ export const Product: React.FC = () => {
           <div className="gallery-column">
             <div className="gallery-primary-frame">
               <img src={activeImage} alt={product.name} className="gallery-active-image" />
-              {comparePrice && Number(comparePrice) > Number(displayPrice) && (
-                <span className="product-sale-pill">Sale</span>
-              )}
+              {renderProductBadge(product, theme.primaryColor)}
             </div>
             
             {product.gallery && product.gallery.length > 1 && (
@@ -248,7 +300,7 @@ export const Product: React.FC = () => {
 
             {/* Product Specifications */}
             <div className="specs-section">
-              <span className="section-label">Formulation Details</span>
+              <span className="section-label">Product Specifications</span>
               <table className="specs-table">
                 <tbody>
                   {product.master_sku && (
@@ -266,13 +318,49 @@ export const Product: React.FC = () => {
                   {selectedVariant && selectedVariant.stock_qty !== undefined && (
                     <tr>
                       <td className="specs-key">Inventory Available</td>
-                      <td className="specs-val">{selectedVariant.stock_qty} units</td>
+                      <td className="specs-val">
+                        {selectedVariant.stock_qty <= 0 
+                          ? (product.allow_backorders ? 'Available on Backorder' : 'Out of Stock') 
+                          : `${selectedVariant.stock_qty} units`}
+                      </td>
+                    </tr>
+                  )}
+                  {product.weight && (
+                    <tr>
+                      <td className="specs-key">Shipping Weight</td>
+                      <td className="specs-val">{product.weight} kg</td>
+                    </tr>
+                  )}
+                  {(product.length || product.width || product.height) && (
+                    <tr>
+                      <td className="specs-key">Dimensions (L x W x H)</td>
+                      <td className="specs-val">
+                        {product.length || 0} x {product.width || 0} x {product.height || 0} cm
+                      </td>
                     </tr>
                   )}
                   <tr>
                     <td className="specs-key">Category Group</td>
                     <td className="specs-val">{product.category?.name || 'Organic Cosmetics'}</td>
                   </tr>
+                  {product.brand?.name && (
+                    <tr>
+                      <td className="specs-key">Brand</td>
+                      <td className="specs-val">{product.brand.name}</td>
+                    </tr>
+                  )}
+                  {product.hsn_code && (
+                    <tr>
+                      <td className="specs-key">HSN Code</td>
+                      <td className="specs-val font-mono">{product.hsn_code}</td>
+                    </tr>
+                  )}
+                  {product.specifications && product.specifications.map((spec: any, idx: number) => (
+                    <tr key={spec.id || idx}>
+                      <td className="specs-key">{spec.name}</td>
+                      <td className="specs-val">{spec.value}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -285,6 +373,51 @@ export const Product: React.FC = () => {
                   className="description-content-html"
                   dangerouslySetInnerHTML={{ __html: product.description }}
                 />
+              </div>
+            )}
+
+            {/* Product YouTube Video */}
+            {product.youtube_url && (
+              <div className="video-section" style={{ marginTop: 24 }}>
+                <span className="section-label">Product Demonstration Video</span>
+                <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 16, border: '1px solid rgba(0,0,0,0.05)', marginTop: 10 }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${product.youtube_url.split('v=')[1]?.split('&')[0] || product.youtube_url.split('/').pop()}`}
+                    title="Product Video"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Product FAQs */}
+            {product.faqs && product.faqs.length > 0 && (
+              <div className="faqs-section" style={{ marginTop: 24 }}>
+                <span className="section-label font-bold text-slate-700">Frequently Asked Questions</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 10 }}>
+                  {product.faqs.map((faq: any, idx: number) => (
+                    <details key={faq.id || idx} style={{ background: '#FFF', border: '1px solid rgba(0, 0, 0, 0.05)', borderRadius: 12, padding: 14, cursor: 'pointer' }}>
+                      <summary style={{ fontWeight: 700, fontSize: '0.88rem', outline: 'none' }}>{faq.question}</summary>
+                      <p style={{ margin: '8px 0 0 0', fontSize: '0.84rem', color: '#6B7280', lineHeight: 1.5 }}>{faq.answer}</p>
+                    </details>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Product Tags list */}
+            {product.tags && product.tags.length > 0 && (
+              <div className="tags-section" style={{ marginTop: 24 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {product.tags.map((t: any, idx: number) => (
+                    <span key={idx} style={{ background: 'rgba(0,0,0,0.04)', color: '#374151', padding: '4px 10px', borderRadius: 100, fontSize: '0.78rem', fontWeight: 600 }}>
+                      #{t.tag?.name || t.tag_id}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
 

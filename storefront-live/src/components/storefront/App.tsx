@@ -24,7 +24,6 @@ import { Privacy } from './pages/Privacy/index';
 import { Terms } from './pages/Terms/index';
 import { Refund } from './pages/Refund/index';
 import { TrackOrder } from './pages/TrackOrder/index';
-import { DynamicPage } from './pages/DynamicPage';
 import AdminDashboardApp from '@oaksol/admin-dashboard';
 import MerchantDashboardApp from '@oaksol/merchant-dashboard';
 import { Icons } from './icons';
@@ -405,8 +404,7 @@ function App() {
               <Header />
               <main className="storefront-main-content" style={{ flex: 1 }}>
                 <Routes>
-                  <Route path="/" element={<DynamicPage fallback={<Home />} />} />
-                  <Route path="/pages/:slug" element={<DynamicPage />} />
+                  <Route path="/" element={<Home />} />
                   <Route path="/products" element={<AllProducts />} />
                   <Route path="/categories" element={<Categories />} />
                   <Route path="/categories/:categorySlug" element={<Categories />} />
@@ -420,15 +418,12 @@ function App() {
                   <Route path="/account" element={<MyAccount />} />
                   <Route path="/account/orders" element={<MyOrders />} />
                   <Route path="/wishlist" element={<Wishlist />} />
-                  <Route path="/about" element={<DynamicPage fallback={<About />} />} />
-                  <Route path="/contact" element={<DynamicPage fallback={<Contact />} />} />
-                  <Route path="/privacy" element={<DynamicPage fallback={<Privacy />} />} />
-                  <Route path="/terms" element={<DynamicPage fallback={<Terms />} />} />
-                  <Route path="/refund" element={<DynamicPage fallback={<Refund />} />} />
-                  <Route path="/track-order" element={<DynamicPage fallback={<TrackOrder />} />} />
-                  <Route path="/faq" element={<DynamicPage />} />
-                  <Route path="/blog" element={<DynamicPage />} />
-                  <Route path="/shipping" element={<DynamicPage />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/refund" element={<Refund />} />
+                  <Route path="/track-order" element={<TrackOrder />} />
                 </Routes>
               </main>
               <Footer />

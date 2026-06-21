@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { pageBuilderApi, catalogApi, customerApi } from '../../../../lib/api-client';
-import { WidgetRenderer } from '../../WidgetRenderer';
+import { catalogApi, customerApi } from '../../../../lib/api-client';
 import { getCurrencySymbol } from '../../../../lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -21,28 +20,19 @@ const DEFAULT_THEME = {
   backgroundColor: '#FAF7F2',
 };
 
-const DEFAULT_HERO_WIDGET = {
-  id: 'hero-index-default',
-  type: 'HERO_BANNER' as const,
-  sort_order: 0,
-  content: {
-    title: "Welcome to Our Store",
-    subtitle: 'Explore our collections and discover premium products.',
-    backgroundImageUrl: '',
-    buttonText: 'SHOP NOW',
-    buttonLink: '/products',
-  },
-  styles: { paddingTop: '0px', paddingBottom: '0px' },
-};
-
-// ─── Static testimonial data (disabled by default, loads dynamically if review tables seeded) ────────────────
-const DEFAULT_TESTIMONIALS: any[] = [];
+const fallbackBanners = [
+  {
+    id: 'default-hero-1',
+    title: 'Discover Natural Beauty & Health',
+    image_url: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=1200',
+    link_url: '/products'
+  }
+];
 
 // ─── Banner Slider Component ───────────────────────────────────────────────────
 const BannerSlider: React.FC<{ banners: any[]; theme: any }> = ({ banners, theme }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const primary = theme.primaryColor || '#15803D';
-  const secondary = theme.secondaryColor || '#059669';
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -84,7 +74,7 @@ const BannerSlider: React.FC<{ banners: any[]; theme: any }> = ({ banners, theme
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
-              }}
+              } as any}
             >
               {/* Dark semi-transparent overlay to ensure text readability */}
               <div
@@ -264,38 +254,7 @@ const BannerSlider: React.FC<{ banners: any[]; theme: any }> = ({ banners, theme
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const Home: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const isPreview = searchParams.get('preview') === 'true';
-
-  const [pageData, setPageData] = useState<any>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('oaksol_preview_page_index');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {}
-      }
-    }
-    return null;
-  });
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('oaksol_preview_page_index');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.theme) {
-            return {
-              primaryColor: parsed.theme.primaryColor || DEFAULT_THEME.primaryColor,
-              secondaryColor: parsed.theme.secondaryColor || DEFAULT_THEME.secondaryColor,
-              backgroundColor: parsed.theme.backgroundColor || DEFAULT_THEME.backgroundColor,
-            };
-          }
-        } catch {}
-      }
-    }
-    return DEFAULT_THEME;
-  });
+  const [theme] = useState(DEFAULT_THEME);
   const [pageSettings, setPageSettings] = useState<PageSettings>({});
   const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -304,34 +263,18 @@ export const Home: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [bestSellers, setBestSellers] = useState<any[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
 
   // Carousel state
   const catCarouselRef = useRef<HTMLDivElement>(null);
-  const [catOffset, setCatOffset] = useState(0);
 
   // ── Load page config ─────────────────────────────────────────────────────
   const loadPage = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, settings, homeData] = await Promise.allSettled([
-        pageBuilderApi.getPageBySlug('index'),
+      const [settings, homeData] = await Promise.allSettled([
         customerApi.getPages().catch(() => ({ content: {} })),
         catalogApi.getHomepage().catch(() => ({ banners: [] })),
       ]);
-      if (data.status === 'fulfilled' && data.value) {
-        setPageData(data.value);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('oaksol_preview_page_index', JSON.stringify(data.value));
-        }
-        if (data.value.theme) {
-          setTheme({
-            primaryColor: data.value.theme.primaryColor || DEFAULT_THEME.primaryColor,
-            secondaryColor: data.value.theme.secondaryColor || DEFAULT_THEME.secondaryColor,
-            backgroundColor: data.value.theme.backgroundColor || DEFAULT_THEME.backgroundColor,
-          });
-        }
-      }
       if (settings.status === 'fulfilled' && settings.value?.content) {
         setPageSettings(settings.value.content);
       }
@@ -344,11 +287,10 @@ export const Home: React.FC = () => {
 
   // ── Load products & categories ───────────────────────────────────────────
   useEffect(() => {
-    setDataLoading(true);
     Promise.allSettled([
       catalogApi.getCategories(),
-      catalogApi.getProducts({ limit: 8, sort: '' }),
-      catalogApi.getProducts({ limit: 4, sort: 'popular' }),
+      catalogApi.getProducts({ limit: 8 }),
+      catalogApi.getProducts({ limit: 4 }),
     ]).then(([cats, prods, best]) => {
       const categoriesVal = cats.status === 'fulfilled' ? cats.value : [];
       const productsVal = prods.status === 'fulfilled' ? prods.value?.products : [];
@@ -357,29 +299,10 @@ export const Home: React.FC = () => {
       setCategories(categoriesVal || []);
       setProducts(productsVal || []);
       setBestSellers(bestSellersVal && bestSellersVal.length > 0 ? bestSellersVal : (productsVal?.slice(0, 4) || []));
-    }).finally(() => setDataLoading(false));
+    });
   }, []);
 
   useEffect(() => { loadPage(); }, [loadPage]);
-
-  // ── Real-time preview messages from Visual Builder ───────────────────────
-  useEffect(() => {
-    const handle = (event: MessageEvent) => {
-      if (!event.data) return;
-      if (event.data.type === 'LAYOUT_UPDATE') {
-        const p = event.data.payload;
-        if (p && (p.slug === 'index' || p.slug === '/')) {
-          setPageData(p);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('oaksol_preview_page_index', JSON.stringify(p));
-          }
-          if (p.theme) setTheme({ primaryColor: p.theme.primaryColor || DEFAULT_THEME.primaryColor, secondaryColor: p.theme.secondaryColor || DEFAULT_THEME.secondaryColor, backgroundColor: p.theme.backgroundColor || DEFAULT_THEME.backgroundColor });
-        }
-      }
-    };
-    window.addEventListener('message', handle);
-    return () => window.removeEventListener('message', handle);
-  }, []);
 
   // ── Apply CSS vars ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -390,9 +313,6 @@ export const Home: React.FC = () => {
 
   const primary = theme.primaryColor;
   const bg = theme.backgroundColor;
-
-  const widgets: any[] = pageData?.widgets?.length ? pageData.widgets : [DEFAULT_HERO_WIDGET];
-  const hasProductGrid = widgets.some((w: any) => w.type === 'PRODUCT_GRID');
 
   // ── Category carousel helpers ────────────────────────────────────────────
   const scrollCat = (dir: 'left' | 'right') => {
@@ -417,6 +337,7 @@ export const Home: React.FC = () => {
   const aboutContent = pageSettings.about_content || 'We are a natural beauty and health company. Our products are chemical-free, handcrafted following traditional methods and formulations.';
   const announcementText = (pageSettings.announcement_bar || '🌿 FREE SHIPPING FOR ORDERS ABOVE ₹500 — 100% Natural Products').replace('₹', getCurrencySymbol());
   const showAnnouncement = pageSettings.announcement_bar_active !== 'false';
+  const actualBanners = banners.length > 0 ? banners : fallbackBanners;
 
   return (
     <div style={{ background: bg, fontFamily: "'Inter', sans-serif", color: '#1F2937', minHeight: '100vh' }}>
@@ -431,12 +352,8 @@ export const Home: React.FC = () => {
         </div>
       )}
 
-      {/* ── 2. Hero Banner (from Promo Banners or Page Builder) ── */}
-      {(banners.length > 0 && !isPreview) ? (
-        <BannerSlider banners={banners} theme={theme} />
-      ) : (
-        <WidgetRenderer widgets={widgets.filter((w: any) => w.type === 'HERO_BANNER')} theme={theme} />
-      )}
+      {/* ── 2. Hero Banner Slider ── */}
+      <BannerSlider banners={actualBanners} theme={theme} />
 
       {/* ── 3. Categories Carousel ── */}
       {categories.length > 0 && (
@@ -453,10 +370,10 @@ export const Home: React.FC = () => {
             <div className="home-carousel-wrap">
               <button className="home-carousel-btn left" onClick={() => scrollCat('left')} style={{ background: primary }}>‹</button>
               <div className="home-carousel" ref={catCarouselRef}>
-                {[...categories, ...categories].map((cat, i) => {
+                {categories.map((cat, i) => {
                   const cover = cat.image_url || `https://images.unsplash.com/photo-155622857${8 + (i % 5)}?q=80&w=400`;
                   return (
-                    <a key={`${cat.id}-${i}`} href={`/categories/${cat.slug}`} className="home-cat-card">
+                    <a key={cat.id} href={`/categories/${cat.slug}`} className="home-cat-card">
                       <div className="home-cat-img-wrap">
                         <img src={cover} alt={cat.name} className="home-cat-img" loading="lazy"
                           onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=400'; }}
@@ -504,7 +421,7 @@ export const Home: React.FC = () => {
       )}
 
       {/* ── 5. Best Sellers ── */}
-      {!hasProductGrid && bestSellers.length > 0 && (
+      {bestSellers.length > 0 && (
         <section className="home-section" style={{ background: '#fff', paddingTop: 56, paddingBottom: 56 }}>
           <div className="home-container">
             <div className="home-section-header">
@@ -522,10 +439,8 @@ export const Home: React.FC = () => {
         </section>
       )}
 
-      {/* ── 6. Featured Collection (from Page Builder PRODUCT_GRID or all products) ── */}
-      {widgets.filter((w: any) => w.type === 'PRODUCT_GRID').length > 0 ? (
-        <WidgetRenderer widgets={widgets.filter((w: any) => w.type === 'PRODUCT_GRID')} theme={theme} />
-      ) : products.length > 0 && (
+      {/* ── 6. Featured Collection ── */}
+      {products.length > 0 && (
         <section className="home-section" style={{ background: bg, paddingTop: 56, paddingBottom: 56 }}>
           <div className="home-container">
             <div className="home-section-header">
@@ -542,46 +457,7 @@ export const Home: React.FC = () => {
         </section>
       )}
 
-      {/* ── 7. TEXT_BLOCK widgets from builder ── */}
-      {widgets.filter((w: any) => w.type === 'TEXT_BLOCK').length > 0 && (
-        <WidgetRenderer widgets={widgets.filter((w: any) => w.type === 'TEXT_BLOCK')} theme={theme} />
-      )}
-
-      {/* ── 8. Testimonials ── */}
-      {DEFAULT_TESTIMONIALS.length > 0 && (
-        <section className="home-section" style={{ background: '#fff', paddingTop: 56, paddingBottom: 56 }}>
-          <div className="home-container">
-            <div className="home-section-header" style={{ justifyContent: 'center', textAlign: 'center', flexDirection: 'column', alignItems: 'center' }}>
-              <span className="home-badge" style={{ color: primary, background: `${primary}14` }}>Customer Love</span>
-              <h2 className="home-section-title">Testimonials</h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                <div style={{ display: 'flex', gap: 2 }}>{'★★★★★'.split('').map((s, i) => <span key={i} style={{ color: '#F59E0B', fontSize: '1.1rem' }}>{s}</span>)}</div>
-                <span style={{ fontWeight: 700, color: '#1F2937', fontSize: '0.9rem' }}>EXCELLENT</span>
-                <span style={{ color: '#6B7280', fontSize: '0.8rem' }}>Based on 100+ reviews</span>
-              </div>
-            </div>
-            <div className="home-testimonials-grid">
-              {DEFAULT_TESTIMONIALS.map((t, i) => (
-                <div key={i} className="home-testimonial-card">
-                  <div style={{ display: 'flex', gap: 2, marginBottom: 10 }}>
-                    {[...Array(t.rating)].map((_, j) => <span key={j} style={{ color: '#F59E0B', fontSize: '1rem' }}>★</span>)}
-                  </div>
-                  <div className="home-testimonial-avatar" style={{ background: primary }}>
-                    {t.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111827' }}>{t.name}</div>
-                    <div style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>{t.time}</div>
-                  </div>
-                  <p className="home-testimonial-text">"{t.text}"</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── 9. Features Strip ── */}
+      {/* ── 7. Features Strip ── */}
       <section className="home-section" style={{ background: bg, paddingTop: 40, paddingBottom: 40 }}>
         <div className="home-container">
           <div className="home-features-grid">
@@ -605,7 +481,7 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* ── 10. About Section ── */}
+      {/* ── 8. About Section ── */}
       <section className="home-section" style={{ background: '#fff', paddingTop: 56, paddingBottom: 56 }}>
         <div className="home-container">
           <div className="home-about-wrap">
@@ -638,9 +514,9 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* ── 11. CTA Banner ── */}
+      {/* ── 9. CTA Banner ── */}
       <section style={{
-        background: `linear-gradient(135deg, ${primary}, ${theme.secondaryColor !== '#ffffff' ? theme.secondaryColor : '#059669'})`,
+        background: `linear-gradient(135deg, ${primary}, #059669)`,
         padding: '72px 24px', textAlign: 'center',
       }}>
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
@@ -670,6 +546,66 @@ export const Home: React.FC = () => {
   );
 };
 
+// Helper to render dynamic product badges
+const renderProductBadge = (p: any, primaryColor?: string) => {
+  const isOnSale = p.compare_price && Number(p.compare_price) > Number(p.price);
+  
+  let labelText = '';
+  let badgeColor = primaryColor || '#3B82F6';
+
+  if (p.label) {
+    labelText = p.label;
+    const lower = p.label.toLowerCase();
+    if (lower.includes('hot') || lower.includes('limited')) badgeColor = '#EF4444';
+    else if (lower.includes('new') || lower.includes('fresh')) badgeColor = '#10B981';
+    else if (lower.includes('deal') || lower.includes('sale')) badgeColor = '#F59E0B';
+    else badgeColor = primaryColor || '#4F46E5';
+  } else if (p.flash_sale) {
+    labelText = 'Flash Sale';
+    badgeColor = '#EF4444';
+  } else if (p.deal_of_the_day) {
+    labelText = 'Deal Of The Day';
+    badgeColor = '#F59E0B';
+  } else if (p.recommended) {
+    labelText = 'Recommended';
+    badgeColor = '#8B5CF6';
+  } else if (p.recently_added) {
+    labelText = 'Recently Added';
+    badgeColor = '#10B981';
+  } else if (isOnSale) {
+    labelText = 'Sale';
+    badgeColor = '#EF4444';
+  } else if (p.best_seller) {
+    labelText = 'Best Seller';
+    badgeColor = '#10B981';
+  } else if (p.trending) {
+    labelText = 'Trending';
+    badgeColor = '#EC4899';
+  }
+
+  if (!labelText) return null;
+
+  return (
+    <span style={{
+      position: 'absolute',
+      top: 12,
+      left: 12,
+      background: badgeColor,
+      color: '#fff',
+      fontSize: '0.65rem',
+      fontWeight: 700,
+      padding: '4px 10px',
+      borderRadius: 6,
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+      zIndex: 1
+    }}>
+      {labelText}
+    </span>
+  );
+};
+
 // ─── Product Card Sub-component ───────────────────────────────────────────────
 const ProductCard: React.FC<{ p: any; primary: string; size?: 'large' | 'small' }> = ({ p, primary, size = 'small' }) => {
   const cover = p.gallery?.find((g: any) => g.is_cover)?.url || p.gallery?.[0]?.url ||
@@ -693,9 +629,7 @@ const ProductCard: React.FC<{ p: any; primary: string; size?: 'large' | 'small' 
           onMouseEnter={e => { (e.target as HTMLImageElement).style.transform = 'scale(1.08)'; }}
           onMouseLeave={e => { (e.target as HTMLImageElement).style.transform = 'scale(1)'; }}
         />
-        {isOnSale && (
-          <span style={{ position: 'absolute', top: 12, left: 12, background: '#EF4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '4px 10px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sale</span>
-        )}
+        {renderProductBadge(p, primary)}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 16px', background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%)', display: 'flex', justifyContent: 'center' }}>
           <span style={{ background: 'rgba(255,255,255,0.95)', color: primary, fontWeight: 800, fontSize: '0.75rem', padding: '7px 20px', borderRadius: 8, letterSpacing: '0.04em' }}>SHOP NOW</span>
         </div>

@@ -38,14 +38,23 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
-    if (!stored) { setIsLoading(false); return; }
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+    const storedCustomer = typeof window !== 'undefined' ? localStorage.getItem('sf_customer_data') : null;
+    if (!storedToken || !storedCustomer) {
+      setIsLoading(false);
+      return;
+    }
     try {
-      setToken(stored);
-      const me = await customerApi.getMe(stored);
-      setCustomer(me);
+      setToken(storedToken);
+      setCustomer(JSON.parse(storedCustomer));
+      
+      // Verify token freshness against the backend
+      const profile = await customerApi.getMe(storedToken);
+      setCustomer(profile);
+      localStorage.setItem('sf_customer_data', JSON.stringify(profile));
     } catch {
       localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem('sf_customer_data');
       setToken(null);
       setCustomer(null);
     } finally {
@@ -58,6 +67,7 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const login = async (email: string, password: string) => {
     const res = await customerApi.login({ email, password });
     localStorage.setItem(TOKEN_KEY, res.token);
+    localStorage.setItem('sf_customer_data', JSON.stringify(res.customer));
     setToken(res.token);
     setCustomer(res.customer);
   };
@@ -65,12 +75,14 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const register = async (name: string, email: string, password: string, phone?: string) => {
     const res = await customerApi.register({ name, email, password, phone });
     localStorage.setItem(TOKEN_KEY, res.token);
+    localStorage.setItem('sf_customer_data', JSON.stringify(res.customer));
     setToken(res.token);
     setCustomer(res.customer);
   };
 
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem('sf_customer_data');
     setToken(null);
     setCustomer(null);
   };

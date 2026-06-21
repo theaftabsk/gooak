@@ -1,4 +1,32 @@
-export type MerchantTab = 'overview' | 'products' | 'categories' | 'orders' | 'inventory' | 'payments' | 'settings' | 'pages' | 'themes';
+export type MerchantTab = 
+  | 'overview' 
+  | 'products' 
+  | 'categories' 
+  | 'brands' 
+  | 'collections' 
+  | 'inventory' 
+  | 'orders' 
+  | 'returns' 
+  | 'invoices' 
+  | 'customers' 
+  | 'groups' 
+  | 'reviews' 
+  | 'discounts' 
+  | 'email' 
+  | 'whatsapp' 
+  | 'seo' 
+  | 'pages' 
+  | 'banners' 
+  | 'blog' 
+  | 'media' 
+  | 'faq'
+  | 'testimonials'
+  | 'home-sections'
+  | 'analytics' 
+  | 'settings' 
+  | 'team' 
+  | 'apps' 
+  | 'payments';
 
 export function formatINR(val: any) {
   const num = parseFloat(val);

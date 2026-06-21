@@ -227,6 +227,42 @@ exports.Prisma.ProductScalarFieldEnum = {
   meta_title: 'meta_title',
   meta_description: 'meta_description',
   custom_sections: 'custom_sections',
+  hsn_code: 'hsn_code',
+  youtube_url: 'youtube_url',
+  supplier_name: 'supplier_name',
+  supplier_cost: 'supplier_cost',
+  supplier_link: 'supplier_link',
+  weight: 'weight',
+  length: 'length',
+  width: 'width',
+  height: 'height',
+  allow_backorders: 'allow_backorders',
+  visibility: 'visibility',
+  product_tags: 'product_tags',
+  label: 'label',
+  best_seller: 'best_seller',
+  new_arrival: 'new_arrival',
+  trending: 'trending',
+  enable_reviews: 'enable_reviews',
+  verified_only: 'verified_only',
+  seo_keywords: 'seo_keywords',
+  canonical_url: 'canonical_url',
+  og_title: 'og_title',
+  og_description: 'og_description',
+  og_image: 'og_image',
+  schema_markup: 'schema_markup',
+  is_digital: 'is_digital',
+  download_url: 'download_url',
+  download_limit: 'download_limit',
+  license_key: 'license_key',
+  view_count: 'view_count',
+  wishlist_count: 'wishlist_count',
+  cart_count: 'cart_count',
+  purchase_count: 'purchase_count',
+  flash_sale: 'flash_sale',
+  deal_of_the_day: 'deal_of_the_day',
+  recommended: 'recommended',
+  recently_added: 'recently_added',
   created_at: 'created_at',
   updated_at: 'updated_at'
 };
@@ -253,6 +289,14 @@ exports.Prisma.ProductVariantScalarFieldEnum = {
   cost_price: 'cost_price',
   stock_qty: 'stock_qty',
   low_stock_at: 'low_stock_at',
+  track_inventory: 'track_inventory',
+  reserved_qty: 'reserved_qty',
+  available_qty: 'available_qty',
+  barcode: 'barcode',
+  weight: 'weight',
+  length: 'length',
+  width: 'width',
+  height: 'height',
   image_url: 'image_url',
   total_sold: 'total_sold',
   is_active: 'is_active',
@@ -351,6 +395,16 @@ exports.Prisma.OrderScalarFieldEnum = {
   shipping_address: 'shipping_address',
   billing_address: 'billing_address',
   notes: 'notes',
+  courier_name: 'courier_name',
+  tracking_number: 'tracking_number',
+  tracking_url: 'tracking_url',
+  dispatched_at: 'dispatched_at',
+  expected_delivery_at: 'expected_delivery_at',
+  fulfillment_status: 'fulfillment_status',
+  staff_notes: 'staff_notes',
+  return_status: 'return_status',
+  paid_amount: 'paid_amount',
+  payment_method: 'payment_method',
   created_at: 'created_at',
   updated_at: 'updated_at'
 };
@@ -467,11 +521,18 @@ exports.Prisma.NotificationScalarFieldEnum = {
 exports.Prisma.BannerScalarFieldEnum = {
   id: 'id',
   shop_id: 'shop_id',
+  type: 'type',
   title: 'title',
+  subtitle: 'subtitle',
   image_url: 'image_url',
+  mobile_image: 'mobile_image',
+  button_text: 'button_text',
+  button_url: 'button_url',
   link_url: 'link_url',
   sort_order: 'sort_order',
   is_active: 'is_active',
+  start_date: 'start_date',
+  end_date: 'end_date',
   created_at: 'created_at'
 };
 
@@ -484,29 +545,6 @@ exports.Prisma.TenantRequestScalarFieldEnum = {
   phone: 'phone',
   category: 'category',
   status: 'status',
-  created_at: 'created_at',
-  updated_at: 'updated_at'
-};
-
-exports.Prisma.PageScalarFieldEnum = {
-  id: 'id',
-  shop_id: 'shop_id',
-  title: 'title',
-  slug: 'slug',
-  type: 'type',
-  theme: 'theme',
-  is_published: 'is_published',
-  created_at: 'created_at',
-  updated_at: 'updated_at'
-};
-
-exports.Prisma.WidgetScalarFieldEnum = {
-  id: 'id',
-  page_id: 'page_id',
-  type: 'type',
-  sort_order: 'sort_order',
-  content: 'content',
-  styles: 'styles',
   created_at: 'created_at',
   updated_at: 'updated_at'
 };
@@ -530,6 +568,127 @@ exports.Prisma.SystemSettingScalarFieldEnum = {
   description: 'description',
   is_public: 'is_public',
   updated_at: 'updated_at'
+};
+
+exports.Prisma.TagScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  name: 'name',
+  created_at: 'created_at'
+};
+
+exports.Prisma.ProductTagScalarFieldEnum = {
+  product_id: 'product_id',
+  tag_id: 'tag_id'
+};
+
+exports.Prisma.ProductMediaScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  product_id: 'product_id',
+  type: 'type',
+  url: 'url',
+  alt_text: 'alt_text',
+  sort_order: 'sort_order',
+  is_cover: 'is_cover',
+  created_at: 'created_at'
+};
+
+exports.Prisma.CollectionScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  name: 'name',
+  slug: 'slug',
+  description: 'description',
+  image_url: 'image_url',
+  is_active: 'is_active',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.CollectionProductScalarFieldEnum = {
+  collection_id: 'collection_id',
+  product_id: 'product_id'
+};
+
+exports.Prisma.ProductSpecificationScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  product_id: 'product_id',
+  name: 'name',
+  value: 'value',
+  sort_order: 'sort_order'
+};
+
+exports.Prisma.PageScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  title: 'title',
+  slug: 'slug',
+  banner_image: 'banner_image',
+  seo_title: 'seo_title',
+  seo_description: 'seo_description',
+  content: 'content',
+  status: 'status',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.BlogPostScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  title: 'title',
+  slug: 'slug',
+  cover_image: 'cover_image',
+  content: 'content',
+  author: 'author',
+  status: 'status',
+  published_at: 'published_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.MediaLibraryScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  name: 'name',
+  url: 'url',
+  type: 'type',
+  folder: 'folder',
+  size: 'size',
+  alt_text: 'alt_text',
+  created_at: 'created_at'
+};
+
+exports.Prisma.FaqScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  type: 'type',
+  question: 'question',
+  answer: 'answer',
+  sort_order: 'sort_order',
+  created_at: 'created_at'
+};
+
+exports.Prisma.TestimonialScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  customer_name: 'customer_name',
+  photo: 'photo',
+  rating: 'rating',
+  review: 'review',
+  status: 'status',
+  created_at: 'created_at'
+};
+
+exports.Prisma.HomeSectionScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  section_key: 'section_key',
+  enabled: 'enabled',
+  sort_order: 'sort_order',
+  settings_json: 'settings_json',
+  created_at: 'created_at'
 };
 
 exports.Prisma.SortOrder = {
@@ -593,10 +752,20 @@ exports.Prisma.ModelName = {
   Notification: 'Notification',
   Banner: 'Banner',
   TenantRequest: 'TenantRequest',
-  Page: 'Page',
-  Widget: 'Widget',
   PlatformAdmin: 'PlatformAdmin',
-  SystemSetting: 'SystemSetting'
+  SystemSetting: 'SystemSetting',
+  Tag: 'Tag',
+  ProductTag: 'ProductTag',
+  ProductMedia: 'ProductMedia',
+  Collection: 'Collection',
+  CollectionProduct: 'CollectionProduct',
+  ProductSpecification: 'ProductSpecification',
+  Page: 'Page',
+  BlogPost: 'BlogPost',
+  MediaLibrary: 'MediaLibrary',
+  Faq: 'Faq',
+  Testimonial: 'Testimonial',
+  HomeSection: 'HomeSection'
 };
 
 /**

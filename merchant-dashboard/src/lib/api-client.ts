@@ -8,19 +8,15 @@ const getApiBaseUrl = (tenantDomain?: string): string => {
     const protocol = window.location.protocol;
     
     // Check if it's localhost / development
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost')) {
       return 'http://localhost:5005/api/v1';
-    }
-
-    if (hostname.endsWith('.localhost')) {
-      return `${protocol}//${hostname}:5005/api/v1`;
     }
 
     // For production subdomains/domains, route to the dynamic host
     if (tenantDomain) {
-      return `${protocol}//${tenantDomain}/api/v1`;
+      return `${protocol}//${tenantDomain}/api`;
     }
-    return `${protocol}//${hostname}/api/v1`;
+    return `${protocol}//${hostname}/api`;
   }
 
   if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) {
@@ -51,8 +47,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const adminToken = typeof window !== 'undefined' ? localStorage.getItem('oaksol_admin_token') : null;
 
   const shouldSendTenantDomain = path !== '/catalog/merchant/login';
+  const isMultipart = options.body instanceof FormData;
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
     ...(shouldSendTenantDomain && tenantDomain ? { 'X-Tenant-Domain': tenantDomain } : {}),
     ...(adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}),
     ...options.headers,
@@ -138,6 +135,15 @@ export const catalogApi = {
       body: JSON.stringify(data),
     }),
 
+  uploadFile: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request<any>('/catalog/admin/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
   // ─── Merchant Admin (write operations, scoped to current tenant) ───────────
   createProduct: async (productData: any, token?: string) =>
     request<any>('/catalog/admin/products', {
@@ -165,6 +171,19 @@ export const catalogApi = {
       method: 'PATCH',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: JSON.stringify(productData),
+    }),
+
+  getCollections: async (token?: string) =>
+    request<any[]>('/catalog/admin/collections', {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    }),
+
+  createCollection: async (collectionData: any, token?: string) =>
+    request<any>('/catalog/admin/collections', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: JSON.stringify(collectionData),
     }),
 
   deleteProduct: async (id: string, token?: string) =>
@@ -200,11 +219,22 @@ export const catalogApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     }),
 
-  updateOrderStatus: async (id: string, status: string, note?: string, token?: string) =>
+  updateOrderStatus: async (id: string, status: string, note?: string, extra?: {
+    courier_name?: string;
+    tracking_number?: string;
+    tracking_url?: string;
+    dispatched_at?: string;
+    expected_delivery_at?: string;
+    fulfillment_status?: string;
+    staff_notes?: string;
+    return_status?: string;
+    paid_amount?: number;
+    payment_method?: string;
+  }, token?: string) =>
     request<any>(`/catalog/admin/orders/${id}/status`, {
       method: 'PATCH',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify({ status, note }),
+      body: JSON.stringify({ status, note, ...(extra || {}) }),
     }),
 
   // ── Review Management ──────────────────────────────────────────────────────
@@ -412,6 +442,42 @@ export const catalogApi = {
 
   getSqlBackup: async () =>
     request<any>('/catalog/admin/backup/sql'),
+
+  // Content Module CMS APIs
+  getAdminPages: async () => request<any[]>('/catalog/admin/pages'),
+  getAdminPageById: async (id: string) => request<any>(`/catalog/admin/pages/${id}`),
+  createAdminPage: async (data: any) => request<any>('/catalog/admin/pages', { method: 'POST', body: JSON.stringify(data) }),
+  updateAdminPage: async (id: string, data: any) => request<any>(`/catalog/admin/pages/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAdminPage: async (id: string) => request<any>(`/catalog/admin/pages/${id}`, { method: 'DELETE' }),
+
+  getAdminBanners: async () => request<any[]>('/catalog/admin/banners'),
+  getAdminBannerById: async (id: string) => request<any>(`/catalog/admin/banners/${id}`),
+  createAdminBanner: async (data: any) => request<any>('/catalog/admin/banners', { method: 'POST', body: JSON.stringify(data) }),
+  updateAdminBanner: async (id: string, data: any) => request<any>(`/catalog/admin/banners/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAdminBanner: async (id: string) => request<any>(`/catalog/admin/banners/${id}`, { method: 'DELETE' }),
+
+  getAdminBlogs: async () => request<any[]>('/catalog/admin/blog'),
+  getAdminBlogById: async (id: string) => request<any>(`/catalog/admin/blog/${id}`),
+  createAdminBlog: async (data: any) => request<any>('/catalog/admin/blog', { method: 'POST', body: JSON.stringify(data) }),
+  updateAdminBlog: async (id: string, data: any) => request<any>(`/catalog/admin/blog/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAdminBlog: async (id: string) => request<any>(`/catalog/admin/blog/${id}`, { method: 'DELETE' }),
+
+  getAdminMedia: async () => request<any[]>('/catalog/admin/media'),
+  createAdminMedia: async (data: any) => request<any>('/catalog/admin/media', { method: 'POST', body: JSON.stringify(data) }),
+  deleteAdminMedia: async (id: string) => request<any>(`/catalog/admin/media/${id}`, { method: 'DELETE' }),
+
+  getAdminFaqs: async () => request<any[]>('/catalog/admin/faqs'),
+  createAdminFaq: async (data: any) => request<any>('/catalog/admin/faqs', { method: 'POST', body: JSON.stringify(data) }),
+  updateAdminFaq: async (id: string, data: any) => request<any>(`/catalog/admin/faqs/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAdminFaq: async (id: string) => request<any>(`/catalog/admin/faqs/${id}`, { method: 'DELETE' }),
+
+  getAdminTestimonials: async () => request<any[]>('/catalog/admin/testimonials'),
+  createAdminTestimonial: async (data: any) => request<any>('/catalog/admin/testimonials', { method: 'POST', body: JSON.stringify(data) }),
+  updateAdminTestimonial: async (id: string, data: any) => request<any>(`/catalog/admin/testimonials/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAdminTestimonial: async (id: string) => request<any>(`/catalog/admin/testimonials/${id}`, { method: 'DELETE' }),
+
+  getAdminHomeSections: async () => request<any[]>('/catalog/admin/home-sections'),
+  updateAdminHomeSection: async (data: any) => request<any>('/catalog/admin/home-sections', { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 // ─── Payment APIs ─────────────────────────────────────────────────────────────
@@ -488,26 +554,6 @@ export const customerApi = {
   submitContact: async (data: { name: string; email: string; subject?: string; message: string }) =>
     request<{ success: boolean; message: string }>('/catalog/contact', {
       method: 'POST', body: JSON.stringify(data),
-    }),
-};
-
-// ─── Page Builder APIs ─────────────────────────────────────────────────────────
-export const pageBuilderApi = {
-  getPages: async () => request<any[]>('/page-builder/pages'),
-  getPageById: async (id: string) => request<any>(`/page-builder/pages/${id}`),
-  getPageBySlug: async (slug: string) => request<any>(`/page-builder/pages/by-slug/${slug}`),
-  savePage: async (data: any) =>
-    request<any>('/page-builder/pages', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  publishPage: async (id: string) =>
-    request<any>(`/page-builder/pages/${id}/publish`, {
-      method: 'POST',
-    }),
-  deletePage: async (id: string) =>
-    request<any>(`/page-builder/pages/${id}`, {
-      method: 'DELETE',
     }),
 };
 

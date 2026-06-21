@@ -344,14 +344,107 @@ export const MerchantStyles: React.FC = () => (
       overflow: visible;
     }
 
-    .sidebar-nav {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      flex: 1;
-    }
-
-    .sidebar-nav > span {
+     .sidebar-nav {
+       display: flex;
+       flex-direction: column;
+       gap: 3px;
+       flex: 1;
+     }
+ 
+     /* Sidebar Collapsible Groups */
+     .sidebar-group {
+       display: flex;
+       flex-direction: column;
+       gap: 2px;
+     }
+ 
+     .sidebar-group-header {
+       display: flex;
+       align-items: center;
+       gap: 10px;
+       padding: 9px 12px;
+       border-radius: 8px;
+       cursor: pointer;
+       color: var(--m-text-muted);
+       font-weight: 600;
+       font-size: 0.84rem;
+       transition: all 0.2s ease-in-out;
+       position: relative;
+       white-space: nowrap;
+       user-select: none;
+     }
+ 
+     .sidebar-group-header:hover {
+       background: rgba(0, 0, 0, 0.02);
+       color: var(--m-text-main);
+     }
+ 
+     .sidebar-group-header.parent-active {
+       color: var(--m-text-main);
+       background: rgba(0, 0, 0, 0.015);
+     }
+ 
+     .sidebar-group-chevron {
+       margin-left: auto;
+       display: flex;
+       align-items: center;
+       transition: transform 0.2s ease;
+       color: var(--m-text-muted);
+     }
+ 
+     .sidebar.collapsed .sidebar-group-chevron {
+       display: none;
+     }
+ 
+     .sidebar-group-children {
+       display: flex;
+       flex-direction: column;
+       gap: 2px;
+       margin-top: 1px;
+     }
+ 
+     .sidebar-group-children > span {
+       display: flex;
+       align-items: center;
+       gap: 8px;
+       padding: 7px 12px 7px 20px;
+       border-radius: 6px;
+       cursor: pointer;
+       color: var(--m-text-muted);
+       font-weight: 500;
+       font-size: 0.8rem;
+       transition: all 0.15s ease-in-out;
+       position: relative;
+       white-space: nowrap;
+     }
+ 
+     .sidebar-group-children > span:hover {
+       background: rgba(0, 0, 0, 0.015);
+       color: var(--m-text-main);
+       padding-left: 22px;
+     }
+ 
+     .sidebar-group-children > span.active {
+       background: rgba(99, 102, 241, 0.04);
+       color: var(--m-primary);
+       font-weight: 600;
+       padding-left: 22px;
+     }
+ 
+     .sidebar-tree-indent {
+       font-family: monospace;
+       color: #94A3B8;
+       font-weight: normal;
+       margin-right: 4px;
+       user-select: none;
+       display: inline-block;
+     }
+ 
+     .sidebar.collapsed .sidebar-group-children {
+       display: none;
+     }
+ 
+     .sidebar-nav > span {
       display: flex;
       align-items: center;
       gap: 10px;

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { pageBuilderApi } from '../../../lib/api-client';
 
 export interface PageTheme {
   primaryColor: string;
@@ -31,33 +30,12 @@ export const usePageTheme = (slug: string) => {
     }
     return DEFAULT_THEME;
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchTheme = async () => {
-      setLoading(true);
-      try {
-        const pageData = await pageBuilderApi.getPageBySlug(actualSlug);
-        if (pageData?.theme) {
-          const fetchedTheme = {
-            primaryColor: pageData.theme.primaryColor || DEFAULT_THEME.primaryColor,
-            secondaryColor: pageData.theme.secondaryColor || DEFAULT_THEME.secondaryColor,
-            backgroundColor: pageData.theme.backgroundColor || DEFAULT_THEME.backgroundColor,
-            fontFamily: pageData.theme.fontFamily || DEFAULT_THEME.fontFamily,
-          };
-          setTheme(fetchedTheme);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(`oaksol_preview_theme_${actualSlug}`, JSON.stringify(fetchedTheme));
-          }
-        }
-      } catch (err) {
-        console.warn(`[usePageTheme] Failed to load theme for slug "${slug}":`, err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTheme();
+    // No backend pageBuilderApi theme fetch anymore since visual builder is removed.
+    // The theme is initialized to DEFAULT_THEME or loaded from localStorage if saved.
+    setLoading(false);
   }, [slug, actualSlug]);
 
   // Setup preview postMessage listener for visual editor hot-reloading theme styles

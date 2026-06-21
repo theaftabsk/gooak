@@ -335,14 +335,225 @@ export class CatalogService {
 
   // ================= ADMIN WRITES =================
 
+  private async generateUniqueSku(shopId: string, baseName: string, userSku?: string): Promise<string> {
+    if (userSku?.trim()) {
+      const candidate = userSku.trim();
+      const existing = await this.prisma.productVariant.count({
+        where: { sku: candidate },
+      });
+      if (existing === 0) {
+        return candidate;
+      }
+      return `${candidate}-${Math.floor(100 + Math.random() * 900)}`;
+    }
+
+    const clean = baseName
+      .toUpperCase()
+      .replace(/[^A-Z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-');
+    const prefix = clean.substring(0, 8) || 'SKU';
+    
+    let candidate = `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+    let count = 0;
+    while (true) {
+      const existing = await this.prisma.productVariant.count({
+        where: { sku: candidate },
+      });
+      if (existing === 0) {
+        return candidate;
+      }
+      count++;
+      candidate = `${prefix}-${Math.floor(1000 + Math.random() * 9000)}-${count}`;
+    }
+  }
+
   async createProduct(shopId: string, dto: CreateProductDto) {
-    const { custom_sections, ...rest } = dto;
-    return this.prisma.product.create({
-      data: {
-        ...rest,
-        shop_id: shopId,
-        custom_sections: custom_sections || [],
-      },
+    const {
+      custom_sections,
+      gallery,
+      media,
+      faqs,
+      variants,
+      specifications,
+      collections,
+      product_tags,
+      sort_order,
+      ...rest
+    } = dto;
+    const userSku = dto.master_sku?.trim();
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Create the product
+      const product = await tx.product.create({
+        data: {
+          ...rest,
+          shop_id: shopId,
+          custom_sections: custom_sections || [],
+          product_tags: product_tags || [],
+        },
+      });
+
+      const finalSku = await this.generateUniqueSku(shopId, product.name, userSku);
+
+      // Save the finalized SKU to the product record
+      await tx.product.update({
+        where: { id: product.id },
+        data: { master_sku: finalSku },
+      });
+
+      // 2. Sync gallery if provided
+      if (gallery && Array.isArray(gallery) && gallery.length > 0) {
+        await tx.productGallery.createMany({
+          data: gallery.map((g: any, index: number) => ({
+            shop_id: shopId,
+            product_id: product.id,
+            url: g.url,
+            alt_text: g.alt_text || null,
+            sort_order: g.sort_order !== undefined ? g.sort_order : index,
+            is_cover: !!g.is_cover,
+          })),
+        });
+      }
+
+      // 3. Sync media if provided
+      if (media && Array.isArray(media) && media.length > 0) {
+        await tx.productMedia.createMany({
+          data: media.map((m: any, index: number) => ({
+            shop_id: shopId,
+            product_id: product.id,
+            type: m.type || 'image',
+            url: m.url,
+            alt_text: m.alt_text || null,
+            sort_order: m.sort_order !== undefined ? m.sort_order : index,
+            is_cover: !!m.is_cover,
+          })),
+        });
+      }
+
+      // 4. Sync FAQs if provided
+      if (faqs && Array.isArray(faqs) && faqs.length > 0) {
+        await tx.productFaq.createMany({
+          data: faqs.map((f: any, index: number) => ({
+            shop_id: shopId,
+            product_id: product.id,
+            question: f.question,
+            answer: f.answer,
+            sort_order: f.sort_order !== undefined ? f.sort_order : index,
+          })),
+        });
+      }
+
+      // 5. Sync specifications if provided
+      if (specifications && Array.isArray(specifications) && specifications.length > 0) {
+        await tx.productSpecification.createMany({
+          data: specifications.map((s: any, index: number) => ({
+            shop_id: shopId,
+            product_id: product.id,
+            name: s.name,
+            value: s.value,
+            sort_order: s.sort_order !== undefined ? s.sort_order : index,
+          })),
+        });
+      }
+
+      // 6. Sync collections if provided
+      if (collections && Array.isArray(collections) && collections.length > 0) {
+        await tx.collectionProduct.createMany({
+          data: collections.map((colId: string) => ({
+            collection_id: colId,
+            product_id: product.id,
+          })),
+        });
+      }
+
+      // 7. Sync product_tags in DB
+      if (product_tags && Array.isArray(product_tags) && product_tags.length > 0) {
+        for (const tagName of product_tags) {
+          if (!tagName.trim()) continue;
+          const tag = await tx.tag.upsert({
+            where: { shop_id_name: { shop_id: shopId, name: tagName.trim() } },
+            create: { shop_id: shopId, name: tagName.trim() },
+            update: {},
+          });
+          await tx.productTag.create({
+            data: { product_id: product.id, tag_id: tag.id },
+          });
+        }
+      }
+
+      // 8. Create default variant or custom variants
+      if (variants && Array.isArray(variants) && variants.length > 0) {
+        for (const v of variants) {
+          const varSku = await this.generateUniqueSku(shopId, product.name, v.sku);
+          const variant = await tx.productVariant.create({
+            data: {
+              shop_id: shopId,
+              product_id: product.id,
+              sku: varSku,
+              label: v.label || 'Default',
+              price: v.price !== undefined ? parseFloat(v.price) : product.price,
+              compare_price: v.compare_price !== undefined ? parseFloat(v.compare_price) : product.compare_price,
+              cost_price: v.cost_price !== undefined ? parseFloat(v.cost_price) : product.cost_price,
+              stock_qty: v.stock_qty !== undefined ? parseInt(v.stock_qty) : 100,
+              track_inventory: v.track_inventory !== undefined ? !!v.track_inventory : true,
+              low_stock_at: v.low_stock_at !== undefined ? parseInt(v.low_stock_at) : 5,
+              barcode: v.barcode || null,
+              weight: v.weight !== undefined ? parseFloat(v.weight) : null,
+              length: v.length !== undefined ? parseFloat(v.length) : null,
+              width: v.width !== undefined ? parseFloat(v.width) : null,
+              height: v.height !== undefined ? parseFloat(v.height) : null,
+              image_url: v.image_url || null,
+              is_active: v.is_active !== undefined ? !!v.is_active : true,
+            },
+          });
+
+          if (v.attributes && Array.isArray(v.attributes)) {
+            await tx.variantAttribute.createMany({
+              data: v.attributes.map((attr: any, idx: number) => ({
+                shop_id: shopId,
+                variant_id: variant.id,
+                attr_key: attr.attr_key || attr.name || '',
+                attr_value: attr.attr_value || attr.value || '',
+                sort_order: attr.sort_order !== undefined ? attr.sort_order : idx,
+              })),
+            });
+          }
+        }
+      } else {
+        await tx.productVariant.create({
+          data: {
+            shop_id: shopId,
+            product_id: product.id,
+            sku: finalSku,
+            label: 'Default',
+            price: product.price,
+            compare_price: product.compare_price,
+            cost_price: product.cost_price,
+            stock_qty: 100,
+            is_active: true,
+          },
+        });
+      }
+
+      // Return the complete product
+      return tx.product.findUnique({
+        where: { id: product.id },
+        include: {
+          gallery: { orderBy: { sort_order: 'asc' } },
+          media: { orderBy: { sort_order: 'asc' } },
+          variants: {
+            include: { attributes: { orderBy: { sort_order: 'asc' } } },
+            orderBy: { sort_order: 'asc' },
+          },
+          faqs: { orderBy: { sort_order: 'asc' } },
+          category: true,
+          brand: true,
+          specifications: { orderBy: { sort_order: 'asc' } },
+          tags: { include: { tag: true } },
+          collections: { include: { collection: true } },
+        },
+      });
     });
   }
 
@@ -368,6 +579,7 @@ export class CatalogService {
       where: { id: productId, shop_id: shopId },
       include: {
         gallery: { orderBy: { sort_order: 'asc' } },
+        media: { orderBy: { sort_order: 'asc' } },
         variants: {
           include: {
             attributes: { orderBy: { sort_order: 'asc' } },
@@ -378,6 +590,9 @@ export class CatalogService {
         reviews: {
           orderBy: { created_at: 'desc' },
         },
+        specifications: { orderBy: { sort_order: 'asc' } },
+        tags: { include: { tag: true } },
+        collections: { include: { collection: true } },
       },
     });
 
@@ -392,16 +607,21 @@ export class CatalogService {
     const {
       custom_sections,
       gallery,
+      media,
       faqs,
       category,
       brand,
       tax,
       variants,
       reviews,
+      specifications,
+      collections,
+      product_tags,
       id,
       shop_id,
       created_at,
       updated_at,
+      sort_order,
       ...rest
     } = dto;
 
@@ -413,6 +633,8 @@ export class CatalogService {
           ...rest,
           custom_sections:
             custom_sections !== undefined ? custom_sections : undefined,
+          product_tags:
+            product_tags !== undefined && Array.isArray(product_tags) ? product_tags : undefined,
         },
       });
 
@@ -435,7 +657,27 @@ export class CatalogService {
         }
       }
 
-      // 3. Sync FAQs if provided
+      // 3. Sync media if provided
+      if (media !== undefined && Array.isArray(media)) {
+        await tx.productMedia.deleteMany({
+          where: { product_id: productId, shop_id: shopId },
+        });
+        if (media.length > 0) {
+          await tx.productMedia.createMany({
+            data: media.map((m: any, index: number) => ({
+              shop_id: shopId,
+              product_id: productId,
+              type: m.type || 'image',
+              url: m.url,
+              alt_text: m.alt_text || null,
+              sort_order: m.sort_order !== undefined ? m.sort_order : index,
+              is_cover: !!m.is_cover,
+            })),
+          });
+        }
+      }
+
+      // 4. Sync FAQs if provided
       if (faqs !== undefined && Array.isArray(faqs)) {
         await tx.productFaq.deleteMany({
           where: { product_id: productId, shop_id: shopId },
@@ -452,6 +694,57 @@ export class CatalogService {
           });
         }
       }
+
+      // 5. Sync specifications if provided
+      if (specifications !== undefined && Array.isArray(specifications)) {
+        await tx.productSpecification.deleteMany({
+          where: { product_id: productId, shop_id: shopId },
+        });
+        if (specifications.length > 0) {
+          await tx.productSpecification.createMany({
+            data: specifications.map((s: any, index: number) => ({
+              shop_id: shopId,
+              product_id: productId,
+              name: s.name,
+              value: s.value,
+              sort_order: s.sort_order !== undefined ? s.sort_order : index,
+            })),
+          });
+        }
+      }
+
+      // 6. Sync collections if provided
+      if (collections !== undefined && Array.isArray(collections)) {
+        await tx.collectionProduct.deleteMany({
+          where: { product_id: productId },
+        });
+        if (collections.length > 0) {
+          await tx.collectionProduct.createMany({
+            data: collections.map((colId: string) => ({
+              collection_id: colId,
+              product_id: productId,
+            })),
+          });
+        }
+      }
+
+      // 7. Sync product_tags in DB
+      if (product_tags !== undefined && Array.isArray(product_tags)) {
+        await tx.productTag.deleteMany({
+          where: { product_id: productId },
+        });
+        for (const tagName of product_tags) {
+          if (!tagName.trim()) continue;
+          const tag = await tx.tag.upsert({
+            where: { shop_id_name: { shop_id: shopId, name: tagName.trim() } },
+            create: { shop_id: shopId, name: tagName.trim() },
+            update: {},
+          });
+          await tx.productTag.create({
+            data: { product_id: productId, tag_id: tag.id },
+          });
+        }
+      }
     });
 
     // Return full product with all relations after save
@@ -459,6 +752,7 @@ export class CatalogService {
       where: { id: productId, shop_id: shopId },
       include: {
         gallery: { orderBy: { sort_order: 'asc' } },
+        media: { orderBy: { sort_order: 'asc' } },
         variants: {
           include: { attributes: { orderBy: { sort_order: 'asc' } } },
           orderBy: { sort_order: 'asc' },
@@ -466,6 +760,9 @@ export class CatalogService {
         faqs: { orderBy: { sort_order: 'asc' } },
         category: { select: { id: true, name: true, slug: true } },
         brand: { select: { id: true, name: true, slug: true } },
+        specifications: { orderBy: { sort_order: 'asc' } },
+        tags: { include: { tag: true } },
+        collections: { include: { collection: true } },
       },
     });
   }
@@ -608,7 +905,8 @@ export class CatalogService {
       where: { shop_id: shopId },
       include: {
         items: true,
-        status_logs: true,
+        status_logs: { orderBy: { created_at: 'asc' } },
+        payments: true,
       },
       orderBy: { created_at: 'desc' },
     });
@@ -619,6 +917,18 @@ export class CatalogService {
     orderId: string,
     status: string,
     note?: string,
+    extra?: {
+      courier_name?: string;
+      tracking_number?: string;
+      tracking_url?: string;
+      dispatched_at?: string;
+      expected_delivery_at?: string;
+      fulfillment_status?: string;
+      staff_notes?: string;
+      return_status?: string;
+      paid_amount?: number;
+      payment_method?: string;
+    },
   ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId, shop_id: shopId },
@@ -628,20 +938,56 @@ export class CatalogService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      const updateData: any = { status };
+
+      if (extra) {
+        if (extra.courier_name !== undefined) updateData.courier_name = extra.courier_name || null;
+        if (extra.tracking_number !== undefined) updateData.tracking_number = extra.tracking_number || null;
+        if (extra.tracking_url !== undefined) updateData.tracking_url = extra.tracking_url || null;
+        if (extra.dispatched_at !== undefined) updateData.dispatched_at = extra.dispatched_at ? new Date(extra.dispatched_at) : null;
+        if (extra.expected_delivery_at !== undefined) updateData.expected_delivery_at = extra.expected_delivery_at ? new Date(extra.expected_delivery_at) : null;
+        if (extra.fulfillment_status !== undefined) updateData.fulfillment_status = extra.fulfillment_status;
+        if (extra.staff_notes !== undefined) updateData.staff_notes = extra.staff_notes || null;
+        if (extra.return_status !== undefined) updateData.return_status = extra.return_status || null;
+        if (extra.paid_amount !== undefined) {
+          if (extra.paid_amount === null || String(extra.paid_amount).trim() === '') {
+            updateData.paid_amount = null;
+          } else {
+            const val = parseFloat(String(extra.paid_amount));
+            updateData.paid_amount = isNaN(val) ? null : val;
+          }
+        }
+        if (extra.payment_method !== undefined) updateData.payment_method = extra.payment_method || null;
+      }
+
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
-        data: { status },
+        data: updateData,
       });
 
-      await tx.orderStatusLog.create({
-        data: {
-          shop_id: shopId,
-          order_id: orderId,
-          from_status: order.status,
-          to_status: status,
-          note: note || `Order status updated to ${status}`,
-        },
-      });
+      // Only create status log if status actually changed
+      if (status !== order.status) {
+        await tx.orderStatusLog.create({
+          data: {
+            shop_id: shopId,
+            order_id: orderId,
+            from_status: order.status,
+            to_status: status,
+            note: note || `Order status updated to ${status}`,
+          },
+        });
+      } else if (note) {
+        // Log note even if status unchanged
+        await tx.orderStatusLog.create({
+          data: {
+            shop_id: shopId,
+            order_id: orderId,
+            from_status: order.status,
+            to_status: status,
+            note,
+          },
+        });
+      }
 
       return updatedOrder;
     });
@@ -842,52 +1188,7 @@ export class CatalogService {
       },
     });
 
-    // 8. Seed the standard 15 pages in the database and homepage widgets
-    const reservedSlugs = [
-      { slug: 'index', title: 'Home Page', type: 'home' },
-      { slug: 'products', title: 'Products Page', type: 'products' },
-      { slug: 'category', title: 'Category Details', type: 'category' },
-      { slug: 'product', title: 'Product Details', type: 'product' },
-      { slug: 'cart', title: 'Cart Page', type: 'cart' },
-      { slug: 'checkout', title: 'Checkout Page', type: 'checkout' },
-      { slug: 'about', title: 'About Us', type: 'about' },
-      { slug: 'contact', title: 'Contact Us', type: 'contact' },
-      { slug: 'privacy', title: 'Privacy Policy', type: 'privacy' },
-      { slug: 'terms', title: 'Terms & Conditions', type: 'terms' },
-      { slug: 'refund', title: 'Refund Policy', type: 'refund' },
-      { slug: 'track-order', title: 'Track Order', type: 'track-order' },
-      { slug: 'faq', title: 'Frequently Asked Questions', type: 'faq' },
-      { slug: 'blog', title: 'Blog', type: 'blog' },
-      { slug: 'shipping', title: 'Shipping Policy', type: 'shipping' },
-    ];
 
-    for (const pageInfo of reservedSlugs) {
-      const page = await this.prisma.page.create({
-        data: {
-          shop_id: shop.id,
-          title: pageInfo.title,
-          slug: pageInfo.slug,
-          type: pageInfo.type,
-          theme: themeColors,
-          is_published: true,
-        },
-      });
-
-      // If it is the home page ('index'), seed the widgets from selectedTemplate.homepage
-      if (pageInfo.slug === 'index') {
-        if (selectedTemplate.homepage && selectedTemplate.homepage.length > 0) {
-          await this.prisma.widget.createMany({
-            data: selectedTemplate.homepage.map((w, index) => ({
-              page_id: page.id,
-              type: w.type,
-              sort_order: index + 1,
-              content: w.content || {},
-              styles: w.styles || {},
-            })),
-          });
-        }
-      }
-    }
 
     // 9. Provision & seed default customer in isolated tenant database
     const connectionString = shop.db_connection_url || process.env.DATABASE_URL!;
@@ -1782,106 +2083,7 @@ export class CatalogService {
   // PLATFORM ADMIN / SUPER ADMIN AUTHENTICATION
   // ─────────────────────────────────────────────────────────────────────────────
 
-  async adminLogin(dto: { email: string; password: string }) {
-    const defaultEmail = process.env.ADMIN_EMAIL || 'admin@oaksol.in';
-    const defaultPassword = process.env.ADMIN_PASSWORD || '1234';
 
-    // 1. Auto-bootstrap the default admin if the platform_admins table is empty
-    const adminCount = await this.prisma.platformAdmin.count();
-    if (adminCount === 0) {
-      const bcrypt = await import('bcryptjs');
-      const hash = await bcrypt.hash(defaultPassword, 10);
-      await this.prisma.platformAdmin.create({
-        data: {
-          name: 'Platform Owner',
-          email: defaultEmail,
-          password_hash: hash,
-          permissions: [
-            'VIEW_SHOPS',
-            'VIEW_STATS',
-            'VIEW_REQUESTS',
-            'ONBOARD_SHOP',
-            'MANAGE_REQUESTS',
-            'SEED_DEMO',
-            'DELETE_SHOP',
-            'MANAGE_TEAM',
-          ],
-          status: 'active',
-        },
-      });
-      console.log(
-        `[Auto-Bootstrap] Provisioned default Master Admin: ${defaultEmail}`,
-      );
-    }
-
-    // 2. Query the admin from the database
-    let admin = await this.prisma.platformAdmin.findFirst({
-      where: {
-        email: {
-          equals: dto.email,
-          mode: 'insensitive',
-        },
-      },
-    });
-
-    if (!admin || admin.status !== 'active') {
-      throw new BadRequestException(
-        'Invalid admin credentials or inactive account.',
-      );
-    }
-
-    if (admin.email === defaultEmail) {
-      const allPermissions = [
-        'VIEW_SHOPS',
-        'VIEW_STATS',
-        'VIEW_REQUESTS',
-        'ONBOARD_SHOP',
-        'MANAGE_REQUESTS',
-        'SEED_DEMO',
-        'DELETE_SHOP',
-        'MANAGE_TEAM',
-      ];
-      if (!admin.permissions || admin.permissions.length === 0) {
-        admin = await this.prisma.platformAdmin.update({
-          where: { id: admin.id },
-          data: { permissions: allPermissions },
-        });
-      }
-    }
-
-    // 3. Verify password hash
-    const bcrypt = await import('bcryptjs');
-    const isMatch = await bcrypt.compare(dto.password, admin.password_hash);
-    if (!isMatch) {
-      throw new BadRequestException('Invalid admin credentials.');
-    }
-
-    // 4. Sign JWT token
-    const secret =
-      process.env.JWT_SECRET ||
-      'oaksol-commerce-jwt-secret-key-replace-in-production';
-    const token = jwt.sign(
-      {
-        id: admin.id,
-        email: admin.email,
-        name: admin.name,
-        role: 'super_admin',
-        permissions: admin.permissions || [],
-      },
-      secret,
-      { expiresIn: '7d' },
-    );
-
-    return {
-      token,
-      admin: {
-        id: admin.id,
-        email: admin.email,
-        name: admin.name,
-        permissions: admin.permissions || [],
-      },
-    };
-  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // PLATFORM TEAM MANAGEMENT (MANAGE_TEAM ONLY)
@@ -2017,56 +2219,7 @@ export class CatalogService {
     return { success: true };
   }
 
-  // Merchant / Store Owner Login (Shopify Style - resolves shop by email lookup)
-  async merchantLogin(dto: { email: string; password: string }) {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        email: {
-          equals: dto.email.trim(),
-          mode: 'insensitive',
-        },
-      },
-      include: { shop: true },
-    });
 
-    if (!user) {
-      throw new BadRequestException('Invalid email or password.');
-    }
-
-    // Check plain password (dev mode) or bcrypt hash (prod mode)
-    let isMatch = false;
-    if (user.password && user.password === dto.password) {
-      isMatch = true;
-    } else {
-      const bcrypt = await import('bcryptjs');
-      isMatch = await bcrypt
-        .compare(dto.password, user.password_hash)
-        .catch(() => false);
-    }
-
-    if (!isMatch) {
-      throw new BadRequestException('Invalid email or password.');
-    }
-
-    if (!user.shop || user.shop.status !== 'active') {
-      throw new BadRequestException('Shop is inactive or not found.');
-    }
-
-    return {
-      success: true,
-      shop: {
-        id: user.shop.id,
-        name: user.shop.name,
-        slug: user.shop.slug,
-      },
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    };
-  }
 
   // Update shop settings from merchant console
   async updateShopSettings(
@@ -2141,36 +2294,7 @@ export class CatalogService {
       });
     }
 
-    // 2. Update theme styles for all existing pages
-    await this.prisma.page.updateMany({
-      where: { shop_id: shopId },
-      data: {
-        theme: themeColors,
-      },
-    });
 
-    // 3. Clear and re-seed Home Page widgets
-    const homePage = await this.prisma.page.findFirst({
-      where: { shop_id: shopId, slug: 'index' },
-    });
-
-    if (homePage) {
-      await this.prisma.widget.deleteMany({
-        where: { page_id: homePage.id },
-      });
-
-      if (selectedTemplate.homepage && selectedTemplate.homepage.length > 0) {
-        await this.prisma.widget.createMany({
-          data: selectedTemplate.homepage.map((w, index) => ({
-            page_id: homePage.id,
-            type: w.type,
-            sort_order: index + 1,
-            content: w.content || {},
-            styles: w.styles || {},
-          })),
-        });
-      }
-    }
 
     return {
       success: true,
@@ -2471,4 +2595,396 @@ export class CatalogService {
       },
     });
   }
+
+  // ── Collection Management ──────────────────────────────────────────────────
+
+  async getCollections(shopId: string) {
+    let collections = await this.prisma.collection.findMany({
+      where: { shop_id: shopId },
+      orderBy: { name: 'asc' },
+    });
+
+    if (collections.length === 0) {
+      // Auto-seed default collections for a professional shopify-level catalog
+      const defaults = [
+        { name: 'Summer Sale', slug: 'summer-sale', description: 'Sun-kissed organic formulations' },
+        { name: 'New Arrivals', slug: 'new-arrivals', description: 'Freshly harvested botanicals' },
+        { name: 'Best Sellers', slug: 'best-sellers', description: 'Loved by skin care enthusiasts' },
+        { name: 'Featured Products', slug: 'featured-products', description: 'Highlighted selections of the month' }
+      ];
+
+      collections = [];
+      for (const d of defaults) {
+        const col = await this.prisma.collection.create({
+          data: {
+            shop_id: shopId,
+            name: d.name,
+            slug: d.slug,
+            description: d.description,
+            is_active: true
+          }
+        });
+        collections.push(col);
+      }
+    }
+
+    return collections;
+  }
+
+  async createCollection(shopId: string, dto: { name: string; slug: string; description?: string; image_url?: string }) {
+    const slug = dto.slug ? dto.slug.trim().toLowerCase() : dto.name.trim().toLowerCase().replace(/\s+/g, '-');
+    
+    // Check if slug is unique for this shop
+    const existing = await this.prisma.collection.findFirst({
+      where: { shop_id: shopId, slug },
+    });
+    if (existing) {
+      throw new BadRequestException('A collection with this slug already exists for this shop.');
+    }
+
+    return this.prisma.collection.create({
+      data: {
+        shop_id: shopId,
+        name: dto.name.trim(),
+        slug,
+        description: dto.description || null,
+        image_url: dto.image_url || null,
+        is_active: true
+      }
+    });
+  }
+
+  // ─── PAGES CRUD ─────────────────────────────────────────────────────────────
+  async getAdminPages(shopId: string) {
+    return this.prisma.page.findMany({
+      where: { shop_id: shopId },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  async getAdminPageById(shopId: string, id: string) {
+    const page = await this.prisma.page.findFirst({
+      where: { id, shop_id: shopId }
+    });
+    if (!page) throw new NotFoundException('Page not found');
+    return page;
+  }
+
+  async createAdminPage(shopId: string, dto: any) {
+    const slug = dto.slug ? dto.slug.toLowerCase().trim() : dto.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+    const existing = await this.prisma.page.findFirst({
+      where: { shop_id: shopId, slug }
+    });
+    if (existing) throw new BadRequestException('Page slug already exists');
+    return this.prisma.page.create({
+      data: {
+        shop_id: shopId,
+        title: dto.title.trim(),
+        slug,
+        banner_image: dto.banner_image || null,
+        seo_title: dto.seo_title || null,
+        seo_description: dto.seo_description || null,
+        content: dto.content || null,
+        status: dto.status || 'draft'
+      }
+    });
+  }
+
+  async updateAdminPage(shopId: string, id: string, dto: any) {
+    await this.getAdminPageById(shopId, id);
+    let slug = dto.slug;
+    if (slug) {
+      slug = slug.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+      const existing = await this.prisma.page.findFirst({
+        where: { shop_id: shopId, slug, id: { not: id } }
+      });
+      if (existing) throw new BadRequestException('Page slug already exists');
+    }
+    return this.prisma.page.update({
+      where: { id },
+      data: {
+        title: dto.title !== undefined ? dto.title.trim() : undefined,
+        slug,
+        banner_image: dto.banner_image !== undefined ? dto.banner_image : undefined,
+        seo_title: dto.seo_title !== undefined ? dto.seo_title : undefined,
+        seo_description: dto.seo_description !== undefined ? dto.seo_description : undefined,
+        content: dto.content !== undefined ? dto.content : undefined,
+        status: dto.status !== undefined ? dto.status : undefined
+      }
+    });
+  }
+
+  async deleteAdminPage(shopId: string, id: string) {
+    await this.getAdminPageById(shopId, id);
+    return this.prisma.page.delete({ where: { id } });
+  }
+
+  // ─── BANNERS CRUD ───────────────────────────────────────────────────────────
+  async getAdminBanners(shopId: string) {
+    return this.prisma.banner.findMany({
+      where: { shop_id: shopId },
+      orderBy: { sort_order: 'asc' }
+    });
+  }
+
+  async getAdminBannerById(shopId: string, id: string) {
+    const banner = await this.prisma.banner.findFirst({
+      where: { id, shop_id: shopId }
+    });
+    if (!banner) throw new NotFoundException('Banner not found');
+    return banner;
+  }
+
+  async createAdminBanner(shopId: string, dto: any) {
+    return this.prisma.banner.create({
+      data: {
+        shop_id: shopId,
+        type: dto.type || 'hero',
+        title: dto.title || null,
+        subtitle: dto.subtitle || null,
+        image_url: dto.image_url || dto.image || '',
+        mobile_image: dto.mobile_image || null,
+        button_text: dto.button_text || null,
+        button_url: dto.button_url || null,
+        sort_order: dto.sort_order !== undefined ? parseInt(String(dto.sort_order)) : 0,
+        is_active: dto.is_active !== undefined ? Boolean(dto.is_active) : true,
+        start_date: dto.start_date ? new Date(dto.start_date) : null,
+        end_date: dto.end_date ? new Date(dto.end_date) : null
+      }
+    });
+  }
+
+  async updateAdminBanner(shopId: string, id: string, dto: any) {
+    await this.getAdminBannerById(shopId, id);
+    return this.prisma.banner.update({
+      where: { id },
+      data: {
+        type: dto.type,
+        title: dto.title,
+        subtitle: dto.subtitle,
+        image_url: dto.image_url !== undefined ? dto.image_url : dto.image,
+        mobile_image: dto.mobile_image,
+        button_text: dto.button_text,
+        button_url: dto.button_url,
+        sort_order: dto.sort_order !== undefined ? parseInt(String(dto.sort_order)) : undefined,
+        is_active: dto.is_active !== undefined ? Boolean(dto.is_active) : undefined,
+        start_date: dto.start_date !== undefined ? (dto.start_date ? new Date(dto.start_date) : null) : undefined,
+        end_date: dto.end_date !== undefined ? (dto.end_date ? new Date(dto.end_date) : null) : undefined
+      }
+    });
+  }
+
+  async deleteAdminBanner(shopId: string, id: string) {
+    await this.getAdminBannerById(shopId, id);
+    return this.prisma.banner.delete({ where: { id } });
+  }
+
+  // ─── BLOG POSTS CRUD ────────────────────────────────────────────────────────
+  async getAdminBlogs(shopId: string) {
+    return this.prisma.blogPost.findMany({
+      where: { shop_id: shopId },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  async getAdminBlogById(shopId: string, id: string) {
+    const post = await this.prisma.blogPost.findFirst({
+      where: { id, shop_id: shopId }
+    });
+    if (!post) throw new NotFoundException('Blog post not found');
+    return post;
+  }
+
+  async createAdminBlog(shopId: string, dto: any) {
+    const slug = dto.slug ? dto.slug.toLowerCase().trim() : dto.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+    const existing = await this.prisma.blogPost.findFirst({
+      where: { shop_id: shopId, slug }
+    });
+    if (existing) throw new BadRequestException('Blog post slug already exists');
+    return this.prisma.blogPost.create({
+      data: {
+        shop_id: shopId,
+        title: dto.title.trim(),
+        slug,
+        cover_image: dto.cover_image || null,
+        content: dto.content || null,
+        author: dto.author || null,
+        status: dto.status || 'draft',
+        published_at: dto.published_at ? new Date(dto.published_at) : null
+      }
+    });
+  }
+
+  async updateAdminBlog(shopId: string, id: string, dto: any) {
+    await this.getAdminBlogById(shopId, id);
+    let slug = dto.slug;
+    if (slug) {
+      slug = slug.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+      const existing = await this.prisma.blogPost.findFirst({
+        where: { shop_id: shopId, slug, id: { not: id } }
+      });
+      if (existing) throw new BadRequestException('Blog post slug already exists');
+    }
+    return this.prisma.blogPost.update({
+      where: { id },
+      data: {
+        title: dto.title !== undefined ? dto.title.trim() : undefined,
+        slug,
+        cover_image: dto.cover_image !== undefined ? dto.cover_image : undefined,
+        content: dto.content !== undefined ? dto.content : undefined,
+        author: dto.author !== undefined ? dto.author : undefined,
+        status: dto.status !== undefined ? dto.status : undefined,
+        published_at: dto.published_at !== undefined ? (dto.published_at ? new Date(dto.published_at) : null) : undefined
+      }
+    });
+  }
+
+  async deleteAdminBlog(shopId: string, id: string) {
+    await this.getAdminBlogById(shopId, id);
+    return this.prisma.blogPost.delete({ where: { id } });
+  }
+
+  // ─── MEDIA LIBRARY CRUD ─────────────────────────────────────────────────────
+  async getAdminMedia(shopId: string) {
+    return this.prisma.mediaLibrary.findMany({
+      where: { shop_id: shopId },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  async createAdminMedia(shopId: string, dto: any) {
+    return this.prisma.mediaLibrary.create({
+      data: {
+        shop_id: shopId,
+        name: dto.name || 'file',
+        url: dto.url,
+        type: dto.type || 'image',
+        folder: dto.folder || 'root',
+        size: dto.size !== undefined ? parseInt(String(dto.size)) : 0,
+        alt_text: dto.alt_text || null
+      }
+    });
+  }
+
+  async deleteAdminMedia(shopId: string, id: string) {
+    const existing = await this.prisma.mediaLibrary.findFirst({
+      where: { id, shop_id: shopId }
+    });
+    if (!existing) throw new NotFoundException('Media item not found');
+    return this.prisma.mediaLibrary.delete({ where: { id } });
+  }
+
+  // ─── FAQS CRUD ──────────────────────────────────────────────────────────────
+  async getAdminFaqs(shopId: string) {
+    return this.prisma.faq.findMany({
+      where: { shop_id: shopId },
+      orderBy: { sort_order: 'asc' }
+    });
+  }
+
+  async createAdminFaq(shopId: string, dto: any) {
+    return this.prisma.faq.create({
+      data: {
+        shop_id: shopId,
+        type: dto.type || 'general',
+        question: dto.question.trim(),
+        answer: dto.answer.trim(),
+        sort_order: dto.sort_order !== undefined ? parseInt(String(dto.sort_order)) : 0
+      }
+    });
+  }
+
+  async updateAdminFaq(shopId: string, id: string, dto: any) {
+    const faq = await this.prisma.faq.findFirst({ where: { id, shop_id: shopId } });
+    if (!faq) throw new NotFoundException('FAQ not found');
+    return this.prisma.faq.update({
+      where: { id },
+      data: {
+        type: dto.type,
+        question: dto.question !== undefined ? dto.question.trim() : undefined,
+        answer: dto.answer !== undefined ? dto.answer.trim() : undefined,
+        sort_order: dto.sort_order !== undefined ? parseInt(String(dto.sort_order)) : undefined
+      }
+    });
+  }
+
+  async deleteAdminFaq(shopId: string, id: string) {
+    const faq = await this.prisma.faq.findFirst({ where: { id, shop_id: shopId } });
+    if (!faq) throw new NotFoundException('FAQ not found');
+    return this.prisma.faq.delete({ where: { id } });
+  }
+
+  // ─── TESTIMONIALS CRUD ──────────────────────────────────────────────────────
+  async getAdminTestimonials(shopId: string) {
+    return this.prisma.testimonial.findMany({
+      where: { shop_id: shopId },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  async createAdminTestimonial(shopId: string, dto: any) {
+    return this.prisma.testimonial.create({
+      data: {
+        shop_id: shopId,
+        customer_name: dto.customer_name.trim(),
+        photo: dto.photo || null,
+        rating: dto.rating !== undefined ? parseInt(String(dto.rating)) : 5,
+        review: dto.review.trim(),
+        status: dto.status || 'active'
+      }
+    });
+  }
+
+  async updateAdminTestimonial(shopId: string, id: string, dto: any) {
+    const existing = await this.prisma.testimonial.findFirst({ where: { id, shop_id: shopId } });
+    if (!existing) throw new NotFoundException('Testimonial not found');
+    return this.prisma.testimonial.update({
+      where: { id },
+      data: {
+        customer_name: dto.customer_name !== undefined ? dto.customer_name.trim() : undefined,
+        photo: dto.photo,
+        rating: dto.rating !== undefined ? parseInt(String(dto.rating)) : undefined,
+        review: dto.review !== undefined ? dto.review.trim() : undefined,
+        status: dto.status
+      }
+    });
+  }
+
+  async deleteAdminTestimonial(shopId: string, id: string) {
+    const existing = await this.prisma.testimonial.findFirst({ where: { id, shop_id: shopId } });
+    if (!existing) throw new NotFoundException('Testimonial not found');
+    return this.prisma.testimonial.delete({ where: { id } });
+  }
+
+  // ─── HOME SECTIONS CRUD ─────────────────────────────────────────────────────
+  async getAdminHomeSections(shopId: string) {
+    return this.prisma.homeSection.findMany({
+      where: { shop_id: shopId },
+      orderBy: { sort_order: 'asc' }
+    });
+  }
+
+  async updateAdminHomeSection(shopId: string, dto: { section_key: string; enabled: boolean; sort_order: number; settings_json: any }) {
+    return this.prisma.homeSection.upsert({
+      where: {
+        shop_id_section_key: {
+          shop_id: shopId,
+          section_key: dto.section_key
+        }
+      },
+      update: {
+        enabled: dto.enabled,
+        sort_order: dto.sort_order,
+        settings_json: dto.settings_json || {}
+      },
+      create: {
+        shop_id: shopId,
+        section_key: dto.section_key,
+        enabled: dto.enabled,
+        sort_order: dto.sort_order,
+        settings_json: dto.settings_json || {}
+      }
+    });
+  }
 }
+

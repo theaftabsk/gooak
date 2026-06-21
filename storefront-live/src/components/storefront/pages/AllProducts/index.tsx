@@ -1,12 +1,70 @@
 import React, { useEffect, useState } from 'react';
-import { catalogApi, pageBuilderApi } from '../../../../lib/api-client';
+import { catalogApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
-import { WidgetRenderer } from '../../WidgetRenderer';
 import { getCurrencySymbol } from '../../../../lib/utils';
+
+// Helper to render dynamic product badges
+const renderProductBadge = (p: any, primaryColor?: string) => {
+  const isOnSale = p.compare_price && Number(p.compare_price) > Number(p.price);
+  
+  let labelText = '';
+  let badgeColor = primaryColor || '#3B82F6';
+
+  if (p.label) {
+    labelText = p.label;
+    const lower = p.label.toLowerCase();
+    if (lower.includes('hot') || lower.includes('limited')) badgeColor = '#EF4444';
+    else if (lower.includes('new') || lower.includes('fresh')) badgeColor = '#10B981';
+    else if (lower.includes('deal') || lower.includes('sale')) badgeColor = '#F59E0B';
+    else badgeColor = primaryColor || '#4F46E5';
+  } else if (p.flash_sale) {
+    labelText = 'Flash Sale';
+    badgeColor = '#EF4444';
+  } else if (p.deal_of_the_day) {
+    labelText = 'Deal Of The Day';
+    badgeColor = '#F59E0B';
+  } else if (p.recommended) {
+    labelText = 'Recommended';
+    badgeColor = '#8B5CF6';
+  } else if (p.recently_added) {
+    labelText = 'Recently Added';
+    badgeColor = '#10B981';
+  } else if (isOnSale) {
+    labelText = 'Sale';
+    badgeColor = '#EF4444';
+  } else if (p.best_seller) {
+    labelText = 'Best Seller';
+    badgeColor = '#10B981';
+  } else if (p.trending) {
+    labelText = 'Trending';
+    badgeColor = '#EC4899';
+  }
+
+  if (!labelText) return null;
+
+  return (
+    <span style={{
+      position: 'absolute',
+      top: 12,
+      left: 12,
+      background: badgeColor,
+      color: '#fff',
+      fontSize: '0.65rem',
+      fontWeight: 700,
+      padding: '4px 10px',
+      borderRadius: 6,
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+      zIndex: 1
+    }}>
+      {labelText}
+    </span>
+  );
+};
 
 export const AllProducts: React.FC = () => {
   const { theme, cssVariables } = usePageTheme('products');
-  const [pageData, setPageData] = useState<any | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,10 +88,7 @@ export const AllProducts: React.FC = () => {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   useEffect(() => {
-    // 1. Fetch layout config (to check for Hero banner)
-    pageBuilderApi.getPageBySlug('products').then(setPageData).catch(() => {});
-
-    // 2. Fetch categories list
+    // Fetch categories list
     catalogApi.getCategories().then((cats) => {
       setCategories(cats || []);
     }).catch(err => console.error('Error fetching categories:', err));
@@ -117,22 +172,18 @@ export const AllProducts: React.FC = () => {
     (minPriceQuery !== undefined ? 1 : 0) + 
     (maxPriceQuery !== undefined ? 1 : 0);
 
-  const heroWidgets = pageData?.widgets?.filter((w: any) => w.type === 'HERO_BANNER') || [];
+
 
   return (
     <div style={cssVariables} className="catalog-wrapper">
       {/* 1. Header Hero Area */}
-      {heroWidgets.length > 0 ? (
-        <WidgetRenderer widgets={heroWidgets} theme={theme} />
-      ) : (
-        <div className="catalog-hero">
-          <div className="catalog-hero-inner">
-            <span className="catalog-hero-badge">Curated Collection</span>
-            <h1 className="catalog-hero-title">Discover Wellness</h1>
-            <p className="catalog-hero-desc">Explore premium botanical formulations crafted thoughtfully for your skincare journey.</p>
-          </div>
+      <div className="catalog-hero">
+        <div className="catalog-hero-inner">
+          <span className="catalog-hero-badge">Curated Collection</span>
+          <h1 className="catalog-hero-title">Discover Wellness</h1>
+          <p className="catalog-hero-desc">Explore premium botanical formulations crafted thoughtfully for your skincare journey.</p>
         </div>
-      )}
+      </div>
 
       {/* 2. Main Workspace Layout */}
       <div className="catalog-workspace">
@@ -385,9 +436,7 @@ export const AllProducts: React.FC = () => {
                           className="product-image"
                           loading="lazy"
                         />
-                        {p.compare_price && Number(p.compare_price) > Number(p.price) && (
-                          <span className="sale-badge">Sale</span>
-                        )}
+                        {renderProductBadge(p, theme.primaryColor)}
                         {isOutOfStock && (
                           <div className="sold-out-overlay">
                             <span className="sold-out-badge">Sold Out</span>

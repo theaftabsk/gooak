@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { customerApi, pageBuilderApi } from '../../../../lib/api-client';
+import { customerApi } from '../../../../lib/api-client';
 import { usePageTheme } from '../../hooks/usePageTheme';
 import { useLiveSettings } from '../../hooks/useLiveSettings';
 import { useCustomer } from '../../context/CustomerContext';
@@ -10,49 +9,6 @@ export const Contact: React.FC = () => {
   const { cssVariables, theme } = usePageTheme('contact');
   const { shop, content: c } = useLiveSettings();
   const { customer } = useCustomer();
-
-  const [pageData, setPageData] = useState<any>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('oaksol_preview_page_contact');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {}
-      }
-    }
-    return null;
-  });
-
-  useEffect(() => {
-    const fetchPage = async () => {
-      try {
-        const data = await pageBuilderApi.getPageBySlug('contact');
-        setPageData(data);
-        if (data && typeof window !== 'undefined') {
-          localStorage.setItem('oaksol_preview_page_contact', JSON.stringify(data));
-        }
-      } catch (err: any) {
-        console.error('Failed to load contact page widgets:', err);
-      }
-    };
-    fetchPage();
-  }, []);
-
-  const [searchParams] = useSearchParams();
-  const isPreview = searchParams.get('preview') === 'true';
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'LAYOUT_UPDATE' && event.data.payload?.slug === 'contact') {
-        setPageData(event.data.payload);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('oaksol_preview_page_contact', JSON.stringify(event.data.payload));
-        }
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
 
   // Contact Form fields
   const [name, setName] = useState('');
@@ -114,38 +70,19 @@ export const Contact: React.FC = () => {
 
   const hasAnyChannel = showEmail || showPhone || showAddress || !!c.social_instagram;
 
-  // Extract hero details from HERO_BANNER widget if present
-  const heroWidget = pageData?.widgets?.find((w: any) => w.type === 'HERO_BANNER');
-  const heroContent = heroWidget?.content || {};
-  const slides = heroContent.slides && heroContent.slides.length > 0 ? heroContent.slides : [
-    {
-      title: heroContent.title || 'Get in Touch',
-      subtitle: heroContent.subtitle || 'Have questions about our botanical skincare? Our support team is here to assist you.',
-      backgroundImageUrl: heroContent.backgroundImageUrl || '',
-    }
-  ];
-  const slide = slides[0] || {};
-  const hasBg = !!slide.backgroundImageUrl;
-  const overlayOpacity = parseInt(heroContent.overlayOpacity || '50');
+  const contactTitle = c.contact_title || 'Get in Touch';
+  const contactSubtitle = c.contact_subtitle || 'Have questions about our products or your order? Our support team is here to assist you.';
 
   return (
     <div className="sp-page" style={cssVariables}>
       {/* Hero */}
-      <div 
-        className="sp-hero contact-page-hero"
-        style={{
-          backgroundImage: hasBg ? `linear-gradient(rgba(0,0,0,${overlayOpacity / 100}), rgba(0,0,0,${overlayOpacity / 100})), url(${slide.backgroundImageUrl})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          color: hasBg ? '#ffffff' : undefined,
-        }}
-      >
+      <div className="sp-hero contact-page-hero">
         <div className="sp-hero-inner">
-          <h1 className="sp-hero-title" style={{ color: hasBg ? '#ffffff' : undefined }}>
-            {slide.title || 'Get in Touch'}
+          <h1 className="sp-hero-title">
+            {contactTitle}
           </h1>
-          <p className="sp-hero-sub" style={{ color: hasBg ? 'rgba(255,255,255,0.85)' : undefined }}>
-            {slide.subtitle || 'Have questions about our botanical skincare? Our support team is here to assist you.'}
+          <p className="sp-hero-sub">
+            {contactSubtitle}
           </p>
         </div>
       </div>

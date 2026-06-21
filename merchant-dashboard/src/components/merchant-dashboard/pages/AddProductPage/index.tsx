@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { catalogApi } from '../../../../lib/api-client';
 import { Icons } from '../../icons';
-import { Badge, LoadingSpinner } from '../../shared';
-import { VariantsStockTab } from '../VariantsStockTab';
+import { catalogApi } from '../../../../lib/api-client';
 
-interface ProductDetailPageProps {
-  productId: string;
-  products: any[];
+interface AddProductPageProps {
   categories: any[];
   brands: any[];
+  onCreateProduct: (data: any) => Promise<void>;
+  creating: boolean;
   onBack: () => void;
 }
 
@@ -36,13 +34,15 @@ const PRESET_IMAGES = [
   { url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80', alt: 'Nourishing Shea Butter' },
 ];
 
-export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
-  productId, categories, brands, onBack
+export const AddProductPage: React.FC<AddProductPageProps> = ({
+  categories,
+  brands,
+  onCreateProduct,
+  creating,
+  onBack,
 }) => {
+  // Tabs state
   const [activeTab, setActiveTab] = useState<TabType>('general');
-  const [product, setProduct] = useState<any>(null);
-  const [loadingDetails, setLoadingDetails] = useState(true);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   // Form states - General
   const [name, setName] = useState('');
@@ -52,7 +52,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [categoryId, setCategoryId] = useState('');
   const [brandId, setBrandId] = useState('');
   const [label, setLabel] = useState(''); // Sale, New, Hot, etc.
-  const [status, setStatus] = useState('draft');
 
   // Form states - Pricing
   const [price, setPrice] = useState('');
@@ -71,9 +70,16 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   // Form states - Inventory
   const [sku, setSku] = useState('');
   const [trackInventory, setTrackInventory] = useState(true);
-  const [stockQty, setStockQty] = useState('0');
+  const [stockQty, setStockQty] = useState('100');
   const [lowStockThreshold, setLowStockThreshold] = useState('5');
   const [allowBackorders, setAllowBackorders] = useState(false);
+
+  // Form states - Variants Builder
+  const [hasVariants, setHasVariants] = useState(false);
+  const [variantOptions, setVariantOptions] = useState<any[]>([
+    { name: 'Size', values: ['S', 'M', 'L'] },
+  ]);
+  const [generatedVariants, setGeneratedVariants] = useState<any[]>([]);
 
   // Form states - Shipping
   const [weight, setWeight] = useState('');
@@ -130,6 +136,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [newSpecName, setNewSpecName] = useState('');
   const [newSpecValue, setNewSpecValue] = useState('');
 
+  const [formError, setFormError] = useState('');
+
   // Load collections
   useEffect(() => {
     catalogApi.getCollections().then((cols) => {
@@ -137,105 +145,40 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     }).catch(err => console.error('Error fetching collections:', err));
   }, []);
 
-  // Load product details from server
-  const loadProduct = async () => {
-    try {
-      setLoadingDetails(true);
-      const data = await catalogApi.getProductById(productId);
-      setProduct(data);
-      
-      setName(data.name || '');
-      setSlug(data.slug || '');
-      setSku(data.master_sku || '');
-      setPrice(data.price ? parseFloat(data.price).toString() : '');
-      setComparePrice(data.compare_price ? parseFloat(data.compare_price).toString() : '');
-      setCostPrice(data.cost_price ? parseFloat(data.cost_price).toString() : '');
-      setCategoryId(data.category_id || '');
-      setBrandId(data.brand_id || '');
-      setLabel(data.label || '');
-      setStatus(data.status || 'draft');
-      setDescription(data.description || '');
-      setShortDesc(data.short_desc || '');
-      setHsnCode(data.hsn_code || '');
-
-      setGallery(data.gallery || []);
-      setYoutubeUrl(data.youtube_url || '');
-      setSelectedCollections(data.collections?.map((c: any) => c.collection_id) || []);
-      setSpecifications(data.specifications || []);
-
-      // Load stock parameters from first variant
-      const defaultVar = data.variants?.[0];
-      setTrackInventory(defaultVar?.track_inventory !== undefined ? defaultVar.track_inventory : true);
-      setStockQty(defaultVar?.stock_qty !== undefined ? defaultVar.stock_qty.toString() : '0');
-      setLowStockThreshold(defaultVar?.low_stock_at !== undefined ? defaultVar.low_stock_at.toString() : '5');
-      setAllowBackorders(data.allow_backorders || false);
-
-      setWeight(data.weight ? parseFloat(data.weight).toString() : '');
-      setLength(data.length ? parseFloat(data.length).toString() : '');
-      setWidth(data.width ? parseFloat(data.width).toString() : '');
-      setHeight(data.height ? parseFloat(data.height).toString() : '');
-
-      setMetaTitle(data.meta_title || '');
-      setMetaDescription(data.meta_description || '');
-      setSeoKeywords(data.seo_keywords || '');
-      setCanonicalUrl(data.canonical_url || '');
-      setOgTitle(data.og_title || '');
-      setOgDescription(data.og_description || '');
-      setOgImage(data.og_image || '');
-
-      setIsFeatured(data.is_featured || false);
-      setBestSeller(data.best_seller || false);
-      setNewArrival(data.new_arrival || false);
-      setTrending(data.trending || false);
-      setFlashSale(data.flash_sale || false);
-      setDealOfTheDay(data.deal_of_the_day || false);
-      setRecommended(data.recommended || false);
-      setRecentlyAdded(data.recently_added || false);
-      setTagsInput(data.product_tags ? data.product_tags.join(', ') : '');
-
-      setFaqs(data.faqs || []);
-      setEnableReviews(data.enable_reviews !== undefined ? data.enable_reviews : true);
-      setVerifiedOnly(data.verified_only || false);
-
-      setSupplierName(data.supplier_name || '');
-      setSupplierCost(data.supplier_cost ? parseFloat(data.supplier_cost).toString() : '');
-      setSupplierLink(data.supplier_link || '');
-
-      setSortOrder(data.sort_order ? data.sort_order.toString() : '0');
-      setVisibility(data.visibility || 'visible');
-      setIsDigital(data.is_digital || false);
-      setDownloadUrl(data.download_url || '');
-      setDownloadLimit(data.download_limit ? data.download_limit.toString() : '');
-      setLicenseKey(data.license_key || '');
-
-    } catch (err) {
-      console.error('Failed to load product details:', err);
-      alert('Failed to load product details.');
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
+  // Dynamically update slug and meta title based on product name
   useEffect(() => {
-    loadProduct();
-  }, [productId]);
-
-  // Handle auto-slugification
-  const handleNameChange = (val: string) => {
-    setName(val);
-    const autoSlug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    setSlug(autoSlug);
-  };
+    if (name) {
+      const generatedSlug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      setSlug(generatedSlug);
+      setMetaTitle(`${name} | Nature Glow`);
+      setOgTitle(`${name} | Buy Online`);
+    } else {
+      setSlug('');
+      setMetaTitle('');
+      setOgTitle('');
+    }
+  }, [name]);
 
   // Generate unique SKU
   const handleAutoGenerateSku = () => {
-    if (!name) return alert('Enter name first.');
-    const clean = name.toUpperCase().replace(/[^A-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+    if (!name) {
+      alert('Please enter a product name first to generate a SKU.');
+      return;
+    }
+    const clean = name
+      .toUpperCase()
+      .replace(/[^A-Z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-');
     const prefix = clean.substring(0, 8) || 'SKU';
-    setSku(`${prefix}-${Math.floor(1000 + Math.random() * 9000)}`);
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    setSku(`${prefix}-${randomSuffix}`);
   };
 
-  // File Upload Helper
+  // Drag & drop file uploads
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -259,14 +202,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       
       setGallery(prev => [...prev, ...newImages]);
     } catch (err: any) {
-      console.error('Upload failed:', err);
-      alert('Upload failed.');
+      console.error('File upload failed:', err);
+      alert('File upload failed. Please ensure the backend is running and static directory is enabled.');
     } finally {
       setIsUploading(false);
     }
   };
 
-  // Add preset image
+  // Add mock preset skincare image
   const addPresetImage = (preset: typeof PRESET_IMAGES[0]) => {
     const isFirst = gallery.length === 0;
     const newImg = {
@@ -279,7 +222,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setGallery([...gallery, newImg]);
   };
 
-  // Manual URL image adder
+  // Add image by manual URL
   const addImageUrl = () => {
     if (!manualImageUrl) return;
     const isFirst = gallery.length === 0;
@@ -312,16 +255,99 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setGallery(updated);
   };
 
-  // FAQ helpers
-  const addFaq = () => {
-    if (!newQuestion.trim() || !newAnswer.trim()) return;
-    setFaqs([...faqs, { id: Math.random().toString(), question: newQuestion.trim(), answer: newAnswer.trim(), sort_order: faqs.length }]);
-    setNewQuestion('');
-    setNewAnswer('');
+  // Dynamic variants auto-generator
+  useEffect(() => {
+    if (!hasVariants) {
+      setGeneratedVariants([]);
+      return;
+    }
+    
+    // Compute cartesian product of option values
+    const optionsWithValues = variantOptions.filter(opt => opt.name.trim() && opt.values.length > 0);
+    if (optionsWithValues.length === 0) {
+      setGeneratedVariants([]);
+      return;
+    }
+
+    const cartesian = (arrays: string[][]): string[][] => {
+      return arrays.reduce<string[][]>((a, b) => {
+        return a.flatMap(d => b.map(e => [d, e].flat()));
+      }, [[]]);
+    };
+
+    const valueCombinations = cartesian(optionsWithValues.map(o => o.values));
+    const newVariants = valueCombinations.map((combo, idx) => {
+      const labelStr = combo.join(' / ');
+      const skuSuffix = combo.join('-').toUpperCase();
+      
+      // Preserve existing configurations if label is identical
+      const existing = generatedVariants.find(v => v.label === labelStr);
+      return existing || {
+        id: `temp-var-${idx}`,
+        label: labelStr,
+        sku: sku ? `${sku}-${skuSuffix}` : `VAR-${idx}-${Math.floor(100 + Math.random() * 900)}`,
+        barcode: '',
+        price: price || '0.00',
+        compare_price: comparePrice || '',
+        cost_price: costPrice || '',
+        stock_qty: stockQty || '100',
+        track_inventory: true,
+        weight: weight || '',
+        image_url: gallery[0]?.url || '',
+        is_active: true,
+        attributes: optionsWithValues.map((o, optIdx) => ({
+          attr_key: o.name,
+          attr_value: combo[optIdx],
+          sort_order: optIdx
+        }))
+      };
+    });
+
+    setGeneratedVariants(newVariants);
+  }, [hasVariants, variantOptions, sku, price, comparePrice, costPrice, stockQty, weight, gallery]);
+
+  const addVariantOption = () => {
+    setVariantOptions([...variantOptions, { name: '', values: [] }]);
   };
 
-  const removeFaq = (id: string) => {
-    setFaqs(faqs.filter(faq => faq.id !== id && faq.question !== id));
+  const removeVariantOption = (idx: number) => {
+    setVariantOptions(variantOptions.filter((_, i) => i !== idx));
+  };
+
+  const updateOptionName = (idx: number, name: string) => {
+    const updated = [...variantOptions];
+    updated[idx].name = name;
+    setVariantOptions(updated);
+  };
+
+  const handleValuesKeyPress = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = e.currentTarget.value.trim();
+      if (!val) return;
+      
+      const updated = [...variantOptions];
+      if (!updated[idx].values.includes(val)) {
+        updated[idx].values.push(val);
+      }
+      setVariantOptions(updated);
+      e.currentTarget.value = '';
+    }
+  };
+
+  const removeOptionValue = (optIdx: number, valIdx: number) => {
+    const updated = [...variantOptions];
+    updated[optIdx].values = updated[optIdx].values.filter((_: any, i: any) => i !== valIdx);
+    setVariantOptions(updated);
+  };
+
+  const updateVariantField = (varId: string, field: string, val: any) => {
+    setGeneratedVariants(prev => prev.map(v => {
+      if (v.id === varId) {
+        return { ...v, [field]: val };
+      }
+      return v;
+    }));
   };
 
   // Specification helpers
@@ -341,99 +367,115 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setSpecifications(specifications.filter(s => s.id !== id && s.name !== id));
   };
 
-  // Save updates handler
-  const handleSave = async () => {
-    setSaveStatus('saving');
+  // FAQ helpers
+  const addFaq = () => {
+    if (!newQuestion.trim() || !newAnswer.trim()) return;
+    setFaqs([...faqs, { question: newQuestion.trim(), answer: newAnswer.trim(), sort_order: faqs.length }]);
+    setNewQuestion('');
+    setNewAnswer('');
+  };
+
+  const removeFaq = (idx: number) => {
+    setFaqs(faqs.filter((_, i) => i !== idx));
+  };
+
+  // Submit Handler
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+
+    if (!name.trim()) return setFormError('Product Name is required.');
+    if (!price || parseFloat(price) <= 0) return setFormError('Pricing must be a positive number.');
+
     const cleanTags = tagsInput
       .split(',')
       .map(t => t.trim())
       .filter(t => t.length > 0);
 
+    const payload = {
+      name: name.trim(),
+      slug: slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      description: description.trim() || null,
+      short_desc: shortDesc.trim() || null,
+      category_id: categoryId || null,
+      brand_id: brandId || null,
+      label: label || null,
+      
+      // Pricing
+      price: parseFloat(price),
+      compare_price: comparePrice ? parseFloat(comparePrice) : null,
+      cost_price: costPrice ? parseFloat(costPrice) : null,
+      hsn_code: hsnCode || null,
+
+      // Inventory
+      master_sku: sku.trim() || null,
+      track_inventory: trackInventory,
+      stock_qty: trackInventory ? parseInt(stockQty) || 0 : 0,
+      low_stock_at: parseInt(lowStockThreshold) || 5,
+      allow_backorders: allowBackorders,
+
+      // Shipping
+      weight: weight ? parseFloat(weight) : null,
+      length: length ? parseFloat(length) : null,
+      width: width ? parseFloat(width) : null,
+      height: height ? parseFloat(height) : null,
+
+      // SEO
+      meta_title: metaTitle || null,
+      meta_description: metaDescription || null,
+      seo_keywords: seoKeywords || null,
+      canonical_url: canonicalUrl || null,
+      og_title: ogTitle || null,
+      og_description: ogDescription || null,
+      og_image: ogImage || gallery[0]?.url || null,
+
+      // Marketing
+      is_featured: isFeatured,
+      best_seller: bestSeller,
+      new_arrival: newArrival,
+      trending: trending,
+      flash_sale: flashSale,
+      deal_of_the_day: dealOfTheDay,
+      recommended: recommended,
+      recently_added: recentlyAdded,
+      product_tags: cleanTags,
+
+      // FAQ
+      faqs,
+
+      // Review configurations
+      enable_reviews: enableReviews,
+      verified_only: verifiedOnly,
+
+      // Supplier
+      supplier_name: supplierName || null,
+      supplier_cost: supplierCost ? parseFloat(supplierCost) : null,
+      supplier_link: supplierLink || null,
+
+      // Advanced
+      sort_order: parseInt(sortOrder) || 0,
+      visibility,
+      is_digital: isDigital,
+      download_url: isDigital ? downloadUrl : null,
+      download_limit: isDigital && downloadLimit ? parseInt(downloadLimit) : null,
+      license_key: isDigital ? licenseKey : null,
+
+      // Media / Images relations
+      youtube_url: youtubeUrl.trim() || null,
+      gallery,
+      variants: hasVariants ? generatedVariants : [],
+      collections: selectedCollections,
+      specifications
+    };
+
     try {
-      const payload = {
-        name: name.trim(),
-        slug: slug.trim(),
-        description: description.trim() || null,
-        short_desc: shortDesc.trim() || null,
-        category_id: categoryId || null,
-        brand_id: brandId || null,
-        label: label || null,
-        status,
-
-        // Pricing
-        price: parseFloat(price) || 0,
-        compare_price: comparePrice ? parseFloat(comparePrice) : null,
-        cost_price: costPrice ? parseFloat(costPrice) : null,
-        hsn_code: hsnCode || null,
-
-        // Inventory overrides
-        master_sku: sku.trim() || null,
-        allow_backorders: allowBackorders,
-
-        // Shipping
-        weight: weight ? parseFloat(weight) : null,
-        length: length ? parseFloat(length) : null,
-        width: width ? parseFloat(width) : null,
-        height: height ? parseFloat(height) : null,
-
-        // SEO
-        meta_title: metaTitle || null,
-        meta_description: metaDescription || null,
-        seo_keywords: seoKeywords || null,
-        canonical_url: canonicalUrl || null,
-        og_title: ogTitle || null,
-        og_description: ogDescription || null,
-        og_image: ogImage || null,
-
-        // Marketing
-        is_featured: isFeatured,
-        best_seller: bestSeller,
-        new_arrival: newArrival,
-        trending: trending,
-        flash_sale: flashSale,
-        deal_of_the_day: dealOfTheDay,
-        recommended: recommended,
-        recently_added: recentlyAdded,
-        product_tags: cleanTags,
-
-        // FAQs / Gallery
-        youtube_url: youtubeUrl.trim() || null,
-        faqs,
-        gallery,
-        collections: selectedCollections,
-        specifications,
-
-        // Review configurations
-        enable_reviews: enableReviews,
-        verified_only: verifiedOnly,
-
-        // Supplier
-        supplier_name: supplierName || null,
-        supplier_cost: supplierCost ? parseFloat(supplierCost) : null,
-        supplier_link: supplierLink || null,
-
-        // Advanced
-        sort_order: parseInt(sortOrder) || 0,
-        visibility,
-        is_digital: isDigital,
-        download_url: isDigital ? downloadUrl : null,
-        download_limit: isDigital && downloadLimit ? parseInt(downloadLimit) : null,
-        license_key: isDigital ? licenseKey : null,
-      };
-
-      await catalogApi.updateProduct(productId, payload);
-      await loadProduct();
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    } catch (err) {
-      console.error('Failed to update product details:', err);
-      setSaveStatus('error');
+      await onCreateProduct(payload);
+      onBack();
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to publish product. Ensure database schema integrity.');
+      setActiveTab('general');
     }
   };
-
-  if (loadingDetails) {
-    return <LoadingSpinner message="Loading product information..." />;
-  }
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px 40px' }}>
@@ -605,43 +647,35 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         }
       `}</style>
 
-      {/* Header bar */}
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E5E7EB', paddingBottom: 16, marginBottom: 20 }}>
+      {/* Top action header panel */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E5E7EB', paddingBottom: 16, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button className="btn-ghost-sm" onClick={onBack} style={{ padding: 8, borderRadius: '50%' }}>
             <Icons.ArrowLeft />
           </button>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 10 }}>
-              {name || 'Edit Product'}
-              <Badge type={status === 'active' ? 'success' : 'warn'}>
-                {status.toUpperCase()}
-              </Badge>
-            </h2>
-            <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#6B7280' }}>Manage product attributes, SEO snippets, and dynamic inventory levels</p>
+            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Create New Product</h2>
+            <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#6B7280' }}>Add a highly customized Shopify-standard product to your store</p>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {saveStatus === 'saved' && (
-            <span style={{ color: 'var(--m-primary)', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Icons.Check /> Saved successfully!
-            </span>
-          )}
-          {saveStatus === 'error' && (
-            <span style={{ color: '#EF4444', fontWeight: 600, fontSize: '0.85rem' }}>
-              Failed to save changes.
-            </span>
-          )}
-          <button className="btn-primary" onClick={handleSave} disabled={saveStatus === 'saving'}>
-            {saveStatus === 'saving' ? 'Saving...' : 'Save Changes'}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn-ghost-sm" onClick={onBack}>Cancel</button>
+          <button className="btn-primary" onClick={handleSubmit} disabled={creating}>
+            {creating ? 'Publishing...' : 'Publish Product'}
           </button>
         </div>
-      </header>
+      </div>
 
-      {/* Main Tabbed work area */}
+      {formError && (
+        <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', padding: '12px 16px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 600, marginBottom: 20 }}>
+          ⚠️ {formError}
+        </div>
+      )}
+
+      {/* Main tabbed work area */}
       <div className="tabbed-layout">
         
-        {/* Left sidebar */}
+        {/* Left Side: Tabs List Navigation */}
         <div className="sidebar-tabs">
           <button className={`tab-btn ${activeTab === 'general' ? 'active' : ''}`} onClick={() => setActiveTab('general')}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
@@ -693,7 +727,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           </button>
         </div>
 
-        {/* Right side content */}
+        {/* Right Side: Active Form Panel */}
         <div className="tab-panel-card">
           
           {/* TAB 1: GENERAL */}
@@ -711,7 +745,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   type="text"
                   className="styled-input"
                   value={name}
-                  onChange={e => handleNameChange(e.target.value)}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. Lavender Hydrating Cleanser"
                 />
               </div>
 
@@ -723,6 +758,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={slug}
                     onChange={e => setSlug(e.target.value)}
+                    placeholder="e.g. lavender-hydrating-cleanser"
                   />
                 </div>
                 <div className="input-wrapper">
@@ -738,7 +774,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </div>
               </div>
 
-              <div className="form-grid-3">
+              <div className="form-grid-2">
                 <div className="input-wrapper">
                   <label className="input-label">Category</label>
                   <select className="styled-select" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
@@ -753,22 +789,16 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </div>
-                <div className="input-wrapper">
-                  <label className="input-label">Visibility Status</label>
-                  <select className="styled-select" value={status} onChange={e => setStatus(e.target.value)}>
-                    <option value="active">Active</option>
-                    <option value="draft">Draft</option>
-                  </select>
-                </div>
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Short Description</label>
+                <label className="input-label">Short Description (renders on catalog layout cards)</label>
                 <textarea
                   className="styled-textarea"
                   rows={2}
                   value={shortDesc}
                   onChange={e => setShortDesc(e.target.value)}
+                  placeholder="Summarize key features in 1-2 lines..."
                 />
               </div>
 
@@ -779,6 +809,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   rows={6}
                   value={description}
                   onChange={e => setDescription(e.target.value)}
+                  placeholder="Explain benefits, ingredients, and application instructions in detail..."
                 />
               </div>
             </div>
@@ -802,6 +833,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={price}
                     onChange={e => setPrice(e.target.value)}
+                    placeholder="e.g. 399.00"
                   />
                 </div>
                 <div className="input-wrapper">
@@ -812,6 +844,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={comparePrice}
                     onChange={e => setComparePrice(e.target.value)}
+                    placeholder="e.g. 599.00"
                   />
                 </div>
                 <div className="input-wrapper">
@@ -822,18 +855,20 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={costPrice}
                     onChange={e => setCostPrice(e.target.value)}
+                    placeholder="e.g. 150.00"
                   />
                 </div>
               </div>
 
               <div className="form-grid-2">
                 <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                  <label className="input-label">HSN Code</label>
+                  <label className="input-label">HSN Code (India GST Sourcing)</label>
                   <input
                     type="text"
                     className="styled-input"
                     value={hsnCode}
                     onChange={e => setHsnCode(e.target.value)}
+                    placeholder="e.g. 33049910"
                   />
                 </div>
                 <div className="input-wrapper" style={{ marginBottom: 0 }}>
@@ -858,7 +893,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 <p className="panel-subtitle">Upload multiple photos via drag &amp; drop, link YouTube product videos, or select gorgeous skincare mockup presets.</p>
               </div>
 
-              {/* Upload field */}
+              {/* Real upload drag & drop area */}
               <div className="drag-drop-box" onClick={() => document.getElementById('media-upload-input')?.click()}>
                 <input
                   type="file"
@@ -872,8 +907,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 <span style={{ fontWeight: 700, display: 'block', color: 'var(--m-primary)' }}>
                   {isUploading ? 'Uploading files...' : 'Drag & Drop Files Here or Click to Browse'}
                 </span>
+                <span style={{ fontSize: '0.75rem', color: '#9CA3AF', marginTop: 4, display: 'block' }}>Supports JPEG, PNG, WEBP formats</span>
               </div>
 
+              {/* YouTube integration */}
               <div className="input-wrapper">
                 <label className="input-label">Product YouTube Video URL</label>
                 <input
@@ -881,18 +918,20 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   className="styled-input"
                   value={youtubeUrl}
                   onChange={e => setYoutubeUrl(e.target.value)}
+                  placeholder="e.g. https://www.youtube.com/watch?v=..."
                 />
               </div>
 
-              {/* Presets catalog */}
+              {/* Curated Botanical skincare mock presets library */}
               <div style={{ marginBottom: 30 }}>
                 <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase' }}>🌟 Instant Premium Botanical Presets Catalog</h4>
+                <p style={{ margin: '0 0 14px 0', fontSize: '0.8rem', color: '#6B7280' }}>Click on any premium botanical mockup image below to instantly populate your product gallery for demonstration testing:</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 10 }}>
                   {PRESET_IMAGES.map((preset, idx) => (
                     <div 
                       key={idx} 
                       onClick={() => addPresetImage(preset)}
-                      style={{ height: 60, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: '1.5px solid #E5E7EB' }}
+                      style={{ height: 60, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: '1.5px solid #E5E7EB', transition: 'all 0.2s' }}
                     >
                       <img src={preset.url} alt={preset.alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
@@ -900,7 +939,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </div>
               </div>
 
-              {/* Manual URL paste */}
+              {/* Manual URL entry uploader */}
               <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', padding: 16, borderRadius: 10, marginBottom: 30 }}>
                 <h5 style={{ margin: '0 0 10px 0', fontSize: '0.85rem' }}>Paste Image Web URL Fallback</h5>
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -922,10 +961,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </div>
               </div>
 
-              {/* Images Grid */}
+              {/* Images list display */}
               <h4 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 15px 0' }}>Uploaded Images ({gallery.length})</h4>
               {gallery.length === 0 ? (
-                <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>No images uploaded yet.</p>
+                <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>No images uploaded yet. Upload a file above or pick a botanical preset to represent the product.</p>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 15 }}>
                   {gallery.map((g, idx) => (
@@ -968,6 +1007,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={sku}
                     onChange={e => setSku(e.target.value)}
+                    placeholder="e.g. LAV-HYD-100"
                   />
                   <button type="button" className="sku-suggest-btn" onClick={handleAutoGenerateSku}>
                     Suggest Unique SKU
@@ -991,6 +1031,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       className="styled-input"
                       value={stockQty}
                       onChange={e => setStockQty(e.target.value)}
+                      placeholder="e.g. 100"
                     />
                   </div>
                   <div className="input-wrapper">
@@ -1000,6 +1041,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       className="styled-input"
                       value={lowStockThreshold}
                       onChange={e => setLowStockThreshold(e.target.value)}
+                      placeholder="e.g. 5"
                     />
                   </div>
                 </div>
@@ -1021,10 +1063,141 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           {activeTab === 'variants' && (
             <div>
               <div className="panel-header">
-                <h3 className="panel-title">Variants &amp; Stock Grid</h3>
-                <p className="panel-subtitle">Manage attributes, custom dimensions, individual pricing override and stock adjustments.</p>
+                <h3 className="panel-title">Product Variants</h3>
+                <p className="panel-subtitle">Configure size, color, or weight attributes to generate unique SKU variations with pricing and stock levels.</p>
               </div>
-              <VariantsStockTab productId={productId} />
+
+              <div className="checkbox-row" style={{ marginBottom: 20 }}>
+                <input
+                  type="checkbox"
+                  id="hasVariants"
+                  checked={hasVariants}
+                  onChange={e => setHasVariants(e.target.checked)}
+                  style={{ width: 20, height: 20 }}
+                />
+                <label htmlFor="hasVariants" style={{ fontSize: '1rem' }}>This product has multiple options like different sizes or colors</label>
+              </div>
+
+              {hasVariants && (
+                <div style={{ marginTop: 20 }}>
+                  <h4 style={{ fontSize: '0.9rem', marginBottom: 12 }}>Option Settings</h4>
+                  
+                  {variantOptions.map((opt, optIdx) => (
+                    <div key={optIdx} style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 16, marginBottom: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>Option {optIdx + 1}</span>
+                        <button type="button" className="btn-danger-sm" onClick={() => removeVariantOption(optIdx)} style={{ padding: '4px 8px' }}>
+                          Remove Option
+                        </button>
+                      </div>
+                      
+                      <div className="form-grid-2">
+                        <div className="input-wrapper" style={{ marginBottom: 0 }}>
+                          <label className="input-label">Option Name</label>
+                          <input
+                            type="text"
+                            className="styled-input"
+                            value={opt.name}
+                            onChange={e => updateOptionName(optIdx, e.target.value)}
+                            placeholder="e.g. Size, Color, Weight"
+                          />
+                        </div>
+                        <div className="input-wrapper" style={{ marginBottom: 0 }}>
+                          <label className="input-label">Option Values (Type value and press Enter)</label>
+                          <input
+                            type="text"
+                            className="styled-input"
+                            onKeyDown={e => handleValuesKeyPress(optIdx, e)}
+                            placeholder="e.g. Small, Medium, Large"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Display added values */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+                        {opt.values.map((v: string, valIdx: number) => (
+                          <span key={valIdx} className="tag-pill">
+                            {v}
+                            <span 
+                              onClick={() => removeOptionValue(optIdx, valIdx)}
+                              style={{ color: '#EF4444', marginLeft: 4, cursor: 'pointer', fontWeight: 800 }}
+                            >
+                              ×
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  <button type="button" className="btn-ghost-sm" onClick={addVariantOption} style={{ padding: '8px 16px', marginBottom: 30 }}>
+                    + Add Another Option type
+                  </button>
+
+                  {generatedVariants.length > 0 && (
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', marginBottom: 12 }}>Configure Variations ({generatedVariants.length})</h4>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                          <thead>
+                            <tr style={{ background: '#F3F4F6', borderBottom: '1px solid #E5E7EB', textAlign: 'left' }}>
+                              <th style={{ padding: 10 }}>Variant Label</th>
+                              <th style={{ padding: 10 }}>SKU Override</th>
+                              <th style={{ padding: 10 }}>Price (INR)</th>
+                              <th style={{ padding: 10 }}>Stock Qty</th>
+                              <th style={{ padding: 10 }}>Barcode</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {generatedVariants.map((v, idx) => (
+                              <tr key={v.id || idx} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                                <td style={{ padding: 10, fontWeight: 700 }}>{v.label}</td>
+                                <td style={{ padding: 10 }}>
+                                  <input 
+                                    type="text" 
+                                    className="styled-input" 
+                                    style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                                    value={v.sku}
+                                    onChange={e => updateVariantField(v.id, 'sku', e.target.value)}
+                                  />
+                                </td>
+                                <td style={{ padding: 10 }}>
+                                  <input 
+                                    type="number" 
+                                    className="styled-input"
+                                    style={{ padding: '6px 10px', fontSize: '0.8rem', width: 90 }}
+                                    value={v.price}
+                                    onChange={e => updateVariantField(v.id, 'price', e.target.value)}
+                                  />
+                                </td>
+                                <td style={{ padding: 10 }}>
+                                  <input 
+                                    type="number" 
+                                    className="styled-input"
+                                    style={{ padding: '6px 10px', fontSize: '0.8rem', width: 70 }}
+                                    value={v.stock_qty}
+                                    onChange={e => updateVariantField(v.id, 'stock_qty', e.target.value)}
+                                  />
+                                </td>
+                                <td style={{ padding: 10 }}>
+                                  <input 
+                                    type="text" 
+                                    className="styled-input"
+                                    style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                                    value={v.barcode}
+                                    onChange={e => updateVariantField(v.id, 'barcode', e.target.value)}
+                                    placeholder="UPC / EAN"
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -1044,6 +1217,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   className="styled-input"
                   value={weight}
                   onChange={e => setWeight(e.target.value)}
+                  placeholder="e.g. 0.25 (for 250 grams)"
                 />
               </div>
 
@@ -1056,6 +1230,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={length}
                     onChange={e => setLength(e.target.value)}
+                    placeholder="Length"
                   />
                 </div>
                 <div className="input-wrapper">
@@ -1065,6 +1240,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={width}
                     onChange={e => setWidth(e.target.value)}
+                    placeholder="Width"
                   />
                 </div>
                 <div className="input-wrapper">
@@ -1074,6 +1250,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={height}
                     onChange={e => setHeight(e.target.value)}
+                    placeholder="Height"
                   />
                 </div>
               </div>
@@ -1096,15 +1273,17 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={metaTitle}
                     onChange={e => setMetaTitle(e.target.value)}
+                    placeholder="e.g. Lavender Face Wash | Nature Glow Store"
                   />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">SEO Keywords</label>
+                  <label className="input-label">SEO Keywords (Comma Separated)</label>
                   <input
                     type="text"
                     className="styled-input"
                     value={seoKeywords}
                     onChange={e => setSeoKeywords(e.target.value)}
+                    placeholder="e.g. face wash, organic skincare, organic cleanser"
                   />
                 </div>
               </div>
@@ -1116,6 +1295,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   rows={3}
                   value={metaDescription}
                   onChange={e => setMetaDescription(e.target.value)}
+                  placeholder="Write a clear summary that search engines show in search results..."
                 />
               </div>
 
@@ -1126,6 +1306,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   className="styled-input"
                   value={canonicalUrl}
                   onChange={e => setCanonicalUrl(e.target.value)}
+                  placeholder="https://natureglow.com/products/lavender-wash"
                 />
               </div>
 
@@ -1138,6 +1319,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={ogTitle}
                     onChange={e => setOgTitle(e.target.value)}
+                    placeholder="Social share title"
                   />
                 </div>
                 <div className="input-wrapper">
@@ -1147,6 +1329,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={ogImage}
                     onChange={e => setOgImage(e.target.value)}
+                    placeholder="Leave empty to use main product cover image"
                   />
                 </div>
               </div>
@@ -1158,21 +1341,23 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   rows={2}
                   value={ogDescription}
                   onChange={e => setOgDescription(e.target.value)}
+                  placeholder="Social share description..."
                 />
               </div>
 
+              {/* Google search preview */}
               <div style={{ background: '#F9FAFB', border: '1px dashed #D1D5DB', padding: 18, borderRadius: 12, marginTop: 24 }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9CA3AF', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>Google Desktop Snippet Preview:</span>
-                <h4 style={{ margin: '0 0 4px 0', color: '#1A0DAB', fontSize: '1.05rem', fontWeight: 600 }}>{metaTitle || name}</h4>
-                <span style={{ color: '#006621', fontSize: '0.78rem', display: 'block', marginBottom: 4 }}>https://yourstore.com/products/{slug}</span>
+                <h4 style={{ margin: '0 0 4px 0', color: '#1A0DAB', fontSize: '1.05rem', fontWeight: 600 }}>{metaTitle || name || 'Product Title Page'}</h4>
+                <span style={{ color: '#006621', fontSize: '0.78rem', display: 'block', marginBottom: 4 }}>https://yourstore.com/products/{slug || 'slug-url'}</span>
                 <p style={{ margin: 0, color: '#545454', fontSize: '0.82rem', lineHeight: 1.4 }}>
-                  {metaDescription || description?.substring(0, 150) || 'No meta description configured.'}
+                  {metaDescription || description?.substring(0, 150) || 'Write a meta description tag to see how this product listing will present in search engines results...'}
                 </p>
               </div>
             </div>
           )}
 
-          {/* TAB 8: MARKETING */}
+          {/* TAB 8: MARKETING CONTROLS */}
           {activeTab === 'marketing' && (
             <div>
               <div className="panel-header">
@@ -1200,7 +1385,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </div>
                 <div className="checkbox-row">
                   <input type="checkbox" id="flashSale" checked={flashSale} onChange={e => setFlashSale(e.target.checked)} />
-                  <label htmlFor="flashSale">⚡ Flash Sale</label>
+                  <label htmlFor="flashSale">⚡ Flash Sale (render discount timer)</label>
                 </div>
                 <div className="checkbox-row">
                   <input type="checkbox" id="dealOfTheDay" checked={dealOfTheDay} onChange={e => setDealOfTheDay(e.target.checked)} />
@@ -1250,7 +1435,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   className="styled-input"
                   value={tagsInput}
                   onChange={e => setTagsInput(e.target.value)}
+                  placeholder="e.g. natural, skincare, toner, summer-sale"
                 />
+                <span style={{ fontSize: '0.72rem', color: '#9CA3AF', marginTop: 4 }}>Tags help users filter products inside collections.</span>
               </div>
             </div>
           )}
@@ -1273,6 +1460,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={newQuestion}
                     onChange={e => setNewQuestion(e.target.value)}
+                    placeholder="e.g. How long does one bottle last?"
                   />
                 </div>
                 <div className="input-wrapper">
@@ -1282,6 +1470,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     rows={2}
                     value={newAnswer}
                     onChange={e => setNewAnswer(e.target.value)}
+                    placeholder="e.g. Typically 30-45 days with recommended twice-daily usage."
                   />
                 </div>
                 <button type="button" className="btn-primary" onClick={addFaq}>Add FAQ Item</button>
@@ -1290,7 +1479,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               {/* FAQs list */}
               <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 15 }}>Product FAQs ({faqs.length})</h4>
               {faqs.length === 0 ? (
-                <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>No FAQs added yet.</p>
+                <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>No FAQs added to this product yet.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {faqs.map((faq, idx) => (
@@ -1299,7 +1488,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                         <h5 style={{ margin: '0 0 4px 0', fontSize: '0.9rem', fontWeight: 700 }}>{faq.question}</h5>
                         <p style={{ margin: 0, fontSize: '0.82rem', color: '#6B7280' }}>{faq.answer}</p>
                       </div>
-                      <button type="button" className="btn-danger-sm" onClick={() => removeFaq(faq.id || faq.question)} style={{ padding: '6px 8px' }}><Icons.Trash /></button>
+                      <button type="button" className="btn-danger-sm" onClick={() => removeFaq(idx)} style={{ padding: '6px 8px' }}><Icons.Trash /></button>
                     </div>
                   ))}
                 </div>
@@ -1321,6 +1510,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   id="enableReviews"
                   checked={enableReviews}
                   onChange={e => setEnableReviews(e.target.checked)}
+                  style={{ width: 18, height: 18 }}
                 />
                 <label htmlFor="enableReviews">Enable customer review submissions and star ratings for this product</label>
               </div>
@@ -1331,9 +1521,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   id="verifiedOnly"
                   checked={verifiedOnly}
                   onChange={e => setVerifiedOnly(e.target.checked)}
+                  style={{ width: 18, height: 18 }}
                   disabled={!enableReviews}
                 />
-                <label htmlFor="verifiedOnly" style={!enableReviews ? { color: '#9CA3AF' } : {}}>Only accept reviews from verified buyers</label>
+                <label htmlFor="verifiedOnly" style={!enableReviews ? { color: '#9CA3AF' } : {}}>Only accept reviews from verified buyers (purchased through storefront)</label>
               </div>
             </div>
           )}
@@ -1347,12 +1538,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Supplier Name</label>
+                <label className="input-label">Supplier/Vendor Name</label>
                 <input
                   type="text"
                   className="styled-input"
                   value={supplierName}
                   onChange={e => setSupplierName(e.target.value)}
+                  placeholder="e.g. Organic Labs Ltd."
                 />
               </div>
 
@@ -1365,6 +1557,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={supplierCost}
                     onChange={e => setSupplierCost(e.target.value)}
+                    placeholder="Sourcing price per unit"
                   />
                 </div>
                 <div className="input-wrapper">
@@ -1374,6 +1567,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={supplierLink}
                     onChange={e => setSupplierLink(e.target.value)}
+                    placeholder="https://supplier.com/orders/..."
                   />
                 </div>
               </div>
@@ -1396,14 +1590,15 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     className="styled-input"
                     value={sortOrder}
                     onChange={e => setSortOrder(e.target.value)}
+                    placeholder="e.g. 0 (lower index sorts first)"
                   />
                 </div>
                 <div className="input-wrapper">
                   <label className="input-label">Storefront Visibility</label>
                   <select className="styled-select" value={visibility} onChange={e => setVisibility(e.target.value)}>
                     <option value="visible">Visible in Catalog and Search</option>
-                    <option value="catalog_only">Visible in Catalog only</option>
-                    <option value="search_only">Visible in Search only</option>
+                    <option value="catalog_only">Visible in Catalog only (Hide from search)</option>
+                    <option value="search_only">Visible in Search only (Hide from catalog listing)</option>
                     <option value="hidden">Hidden completely (Unlisted)</option>
                   </select>
                 </div>
@@ -1417,6 +1612,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   id="isDigital"
                   checked={isDigital}
                   onChange={e => setIsDigital(e.target.checked)}
+                  style={{ width: 19, height: 19 }}
                 />
                 <label htmlFor="isDigital" style={{ fontSize: '0.92rem' }}>This is a digital product (e.g., Ebook, Course download, License key)</label>
               </div>
@@ -1432,6 +1628,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       className="styled-input"
                       value={downloadUrl}
                       onChange={e => setDownloadUrl(e.target.value)}
+                      placeholder="https://storage.yoursite.com/downloads/ebook.pdf"
                     />
                   </div>
 
@@ -1443,6 +1640,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                         className="styled-input"
                         value={downloadLimit}
                         onChange={e => setDownloadLimit(e.target.value)}
+                        placeholder="e.g. 3 (leave empty for unlimited)"
                       />
                     </div>
                     <div className="input-wrapper" style={{ marginBottom: 0 }}>
@@ -1452,6 +1650,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                         className="styled-input"
                         value={licenseKey}
                         onChange={e => setLicenseKey(e.target.value)}
+                        placeholder="e.g. KEY-XXXXX-XXXXX"
                       />
                     </div>
                   </div>

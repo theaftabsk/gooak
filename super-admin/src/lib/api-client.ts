@@ -186,11 +186,22 @@ export const catalogApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     }),
 
-  updateOrderStatus: async (id: string, status: string, note?: string, token?: string) =>
+  updateOrderStatus: async (id: string, status: string, note?: string, extra?: {
+    courier_name?: string;
+    tracking_number?: string;
+    tracking_url?: string;
+    dispatched_at?: string;
+    expected_delivery_at?: string;
+    fulfillment_status?: string;
+    staff_notes?: string;
+    return_status?: string;
+    paid_amount?: number;
+    payment_method?: string;
+  }, token?: string) =>
     request<any>(`/catalog/admin/orders/${id}/status`, {
       method: 'PATCH',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify({ status, note }),
+      body: JSON.stringify({ status, note, ...(extra || {}) }),
     }),
 
   // ── Review Management ──────────────────────────────────────────────────────

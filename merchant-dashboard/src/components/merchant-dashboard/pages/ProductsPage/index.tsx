@@ -140,74 +140,16 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
           <h2>Products Registry</h2>
           <p className="header-sub">{products.length} products listed in database</p>
         </div>
-        {!showAddForm && (
-          <button className="btn-primary" onClick={() => { resetForm(); setShowAddForm(true); }}>
-            <Icons.Plus /> Add New Product
-          </button>
-        )}
+        <button
+          className="btn-primary"
+          onClick={() => {
+            const base = window.location.pathname.startsWith('/dashboard') ? '/dashboard' : '/admin';
+            navigate(`${base}/products/new`);
+          }}
+        >
+          <Icons.Plus /> Add New Product
+        </button>
       </header>
-
-      {/* Add New Product Form */}
-      {showAddForm && (
-        <div className="card" style={{ marginBottom: 30 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h3 style={{ margin: 0 }}>Add New Product</h3>
-            <button className="btn-ghost-sm" onClick={() => setShowAddForm(false)}><Icons.X /> Cancel</button>
-          </div>
-          <form onSubmit={handleCreateSubmit} className="form-grid">
-            <div className="form-row">
-              <div className="field-group">
-                <label>Product Name *</label>
-                <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Lavender Face Wash" />
-              </div>
-              <div className="field-group">
-                <label>Master SKU</label>
-                <input value={sku} onChange={e => setSku(e.target.value)} placeholder="e.g. LAV-FW-100" />
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="field-group">
-                <label>Price (INR) *</label>
-                <input required type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 299.00" />
-              </div>
-              <div className="field-group">
-                <label>Compare Price (INR)</label>
-                <input type="number" step="0.01" value={comparePrice} onChange={e => setComparePrice(e.target.value)} placeholder="e.g. 399.00" />
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="field-group">
-                <label>Category</label>
-                <select value={catId} onChange={e => setCatId(e.target.value)}>
-                  <option value="">— Select Category —</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="field-group">
-                <label>Brand</label>
-                <select value={brandId} onChange={e => setBrandId(e.target.value)}>
-                  <option value="">— Select Brand —</option>
-                  {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              </div>
-              <div className="field-group">
-                <label>Status</label>
-                <select value={status} onChange={e => setStatus(e.target.value)}>
-                  <option value="active">Active</option>
-                  <option value="draft">Draft</option>
-                </select>
-              </div>
-            </div>
-            <div className="field-group">
-              <label>Description</label>
-              <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="Provide details about product uses, benefits, and ingredients..." />
-            </div>
-            <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-start' }} disabled={creating}>
-              {creating ? 'Creating Product…' : 'Publish Product'}
-            </button>
-          </form>
-        </div>
-      )}
 
       {/* Product Listings Table */}
       <div className="card">
