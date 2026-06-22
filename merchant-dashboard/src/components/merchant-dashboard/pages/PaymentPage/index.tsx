@@ -250,7 +250,7 @@ export const PaymentPage: React.FC = () => {
   const loadGateways = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await paymentApi.getAdminPaymentGateways();
+      const data = await paymentApi.getMerchantGateways();
       const list: any[] = Array.isArray(data) ? data : [];
       setGateways(list);
       
@@ -291,7 +291,7 @@ export const PaymentPage: React.FC = () => {
 
     setTogglingId(gateway.id);
     try {
-      await paymentApi.updateAdminPaymentGateway(gateway.id, { is_active: !gateway.is_active });
+      await paymentApi.updateGateway(gateway.id, { is_active: !gateway.is_active });
       setGateways(prev => prev.map(g => g.id === gateway.id ? { ...g, is_active: !gateway.is_active } : g));
     } catch (err: any) {
       alert(err.message || 'Failed to update gateway status');
@@ -307,7 +307,7 @@ export const PaymentPage: React.FC = () => {
     if (!rzpKeyId.trim() || !rzpKeySecret.trim()) { alert('Both Key ID and Key Secret are required.'); return; }
     setSavingRzp(true);
     try {
-      await paymentApi.updateAdminPaymentGateway(rzp.id, { config: { key_id: rzpKeyId.trim(), key_secret: rzpKeySecret.trim() } });
+      await paymentApi.updateGateway(rzp.id, { config: { key_id: rzpKeyId.trim(), key_secret: rzpKeySecret.trim() } });
       setRzpSaved(true);
       setTimeout(() => setRzpSaved(false), 3000);
       setIsEditingKeys(false);

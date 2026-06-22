@@ -10,7 +10,7 @@ import {
 import { Request } from 'express';
 import { CustomerService } from './customer.service';
 
-@Controller('api/v1/catalog/customer')
+@Controller('api/v1/customer')
 export class CustomerController {
   constructor(private readonly customerService: CustomerService) {}
 

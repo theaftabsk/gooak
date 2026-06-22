@@ -65,19 +65,21 @@ model Shop {
   testimonials      Testimonial[]
   home_sections     HomeSection[]
   pages             Page[]
+  subscription      ShopSubscription?
 
   @@map("shops")
 }
 
 model ShopDomain {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  shop_id     String    @db.Uuid
-  domain      String    @unique @db.VarChar(255)
-  type        String    @default("subdomain") @db.VarChar(20)
-  is_primary  Boolean   @default(false)
-  status      String    @default("pending") @db.VarChar(30)
-  verified_at DateTime? @db.Timestamptz
-  created_at  DateTime  @default(now()) @db.Timestamptz
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id                String    @db.Uuid
+  domain                 String    @unique @db.VarChar(255)
+  type                   String    @default("subdomain") @db.VarChar(20)
+  is_primary             Boolean   @default(false)
+  status                 String    @default("pending") @db.VarChar(30)
+  dns_verification_token String?   @db.VarChar(64)
+  verified_at            DateTime? @db.Timestamptz
+  created_at             DateTime  @default(now()) @db.Timestamptz
 
   shop        Shop      @relation(fields: [shop_id], references: [id], onDelete: Cascade)
 
@@ -936,4 +938,140 @@ model HomeSection {
 
   @@unique([shop_id, section_key])
   @@map("home_sections")
+}
+// ─── Subscription System ──────────────────────────────────────────────────────
+
+model PromoCode {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code             String             @unique @db.VarChar(60)
+  description      String?            @db.Text
+  discount_type    String             @db.VarChar(20)
+  discount_value   Decimal            @db.Decimal(10, 2)
+  applicable_plans String[]           @default([])
+  max_uses         Int?
+  used_count       Int                @default(0)
+  starts_at        DateTime?          @db.Timestamptz
+  expires_at       DateTime?          @db.Timestamptz
+  is_active        Boolean            @default(true)
+  created_at       DateTime           @default(now()) @db.Timestamptz
+
+  subscriptions    ShopSubscription[]
+
+  @@map("promo_codes")
+}
+
+model SubscriptionAddon {
+  id          String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String                  @db.VarChar(100)
+  slug        String                  @unique @db.VarChar(60)
+  description String?                 @db.Text
+  price       Decimal                 @db.Decimal(10, 2)
+  interval    String                  @default("monthly") @db.VarChar(20)
+  is_active   Boolean                 @default(true)
+  created_at  DateTime                @default(now()) @db.Timestamptz
+
+  shop_addons ShopSubscriptionAddon[]
+  plan_addons PlanAddon[]
+
+  @@map("subscription_addons")
+}
+
+model PlanAddon {
+  plan_id     String            @db.Uuid
+  addon_id    String            @db.Uuid
+  is_included Boolean           @default(false)
+
+  plan        SubscriptionPlan  @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+  addon       SubscriptionAddon @relation(fields: [addon_id], references: [id], onDelete: Cascade)
+
+  @@id([plan_id, addon_id])
+  @@map("plan_addons")
+}
+
+model SubscriptionPlan {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String             @db.VarChar(100)
+  slug         String             @unique @db.VarChar(60)
+  level        Int                @default(0)
+  is_free      Boolean            @default(false)
+  price        Decimal            @default(0) @db.Decimal(10, 2)
+  interval     String             @default("monthly") @db.VarChar(20)
+  max_products Int                @default(50)
+  max_orders   Int                @default(100)
+  features     String[]           @default([])
+  is_active    Boolean            @default(true)
+  sort_order   Int                @default(0)
+  created_at   DateTime           @default(now()) @db.Timestamptz
+
+  subscriptions ShopSubscription[]
+  plan_addons   PlanAddon[]
+
+  @@map("subscription_plans")
+}
+
+model ShopSubscription {
+  id                     String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id                String                  @unique @db.Uuid
+  plan_id                String                  @db.Uuid
+  promo_code_id          String?                 @db.Uuid
+  status                 String                  @default("active") @db.VarChar(30)
+  is_trial               Boolean                 @default(false)
+  trial_ends_at          DateTime?               @db.Timestamptz
+  started_at             DateTime                @default(now()) @db.Timestamptz
+  current_period_start   DateTime?               @db.Timestamptz
+  current_period_end     DateTime?               @db.Timestamptz
+  next_payment_at        DateTime?               @db.Timestamptz
+  cancelled_at           DateTime?               @db.Timestamptz
+  cancel_reason          String?                 @db.Text
+  payment_status         String                  @default("not_required") @db.VarChar(30)
+  last_payment_at        DateTime?               @db.Timestamptz
+  last_payment_failed_at DateTime?               @db.Timestamptz
+  payment_failure_reason String?                 @db.Text
+  discount_amount        Decimal                 @default(0) @db.Decimal(10, 2)
+  created_at             DateTime                @default(now()) @db.Timestamptz
+  updated_at             DateTime                @default(now()) @updatedAt @db.Timestamptz
+
+  shop       Shop                    @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  plan       SubscriptionPlan        @relation(fields: [plan_id], references: [id])
+  promo_code PromoCode?              @relation(fields: [promo_code_id], references: [id], onDelete: SetNull)
+  addons     ShopSubscriptionAddon[]
+  payments   SubscriptionPayment[]
+
+  @@map("shop_subscriptions")
+}
+
+model ShopSubscriptionAddon {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subscription_id String            @db.Uuid
+  addon_id        String            @db.Uuid
+  quantity        Int               @default(1)
+  started_at      DateTime          @default(now()) @db.Timestamptz
+
+  subscription    ShopSubscription  @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
+  addon           SubscriptionAddon @relation(fields: [addon_id], references: [id], onDelete: Cascade)
+
+  @@unique([subscription_id, addon_id])
+  @@map("shop_subscription_addons")
+}
+
+model SubscriptionPayment {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subscription_id String           @db.Uuid
+  amount          Decimal          @db.Decimal(10, 2)
+  currency        String           @default("USD") @db.Char(3)
+  status          String           @db.VarChar(30)
+  gateway         String?          @db.VarChar(60)
+  transaction_id  String?          @unique @db.VarChar(255)
+  invoice_url     String?          @db.Text
+  promo_code      String?          @db.VarChar(60)
+  discount        Decimal          @default(0) @db.Decimal(10, 2)
+  paid_at         DateTime?        @db.Timestamptz
+  failed_at       DateTime?        @db.Timestamptz
+  failure_reason  String?          @db.Text
+  created_at      DateTime         @default(now()) @db.Timestamptz
+
+  subscription    ShopSubscription @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
+
+  @@index([subscription_id], name: "idx_sub_payments_sub")
+  @@map("subscription_payments")
 }

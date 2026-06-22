@@ -4,86 +4,112 @@ const path = require('path');
 
 const ROOT_DIR = path.join(__dirname, '..');
 
-// Clean and colorful terminal console helper
 function log(message, type = 'info') {
   const colors = {
-    info: '\x1b[36m[INFO]\x1b[0m',     // Cyan
-    success: '\x1b[32m[SUCCESS]\x1b[0m', // Green
-    warning: '\x1b[33m[WARNING]\x1b[0m', // Yellow
-    error: '\x1b[31m[ERROR]\x1b[0m'     // Red
+    info:    '\x1b[36m[INFO]\x1b[0m',
+    success: '\x1b[32m[SUCCESS]\x1b[0m',
+    warning: '\x1b[33m[WARNING]\x1b[0m',
+    error:   '\x1b[31m[ERROR]\x1b[0m',
   };
   console.log(`${colors[type]} ${message}`);
 }
 
 function ensureEnv(envPath, defaultContent) {
-  const resolvedPath = path.join(ROOT_DIR, envPath);
-  if (!fs.existsSync(resolvedPath)) {
-    log(`Creating environment configuration for ${envPath}...`, 'warning');
-    fs.writeFileSync(resolvedPath, defaultContent.trim() + '\n', 'utf-8');
-    log(`${envPath} created successfully with defaults.`, 'success');
+  const resolved = path.join(ROOT_DIR, envPath);
+  if (!fs.existsSync(resolved)) {
+    log(`Creating ${envPath} with dev defaults...`, 'warning');
+    fs.writeFileSync(resolved, defaultContent.trimStart(), 'utf-8');
+    log(`${envPath} created.`, 'success');
   } else {
-    log(`${envPath} already exists. Skipping.`, 'info');
+    log(`${envPath} already exists — skipping.`, 'info');
   }
 }
 
+function run(cmd, cwd = ROOT_DIR) {
+  execSync(cmd, { cwd, stdio: 'inherit' });
+}
+
 function main() {
-  console.log('\n🚀 Starting Oak Commerce Project Setup & Bootstrap...\n');
+  console.log('\n========================================');
+  console.log('  Oak Commerce — Dev Setup');
+  console.log('========================================\n');
 
-  // 1. Run pnpm install
-  log('Installing project dependencies...', 'info');
+  // ── 1. Install dependencies ──────────────────────────────────────────────
+  log('Installing dependencies...', 'info');
   try {
-    execSync('pnpm install', { cwd: ROOT_DIR, stdio: 'inherit' });
-    log('Dependencies installed successfully.', 'success');
-  } catch (error) {
-    log('Failed to install dependencies. Make sure pnpm is installed globally.', 'error');
+    run('pnpm install');
+    log('Dependencies installed.', 'success');
+  } catch {
+    log('pnpm install failed. Make sure pnpm is installed globally.', 'error');
     process.exit(1);
   }
 
-  // 2. Setup environment files
+  // ── 2. Create .env files with correct dev values ─────────────────────────
   ensureEnv('backend/.env', `
-# Database configuration (Local PostgreSQL Docker Container)
+NODE_ENV=development
+PORT=5001
 DATABASE_URL="postgresql://postgres:local_password_123@localhost:5433/oak_commerce?schema=public"
-
-# Application configurations
-PORT=5005
-
-# JWT Authentication secret
 JWT_SECRET="oaksol-commerce-jwt-secret-key-replace-in-production"
-
-# SaaS platform root domain
 PLATFORM_DOMAIN="posix.digital"
-  `);
+PLATFORM_ADMIN_EMAIL="admin@oaksol.in"
+PLATFORM_ADMIN_PASSWORD="admin1234"
+`);
 
-  ensureEnv('merchant-dashboard/.env', `
+  ensureEnv('merchant-dashboard/.env.local', `
 NEXT_PUBLIC_PLATFORM_DOMAIN=posix.digital
-NEXT_PUBLIC_API_URL=http://localhost:5005/api/v1
-  `);
+NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
+`);
 
-  ensureEnv('storefront-live/.env', `
+  ensureEnv('storefront-live/.env.local', `
 NEXT_PUBLIC_PLATFORM_DOMAIN=posix.digital
-NEXT_PUBLIC_API_URL=http://localhost:5005/api/v1
-  `);
+NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
+`);
 
-  ensureEnv('super-admin/.env', `
+  ensureEnv('super-admin/.env.local', `
 NEXT_PUBLIC_PLATFORM_DOMAIN=posix.digital
-NEXT_PUBLIC_API_URL=http://localhost:5005/api/v1
-  `);
+NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
+`);
 
-  // 3. Setup and seed database
-  log('Starting PostgreSQL container & running migrations/seeds...', 'info');
+  // ── 3. Push both Prisma schemas → generate clients → seed ────────────────
+  log('Pushing database schemas (central + tenant)...', 'info');
   try {
-    execSync('pnpm run db:bootstrap', { cwd: ROOT_DIR, stdio: 'inherit' });
-    log('Database bootstrap sequence completed successfully.', 'success');
-  } catch (error) {
-    log('Database bootstrap failed. Make sure Docker is running and active.', 'error');
+    run('pnpm run db:push');
+    log('Schemas pushed.', 'success');
+  } catch {
+    log('db:push failed. Is PostgreSQL running? Check DATABASE_URL in backend/.env', 'error');
     process.exit(1);
   }
 
-  console.log('\n=============================================================');
-  log('🎉 Setup completed successfully!', 'success');
-  log('Run the following command to start all services in development mode:', 'info');
-  console.log('   pnpm run dev:all');
-  console.log('=============================================================\n');
+  log('Generating Prisma clients...', 'info');
+  try {
+    run('pnpm run db:generate');
+    log('Prisma clients generated.', 'success');
+  } catch {
+    log('Prisma generate failed.', 'error');
+    process.exit(1);
+  }
+
+  log('Seeding database (admin account + test shop + free plan)...', 'info');
+  try {
+    run('pnpm run db:seed');
+    log('Database seeded.', 'success');
+  } catch {
+    log('Seed failed — check backend/scripts/seed.ts for errors.', 'error');
+    process.exit(1);
+  }
+
+  console.log('\n========================================');
+  log('Setup complete!', 'success');
+  console.log('\n  Start all services:');
+  console.log('    pnpm run dev:all\n');
+  console.log('  Or backend only:');
+  console.log('    pnpm run dev:backend\n');
+  console.log('  Admin login:');
+  console.log('    http://localhost:3002');
+  console.log('    admin@oaksol.in / admin1234\n');
+  console.log('  Test storefront:');
+  console.log('    http://testshop.localhost:3001');
+  console.log('========================================\n');
 }
 
 main();

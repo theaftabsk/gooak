@@ -143,6 +143,7 @@ exports.Prisma.ShopDomainScalarFieldEnum = {
   type: 'type',
   is_primary: 'is_primary',
   status: 'status',
+  dns_verification_token: 'dns_verification_token',
   verified_at: 'verified_at',
   created_at: 'created_at'
 };
@@ -549,6 +550,102 @@ exports.Prisma.TenantRequestScalarFieldEnum = {
   updated_at: 'updated_at'
 };
 
+exports.Prisma.PromoCodeScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  description: 'description',
+  discount_type: 'discount_type',
+  discount_value: 'discount_value',
+  applicable_plans: 'applicable_plans',
+  max_uses: 'max_uses',
+  used_count: 'used_count',
+  starts_at: 'starts_at',
+  expires_at: 'expires_at',
+  is_active: 'is_active',
+  created_at: 'created_at'
+};
+
+exports.Prisma.SubscriptionAddonScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  slug: 'slug',
+  description: 'description',
+  price: 'price',
+  interval: 'interval',
+  is_active: 'is_active',
+  created_at: 'created_at'
+};
+
+exports.Prisma.PlanAddonScalarFieldEnum = {
+  plan_id: 'plan_id',
+  addon_id: 'addon_id',
+  is_included: 'is_included'
+};
+
+exports.Prisma.SubscriptionPlanScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  slug: 'slug',
+  level: 'level',
+  is_free: 'is_free',
+  price: 'price',
+  interval: 'interval',
+  max_products: 'max_products',
+  max_orders: 'max_orders',
+  features: 'features',
+  is_active: 'is_active',
+  sort_order: 'sort_order',
+  created_at: 'created_at'
+};
+
+exports.Prisma.ShopSubscriptionScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  plan_id: 'plan_id',
+  promo_code_id: 'promo_code_id',
+  status: 'status',
+  is_trial: 'is_trial',
+  trial_ends_at: 'trial_ends_at',
+  started_at: 'started_at',
+  current_period_start: 'current_period_start',
+  current_period_end: 'current_period_end',
+  next_payment_at: 'next_payment_at',
+  cancelled_at: 'cancelled_at',
+  cancel_reason: 'cancel_reason',
+  payment_status: 'payment_status',
+  last_payment_at: 'last_payment_at',
+  last_payment_failed_at: 'last_payment_failed_at',
+  payment_failure_reason: 'payment_failure_reason',
+  discount_amount: 'discount_amount',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.ShopSubscriptionAddonScalarFieldEnum = {
+  id: 'id',
+  subscription_id: 'subscription_id',
+  addon_id: 'addon_id',
+  quantity: 'quantity',
+  started_at: 'started_at'
+};
+
+exports.Prisma.SubscriptionPaymentScalarFieldEnum = {
+  id: 'id',
+  subscription_id: 'subscription_id',
+  amount: 'amount',
+  currency: 'currency',
+  status: 'status',
+  gateway: 'gateway',
+  transaction_id: 'transaction_id',
+  invoice_url: 'invoice_url',
+  promo_code: 'promo_code',
+  discount: 'discount',
+  paid_at: 'paid_at',
+  failed_at: 'failed_at',
+  failure_reason: 'failure_reason',
+  created_at: 'created_at'
+};
+
 exports.Prisma.PlatformAdminScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -752,6 +849,13 @@ exports.Prisma.ModelName = {
   Notification: 'Notification',
   Banner: 'Banner',
   TenantRequest: 'TenantRequest',
+  PromoCode: 'PromoCode',
+  SubscriptionAddon: 'SubscriptionAddon',
+  PlanAddon: 'PlanAddon',
+  SubscriptionPlan: 'SubscriptionPlan',
+  ShopSubscription: 'ShopSubscription',
+  ShopSubscriptionAddon: 'ShopSubscriptionAddon',
+  SubscriptionPayment: 'SubscriptionPayment',
   PlatformAdmin: 'PlatformAdmin',
   SystemSetting: 'SystemSetting',
   Tag: 'Tag',
