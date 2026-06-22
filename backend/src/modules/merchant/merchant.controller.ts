@@ -648,11 +648,21 @@ export class MerchantController {
   @Post('domains')
   async addDomain(
     @Req() req: Request & { shopId?: string },
-    @Body() dto: { domain: string; type?: string },
+    @Body() dto: { domain: string },
   ) {
     const shopId = req.shopId;
     if (!shopId) throw new BadRequestException('Shop context missing');
     return this.merchantService.addShopDomain(shopId, dto);
+  }
+
+  @Post('domains/:id/verify')
+  async verifyDomain(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.verifyDomain(shopId, id);
   }
 
   @Patch('domains/:id/primary')

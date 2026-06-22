@@ -143,6 +143,7 @@ exports.Prisma.ShopDomainScalarFieldEnum = {
   type: 'type',
   is_primary: 'is_primary',
   status: 'status',
+  dns_verification_token: 'dns_verification_token',
   verified_at: 'verified_at',
   created_at: 'created_at'
 };

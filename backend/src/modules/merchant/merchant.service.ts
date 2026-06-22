@@ -840,48 +840,105 @@ export class MerchantService {
 
   // Get domains mapped to the shop
   async getShopDomains(shopId: string) {
-    return this.prisma.shopDomain.findMany({
+    const platformDomain = process.env.PLATFORM_DOMAIN || 'posix.digital';
+    const domains = await this.prisma.shopDomain.findMany({
       where: { shop_id: shopId },
       orderBy: { created_at: 'asc' },
     });
+    return domains.map((d) => ({
+      ...d,
+      dns_instructions: d.type === 'custom' && d.status === 'pending'
+        ? this.buildDnsInstructions(d.domain, d.dns_verification_token!, platformDomain)
+        : null,
+    }));
   }
 
-  // Add custom domain / subdomain
-  async addShopDomain(shopId: string, dto: { domain: string; type?: string }) {
+  // Add a domain. Subdomains auto-verify; custom domains get a TXT token to add to DNS.
+  async addShopDomain(shopId: string, dto: { domain: string }) {
     const domainLower = dto.domain.trim().toLowerCase();
-    const existing = await this.prisma.shopDomain.findUnique({
-      where: { domain: domainLower },
-    });
-    if (existing) {
-      throw new BadRequestException('This domain mapping is already in use by another shop.');
+    const platformDomain = process.env.PLATFORM_DOMAIN || 'posix.digital';
+
+    const existing = await this.prisma.shopDomain.findUnique({ where: { domain: domainLower } });
+    if (existing) throw new BadRequestException('This domain is already in use by another shop.');
+
+    const isSubdomain =
+      domainLower.endsWith(`.${platformDomain}`) || domainLower.endsWith('.localhost');
+
+    if (isSubdomain) {
+      // Platform subdomain — no verification needed
+      return this.prisma.shopDomain.create({
+        data: {
+          shop_id: shopId,
+          domain: domainLower,
+          type: 'subdomain',
+          is_primary: false,
+          status: 'active',
+          verified_at: new Date(),
+        },
+      });
     }
 
-    return this.prisma.shopDomain.create({
+    // Custom domain — generate TXT token, merchant must add it to their DNS before it goes live
+    const token = `oak-verify=${this.generateVerificationToken()}`;
+    const record = await this.prisma.shopDomain.create({
       data: {
         shop_id: shopId,
         domain: domainLower,
-        type: dto.type || 'custom',
+        type: 'custom',
         is_primary: false,
-        status: 'active',
-        verified_at: new Date(),
+        status: 'pending',
+        dns_verification_token: token,
       },
+    });
+
+    return {
+      ...record,
+      dns_instructions: this.buildDnsInstructions(domainLower, token, platformDomain),
+    };
+  }
+
+  // Verify a custom domain by checking DNS TXT record
+  async verifyDomain(shopId: string, domainId: string) {
+    const domain = await this.prisma.shopDomain.findFirst({
+      where: { id: domainId, shop_id: shopId },
+    });
+    if (!domain) throw new NotFoundException('Domain not found.');
+    if (domain.type === 'subdomain') throw new BadRequestException('Subdomain verification is automatic.');
+    if (domain.status === 'active') return { verified: true, domain };
+
+    if (!domain.dns_verification_token) {
+      throw new BadRequestException('No verification token found for this domain.');
+    }
+
+    const verified = await this.checkDnsTxtRecord(domain.domain, domain.dns_verification_token);
+    if (!verified) {
+      const platformDomain = process.env.PLATFORM_DOMAIN || 'posix.digital';
+      throw new BadRequestException({
+        message: 'DNS TXT record not found yet. DNS propagation can take up to 48 hours.',
+        dns_instructions: this.buildDnsInstructions(domain.domain, domain.dns_verification_token, platformDomain),
+      });
+    }
+
+    return this.prisma.shopDomain.update({
+      where: { id: domainId },
+      data: { status: 'active', verified_at: new Date() },
     });
   }
 
-  // Set domain as primary
+  // Set domain as primary (only verified domains can be primary)
   async setPrimaryDomain(shopId: string, domainId: string) {
     const domain = await this.prisma.shopDomain.findFirst({
       where: { id: domainId, shop_id: shopId },
     });
-    if (!domain) {
-      throw new NotFoundException('Domain mapping not found.');
+    if (!domain) throw new NotFoundException('Domain not found.');
+    if (domain.status !== 'active') {
+      throw new BadRequestException('Only verified domains can be set as primary.');
     }
 
     await this.prisma.shopDomain.updateMany({
       where: { shop_id: shopId },
       data: { is_primary: false },
     });
-
     return this.prisma.shopDomain.update({
       where: { id: domainId },
       data: { is_primary: true },
@@ -893,13 +950,54 @@ export class MerchantService {
     const domain = await this.prisma.shopDomain.findFirst({
       where: { id: domainId, shop_id: shopId },
     });
-    if (!domain) {
-      throw new NotFoundException('Domain mapping not found.');
+    if (!domain) throw new NotFoundException('Domain not found.');
+    if (domain.type === 'subdomain') {
+      throw new BadRequestException('The platform subdomain cannot be removed.');
     }
     if (domain.is_primary) {
-      throw new BadRequestException('Cannot delete a primary domain. Set another domain as primary first.');
+      throw new BadRequestException('Cannot delete the primary domain. Set another domain as primary first.');
     }
     return this.prisma.shopDomain.delete({ where: { id: domainId } });
+  }
+
+  private generateVerificationToken(): string {
+    return require('crypto').randomBytes(20).toString('hex');
+  }
+
+  private buildDnsInstructions(domain: string, token: string, platformDomain: string) {
+    return {
+      step1: {
+        description: 'Add this TXT record to your domain DNS to verify ownership:',
+        record_type: 'TXT',
+        host: `_oak-verify.${domain}`,
+        value: token,
+      },
+      step2: {
+        description: 'Add a CNAME record to point your domain to the platform:',
+        record_type: 'CNAME',
+        host: domain.startsWith('www.') ? domain : `www.${domain}`,
+        value: `shops.${platformDomain}`,
+      },
+      step3: {
+        description: 'For root domain (@), add an A record or ALIAS pointing to the platform IP.',
+        note: 'Check your hosting provider — some support CNAME flattening at the root.',
+      },
+      note: 'DNS propagation can take up to 48 hours. Click "Verify" once the records are saved.',
+    };
+  }
+
+  private async checkDnsTxtRecord(domain: string, token: string): Promise<boolean> {
+    // In development, skip real DNS lookup — auto-pass so devs can test the full domain flow
+    if (process.env.NODE_ENV !== 'production') {
+      return true;
+    }
+    const dns = require('dns').promises;
+    try {
+      const records: string[][] = await dns.resolveTxt(`_oak-verify.${domain}`);
+      return records.flat().some((r) => r === token);
+    } catch {
+      return false;
+    }
   }
 
   // Get configurations overrides

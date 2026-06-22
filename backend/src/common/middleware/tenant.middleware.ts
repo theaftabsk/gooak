@@ -49,9 +49,9 @@ export class TenantMiddleware implements NestMiddleware {
     let shopId: string | undefined;
     let shopSlug: string | undefined;
 
-    // 1. Exact domain match in shop_domains registry (custom domains)
+    // 1. Exact domain match in shop_domains registry (only verified/active domains)
     const domainRecord = await this.prisma.shopDomain.findFirst({
-      where: { domain: { equals: hostname, mode: 'insensitive' } },
+      where: { domain: { equals: hostname, mode: 'insensitive' }, status: 'active' },
       select: { shop_id: true },
     });
 

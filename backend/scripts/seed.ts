@@ -35,7 +35,7 @@ async function main() {
         email: defaultAdminEmail,
         password_hash: passwordHash,
         is_owner: true,
-        permissions: ['SEED_DEMO'],
+        permissions: ['VIEW_SHOPS', 'VIEW_STATS', 'VIEW_REQUESTS', 'ONBOARD_SHOP', 'MANAGE_REQUESTS', 'DELETE_SHOP', 'MANAGE_TEAM'],
         status: 'active',
       },
     });
@@ -48,6 +48,24 @@ async function main() {
   const sampleShopSlug = process.env.DEV_SAMPLE_SHOP_SLUG ?? 'testShop';
   const sampleShopEmail = process.env.DEV_SAMPLE_SHOP_EMAIL ?? `owner@${sampleShopSlug}.localhost`;
   const sampleShopPassword = process.env.DEV_SAMPLE_SHOP_PASSWORD ?? 'ShopOwner@123';
+
+  // ── Free plan — must exist before any shop subscription can be assigned ──
+  const freePlan = await prisma.subscriptionPlan.upsert({
+    where: { slug: 'free' },
+    update: {},
+    create: {
+      name: 'Free',
+      slug: 'free',
+      level: 0,
+      is_free: true,
+      price: 0,
+      interval: 'monthly',
+      features: ['Up to 10 products', 'Basic storefront', 'Community support'],
+      is_active: true,
+      sort_order: 0,
+    },
+  });
+  console.log(`Subscription plan ready: ${freePlan.name}`);
 
   const existingShop = await prisma.shop.findUnique({ where: { slug: sampleShopSlug } });
   if (!existingShop) {
@@ -193,11 +211,37 @@ async function main() {
       });
     }
 
+    // Assign free plan subscription so middleware subscription check never blocks dev
+    await prisma.shopSubscription.create({
+      data: {
+        shop_id: sampleShop.id,
+        plan_id: freePlan.id,
+        status: 'active',
+        payment_status: 'not_required',
+        current_period_start: new Date(),
+      },
+    });
+
     console.log(`Created sample shop: ${sampleShop.slug}`);
     console.log(`Sample owner: ${sampleShopEmail}`);
     console.log(`Sample owner password: ${sampleShopPassword}`);
   } else {
     console.log(`Sample shop already exists: ${existingShop.slug}`);
+
+    // Ensure existing testShop also has a subscription (handles re-runs on existing DBs)
+    const hasSub = await prisma.shopSubscription.findUnique({ where: { shop_id: existingShop.id } });
+    if (!hasSub) {
+      await prisma.shopSubscription.create({
+        data: {
+          shop_id: existingShop.id,
+          plan_id: freePlan.id,
+          status: 'active',
+          payment_status: 'not_required',
+          current_period_start: new Date(),
+        },
+      });
+      console.log(`Assigned free plan to existing shop: ${existingShop.slug}`);
+    }
   }
 
   // Seed platform-wide System Settings

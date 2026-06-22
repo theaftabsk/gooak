@@ -299,8 +299,10 @@ export const merchantApi = {
 
   // Custom domains
   getDomains: () => request<any>('/merchant/domains'),
-  addDomain: (dto: { domain: string; type?: string }) =>
+  addDomain: (dto: { domain: string }) =>
     request<any>('/merchant/domains', { method: 'POST', body: JSON.stringify(dto) }),
+  verifyDomain: (id: string) =>
+    request<any>(`/merchant/domains/${id}/verify`, { method: 'POST' }),
   setPrimaryDomain: (id: string) =>
     request<any>(`/merchant/domains/${id}/primary`, { method: 'PATCH' }),
   deleteDomain: (id: string) => request<any>(`/merchant/domains/${id}`, { method: 'DELETE' }),
@@ -437,6 +439,7 @@ export const catalogApi = {
   deleteShopUser: merchantApi.deleteUser,
   getShopDomains: merchantApi.getDomains,
   addShopDomain: merchantApi.addDomain,
+  verifyDomain: merchantApi.verifyDomain,
   setPrimaryDomain: merchantApi.setPrimaryDomain,
   deleteShopDomain: merchantApi.deleteDomain,
   getConfigOverrides: merchantApi.getConfigs,
