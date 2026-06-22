@@ -4,27 +4,54 @@ Single NestJS application serving all tenants. Port **5005** in development.
 
 ## Module Structure
 
+Each NestJS module has three files: `*.module.ts` (wiring), `*.controller.ts` (routes), `*.service.ts` (business logic).
+
 ```
 src/
-├── modules/
-│   ├── catalog/
-│   │   ├── catalog.controller.ts       ← /api/v1/storefront/* (public storefront)
-│   │   ├── merchant.controller.ts      ← /api/v1/merchant/* (merchant admin)
-│   │   ├── platform-admin.controller.ts← /api/v1/platform/* (super-admin)
-│   │   ├── catalog.service.ts          ← shared service (storefront + merchant)
-│   │   └── catalog.module.ts
-│   ├── customer/                       ← /api/v1/customer/* (customer auth/account)
-│   ├── inventory/                      ← /api/v1/merchant/* (stock management)
-│   ├── payment/                        ← /api/v1/payments/* (Razorpay)
-│   └── reviews/                        ← /api/v1/merchant/* (product reviews)
+├── app.module.ts                        ← root — imports all modules, applies TenantMiddleware
+├── main.ts                              ← bootstrap, CORS, global filters, port
+│
+├── modules/                             ← one folder per API namespace
+│   ├── platform/                        ← /api/v1/platform/*  (super-admin only)
+│   │   ├── platform.module.ts
+│   │   ├── platform.controller.ts       ← verifies super_admin JWT on every route
+│   │   └── platform.service.ts          ← shops, admins, subscriptions, plans, promos
+│   │
+│   ├── merchant/                        ← /api/v1/merchant/*  (shop owner)
+│   │   ├── merchant.module.ts
+│   │   ├── merchant.controller.ts       ← products, orders, settings, domains, CMS
+│   │   ├── merchant.service.ts
+│   │   ├── inventory.controller.ts      ← stock adjustments, warehouse, logs
+│   │   ├── inventory.service.ts
+│   │   ├── reviews.controller.ts        ← product review moderation
+│   │   ├── reviews.service.ts
+│   │   └── dto/                         ← input validation shapes (CreateProductDto etc.)
+│   │
+│   ├── storefront/                      ← /api/v1/storefront/*  (public, no auth)
+│   │   ├── storefront.module.ts
+│   │   ├── storefront.controller.ts     ← homepage, products, categories, orders (place)
+│   │   └── storefront.service.ts
+│   │
+│   ├── customer/                        ← /api/v1/customer/*  (customer JWT required)
+│   │   ├── customer.module.ts
+│   │   ├── customer.controller.ts       ← register, login, profile, orders
+│   │   └── customer.service.ts
+│   │
+│   └── payment/                         ← /api/v1/payments/*
+│       ├── payment.module.ts
+│       ├── payment.controller.ts        ← Razorpay order/verify/webhook, gateway config
+│       └── payment.service.ts
+│
 ├── common/
-│   ├── middleware/tenant.middleware.ts  ← resolves shopId from hostname
+│   ├── middleware/tenant.middleware.ts  ← resolves shopId from hostname on every request
 │   ├── utils/permissions.ts            ← platform admin permission checks
 │   └── filters/http-exception.filter.ts
+│
 └── database/
-    ├── prisma.service.ts               ← central DB client
-    ├── tenant-context.ts               ← AsyncLocalStorage for tenant DB
-    └── tenant-connection-pool.service.ts
+    ├── prisma.module.ts                 ← @Global() — exports PrismaService + TenantPrismaService
+    ├── prisma.service.ts                ← wraps central Prisma client
+    ├── tenant-prisma.service.ts         ← Proxy — reads shopId from AsyncLocalStorage per call
+    └── tenant-context.ts               ← AsyncLocalStorage + singleton tenant PrismaClient
 ```
 
 ## API Route Map

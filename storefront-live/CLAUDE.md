@@ -21,11 +21,19 @@ Do NOT call `merchantApi` or `platformApi` from this app — those routes requir
 
 The deprecated `catalogApi` export is a compatibility shim. Migrate to the named exports.
 
-## Tenant Context
+## URL Structure
 
-Tenant is resolved entirely from the window hostname. No `localStorage` slug lookup needed — the hostname IS the shop identifier.
+| Environment | URL pattern | Example |
+|---|---|---|
+| Dev (localhost) | `localhost:3001/{shop}/{page}` | `localhost:3001/amir/products` |
+| Prod subdomain | `{shop}.posix.digital/{page}` | `amir.posix.digital/products` |
+| Prod custom domain | `www.mystore.com/{page}` | `www.mystore.com/products` |
 
-On localhost port 3001, the backend falls back to the first active shop.
+## Tenant Resolution
+
+- **localhost**: shop slug is the first URL path segment (`/amir/...`). `src/middleware.ts` does nothing; `api-client.ts` reads the slug from `pathname` and sends `X-Tenant-Domain: amir.localhost` to the backend.
+- **subdomain** (`amir.posix.digital` or `amir.localhost`): `src/middleware.ts` rewrites the request internally to `/amir/{path}` so the React Router basename stays consistent.
+- **custom domain** (`www.mystore.com`): no rewrite, api-client sends the full hostname as `X-Tenant-Domain` and backend resolves it via the `shop_domains` table.
 
 ## Auth
 

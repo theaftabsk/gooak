@@ -21,7 +21,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:generate": "prisma generate --schema=prisma/central.prisma && prisma generate --schema=prisma/tenant.prisma",
-    "db:push": "prisma db push --schema=prisma/central.prisma && prisma db push --schema=prisma/tenant.prisma",
+    "db:push": "prisma db push --schema=prisma/schema.prisma",
     "db:sync": "prisma db push --schema=prisma/schema.prisma --accept-data-loss",
     "db:setup": "pnpm run db:push && pnpm run db:generate",
     "db:seed": "pnpm exec ts-node ./scripts/seed.ts",

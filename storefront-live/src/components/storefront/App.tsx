@@ -1,5 +1,18 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
+// On plain localhost, the shop slug is the first URL path segment (e.g. /amir/products).
+// BrowserRouter needs that prefix as its basename so routes like /products still match.
+// On subdomains or custom domains, basename stays '/' because the domain IS the shop.
+function getBasename(): string {
+  if (typeof window === 'undefined') return '/';
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    const slug = window.location.pathname.split('/').filter(Boolean)[0];
+    return slug ? `/${slug}` : '/';
+  }
+  return '/';
+}
 import { CartProvider } from './context/CartContext';
 import { CustomerProvider } from './context/CustomerContext';
 import { Header } from './components/Header';
@@ -397,7 +410,7 @@ function App() {
   // --- CASE D: Customer Brand Storefront ---
   return (
     <ErrorBoundary>
-      <Router>
+      <Router basename={getBasename()}>
         <CustomerProvider>
           <CartProvider>
             <div className="storefront-app-shell" style={{ background: 'var(--sf-bg, #FAF7F2)', minHeight: '100vh', paddingTop: '70px', display: 'flex', flexDirection: 'column' }}>

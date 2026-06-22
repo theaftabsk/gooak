@@ -11,7 +11,23 @@
 
 const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'posix.digital';
 
-const getApiBaseUrl = (tenantDomain?: string): string => {
+// Returns the value to send as X-Tenant-Domain header.
+// - plain localhost:  slug comes from the first URL path segment → "amir.localhost"
+// - subdomain:        use the hostname as-is → "amir.posix.digital"
+// - custom domain:    use the hostname as-is → "www.mystore.com"
+function getTenantDomain(): string {
+  if (typeof window === 'undefined') return '';
+  const hostname = window.location.hostname;
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    const slug = window.location.pathname.split('/').filter(Boolean)[0] || '';
+    return slug ? `${slug}.localhost` : 'localhost';
+  }
+
+  return window.location.hostname;
+}
+
+const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
@@ -20,10 +36,7 @@ const getApiBaseUrl = (tenantDomain?: string): string => {
       return 'http://localhost:5001/api/v1';
     }
 
-    if (tenantDomain) {
-      return `${protocol}//${tenantDomain.split(':')[0]}/api`;
-    }
-    return `${protocol}//${hostname}/api`;
+    return `${protocol}//${hostname}/api/v1`;
   }
 
   if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) {
@@ -33,8 +46,8 @@ const getApiBaseUrl = (tenantDomain?: string): string => {
 };
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const tenantDomain = typeof window !== 'undefined' ? window.location.host : '';
-  const url = `${getApiBaseUrl(tenantDomain)}${path}`;
+  const tenantDomain = getTenantDomain();
+  const url = `${getApiBaseUrl()}${path}`;
 
   const customerToken = typeof window !== 'undefined' ? localStorage.getItem('oaksol_customer_token') : null;
 
