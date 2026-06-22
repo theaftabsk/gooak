@@ -19,7 +19,12 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@oaksol/api-client": ["./src/lib/api-client.ts"],
+      "@oaksol/shared-ui": ["./src/shared-ui/index.ts"],
+      "@oaksol/storefront": ["./src/components/storefront/App.tsx"],
+      "@oaksol/admin-dashboard": ["../super-admin/src/components/admin-dashboard/App.tsx"],
+      "@oaksol/merchant-dashboard": ["../merchant-dashboard/src/components/merchant-dashboard/App.tsx"]
     }
   },
   "include": [

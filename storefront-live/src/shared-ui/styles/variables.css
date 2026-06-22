@@ -1,0 +1,59 @@
+/* @oaksol/shared-ui Premium Design System CSS Variables */
+:root {
+  /* Storefront Theme - Luxury Organic Skincare Focus */
+  --sf-bg: #FAF7F2;                /* Warm Linen / Cream */
+  --sf-card-bg: #FFFFFF;
+  --sf-text-main: #1F2937;         /* Deep Charcoal */
+  --sf-text-muted: #6B7280;        /* Muted Gray */
+  --sf-primary: #111827;           /* True Charcoal Black */
+  --sf-accent: #15803D;            /* Forest Green (organic / pure) */
+  --sf-accent-hover: #166534;
+  --sf-accent-light: #E8F5E9;
+  --sf-border: #E5E7EB;
+  --sf-compare-price: #9CA3AF;
+  
+  /* Dashboards Theme (Merchant & Super Admin) - Clean & Efficient Slate */
+  --db-bg: #F8FAFC;                /* Slate Light Gray */
+  --db-card-bg: #FFFFFF;
+  --db-text-main: #0F172A;         /* Dark Slate Blue */
+  --db-text-muted: #64748B;
+  --db-primary: #2563EB;           /* Tech Blue UI */
+  --db-primary-hover: #1D4ED8;
+  --db-accent: #0F172A;
+  --db-border: #E2E8F0;
+  
+  /* Shared Typography */
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* Universal Style Attributes */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+/* Dark Mode Tokens (Commonly used by Dashboards and optionally Storefront) */
+[data-theme="dark"] {
+  --sf-bg: #0F172A;
+  --sf-card-bg: #1E293B;
+  --sf-text-main: #F8FAFC;
+  --sf-text-muted: #94A3B8;
+  --sf-primary: #F8FAFC;
+  --sf-accent: #4ADE80;            /* Bright light green */
+  --sf-border: #334155;
+
+  --db-bg: #0B0F19;
+  --db-card-bg: #111827;
+  --db-text-main: #F3F4F6;
+  --db-text-muted: #9CA3AF;
+  --db-primary: #3B82F6;
+  --db-border: #1F2937;
+}

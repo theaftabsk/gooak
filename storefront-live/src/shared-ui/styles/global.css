@@ -1,0 +1,133 @@
+/* @oaksol/shared-ui Global Styles & Component Resets */
+@import './variables.css';
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--sf-bg);
+  color: var(--sf-text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* Atomic Button Styling Rules */
+.oaksol-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform 0.1s ease;
+  user-select: none;
+  position: relative;
+  outline: none;
+}
+
+.oaksol-btn:active {
+  transform: scale(0.98);
+}
+
+.oaksol-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Button Sizes */
+.oaksol-btn-sm {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+.oaksol-btn-md {
+  padding: 10px 20px;
+  font-size: 1rem;
+}
+
+.oaksol-btn-lg {
+  padding: 14px 28px;
+  font-size: 1.125rem;
+}
+
+/* Button Variants */
+.oaksol-btn-primary {
+  background-color: var(--db-primary);
+  color: #FFFFFF;
+}
+
+.oaksol-btn-primary:hover:not(:disabled) {
+  background-color: var(--db-primary-hover);
+}
+
+.oaksol-btn-storefront {
+  background-color: var(--sf-primary);
+  color: var(--sf-bg);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.oaksol-btn-storefront:hover:not(:disabled) {
+  background-color: var(--sf-accent);
+  color: #FFFFFF;
+}
+
+.oaksol-btn-secondary {
+  background-color: transparent;
+  border-color: var(--db-border);
+  color: var(--db-text-main);
+}
+
+.oaksol-btn-secondary:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.oaksol-btn-danger {
+  background-color: #EF4444;
+  color: #FFFFFF;
+}
+
+.oaksol-btn-danger:hover:not(:disabled) {
+  background-color: #DC2626;
+}
+
+.oaksol-btn-ghost {
+  background-color: transparent;
+  color: inherit;
+}
+
+.oaksol-btn-ghost:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Spinner loader design */
+.oaksol-spinner-inline {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  animation: oaksol-rotation 0.75s linear infinite;
+}
+
+@keyframes oaksol-rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
