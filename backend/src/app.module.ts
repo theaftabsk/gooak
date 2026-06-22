@@ -3,20 +3,20 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './database/prisma.module';
 import { PaymentModule } from './modules/payment/payment.module';
-import { CatalogModule } from './modules/catalog/catalog.module';
+import { PlatformModule } from './modules/platform/platform.module';
+import { MerchantModule } from './modules/merchant/merchant.module';
+import { StorefrontModule } from './modules/storefront/storefront.module';
 import { CustomerModule } from './modules/customer/customer.module';
-import { InventoryModule } from './modules/inventory/inventory.module';
-import { ReviewsModule } from './modules/reviews/reviews.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 
 @Module({
   imports: [
     PrismaModule,
     PaymentModule,
-    CatalogModule,
+    PlatformModule,
+    MerchantModule,
+    StorefrontModule,
     CustomerModule,
-    InventoryModule,
-    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

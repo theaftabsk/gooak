@@ -1,14 +1,20 @@
-/* @oaksol/api-client - Fetch API Client Configuration */
+/* @oaksol/platform-api-client
+ *
+ * Route convention (matches backend controllers):
+ *   /api/v1/platform/*  — super-admin only (no tenant context)
+ *
+ * The super-admin app never calls /storefront/*, /merchant/*, or /customer/* routes.
+ * Platform routes bypass TenantMiddleware (hostname: admin.* / api.*).
+ * All requests carry a super_admin JWT in the Authorization header.
+ */
 
 const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'posix.digital';
 
 const getApiBaseUrl = (): string => {
-  // 1. Check current domain context first to restrict/enforce production API
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // Only use the production API on the platform domain and its subdomains
-    const isProdDomain = 
-      hostname === PLATFORM_DOMAIN || 
+    const isProdDomain =
+      hostname === PLATFORM_DOMAIN ||
       hostname.endsWith(`.${PLATFORM_DOMAIN}`);
 
     if (isProdDomain) {
@@ -16,30 +22,23 @@ const getApiBaseUrl = (): string => {
     }
   }
 
-  // 2. Otherwise, check if NEXT_PUBLIC_API_URL is explicitly set in env (e.g., from the shared .env file)
   if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
 
-  // 3. Fallback for local development
-  return 'http://localhost:5005/api/v1';
+  return 'http://localhost:5001/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Base Request Helper
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
-  
-  // Resolve host context from browser to identify current tenant subdomain/domain
-  const tenantDomain = typeof window !== 'undefined' ? window.location.host : '';
 
-  // Get platform admin token if saved
+  // Super-admin uses the platform admin token, not the customer token
   const adminToken = typeof window !== 'undefined' ? localStorage.getItem('oaksol_admin_token') : null;
 
   const headers = {
     'Content-Type': 'application/json',
-    ...(tenantDomain ? { 'X-Tenant-Domain': tenantDomain } : {}),
     ...(adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}),
     ...options.headers,
   };
@@ -54,38 +53,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       } catch {
         errorJson = { message: errorText };
       }
-      
-      const isMissingTenant = response.status === 404 && (
-        (errorJson.message && (
-          errorJson.message.includes('Store domain mapping') || 
-          errorJson.message.includes('Tenant-Domain')
-        ))
-      );
-
-      if (isMissingTenant && typeof window !== 'undefined') {
-        const host = window.location.host;
-        const protocol = window.location.protocol;
-        let targetHost = '';
-        if (host.includes('localhost') || host.includes('127.0.0.1')) {
-          const port = host.split(':')[1] ? `:${host.split(':')[1]}` : '';
-          targetHost = `localhost${port}`;
-        } else {
-          targetHost = PLATFORM_DOMAIN;
-        }
-
-        if (host !== targetHost) {
-          window.location.href = `${protocol}//${targetHost}`;
-          // Return a promise that never resolves/rejects to prevent component from executing further logic while redirecting
-          return new Promise<T>(() => {});
-        }
-        console.warn(`[api-client] Tenant mapping missing, but already on fallback host '${host}'. Preventing infinite reload loop.`);
-      }
-
       const err = new Error(errorJson.message || `HTTP error! Status: ${response.status}`) as any;
       err.status = response.status;
       throw err;
     }
-
     return (await response.json()) as T;
   } catch (error: any) {
     console.error(`API Request failed on ${url}:`, error.message);
@@ -93,370 +64,178 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 }
 
-// ─── Storefront / Catalog APIs ───────────────────────────────────────────────
-export const catalogApi = {
-  // 1. Homepage banners & sections
-  getHomepage: async () => request<any>('/catalog/homepage'),
+// ─── Platform Auth ────────────────────────────────────────────────────────────
+export const platformAuthApi = {
+  login: (data: { email: string; password: string }) =>
+    request<{ token: string; admin?: { id: string; email: string; name: string; permissions?: string[] } }>(
+      '/platform/auth/login',
+      { method: 'POST', body: JSON.stringify(data) },
+    ),
+};
 
-  // 2. Products list
-  getProducts: async (params: Record<string, string | number> = {}) => {
-    const query = new URLSearchParams(params as any).toString();
-    return request<any>(`/catalog/products?${query}`);
+// ─── Platform Stats ───────────────────────────────────────────────────────────
+export const platformStatsApi = {
+  getStats: () => request<any>('/platform/stats'),
+};
+
+// ─── Platform Shops ───────────────────────────────────────────────────────────
+export const platformShopsApi = {
+  getShops: () => request<any>('/platform/shops'),
+
+  getShopDetail: (id: string) => request<any>(`/platform/shops/${id}`),
+
+  registerShop: (dto: {
+    name: string; slug: string; ownerEmail: string; ownerName: string;
+    ownerPassword?: string; industry?: string; theme?: string;
+  }) => request<any>('/platform/shops', { method: 'POST', body: JSON.stringify(dto) }),
+
+  updateShop: (id: string, dto: { name?: string; plan?: string; status?: string; description?: string }) =>
+    request<any>(`/platform/shops/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  deleteShop: (id: string) => request<any>(`/platform/shops/${id}`, { method: 'DELETE' }),
+
+  // Theme switching is a merchant-scoped operation and must be done from the merchant-dashboard.
+  // Super-admin does not have a /platform/* endpoint for this. The platform API bypasses
+  // TenantMiddleware so no shopId context is available here.
+  switchShopTheme: (_shopSlug: string, _dto: { industry: string; theme: string }): Promise<any> => {
+    throw new Error('switchShopTheme must be called from the merchant-dashboard, not the super-admin app.');
+  },
+};
+
+// ─── Platform Tenant Requests ─────────────────────────────────────────────────
+export const platformRequestsApi = {
+  getRequests: () => request<any>('/platform/requests'),
+
+  approveRequest: (id: string) =>
+    request<any>(`/platform/requests/${id}/approve`, { method: 'POST' }),
+
+  rejectRequest: (id: string) =>
+    request<any>(`/platform/requests/${id}/reject`, { method: 'POST' }),
+
+  deleteRequest: (id: string) =>
+    request<any>(`/platform/requests/${id}`, { method: 'DELETE' }),
+};
+
+// ─── Platform Team ────────────────────────────────────────────────────────────
+export const platformTeamApi = {
+  getTeam: () => request<any[]>('/platform/team'),
+
+  getAdminDetail: (id: string) => request<any>(`/platform/team/${id}`),
+
+  createAdmin: (data: { name: string; email: string; password?: string; permissions?: string[] }) =>
+    request<any>('/platform/team', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateAdmin: (id: string, data: { status?: string; permissions?: string[] }) =>
+    request<any>(`/platform/team/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteAdmin: (id: string) =>
+    request<any>(`/platform/team/${id}`, { method: 'DELETE' }),
+};
+
+// ─── Subscription Plans ───────────────────────────────────────────────────────
+export const platformPlansApi = {
+  getPlans: () => request<any[]>('/platform/plans'),
+
+  createPlan: (dto: {
+    name: string; slug: string; level: number; is_free?: boolean; price: number;
+    interval?: string; max_products?: number; max_orders?: number;
+    features?: string[]; sort_order?: number;
+  }) => request<any>('/platform/plans', { method: 'POST', body: JSON.stringify(dto) }),
+
+  updatePlan: (id: string, dto: any) =>
+    request<any>(`/platform/plans/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  deletePlan: (id: string) =>
+    request<any>(`/platform/plans/${id}`, { method: 'DELETE' }),
+
+  // All subscriptions across all shops
+  getAllSubscriptions: (filters?: { status?: string; plan_id?: string }) => {
+    const params = filters ? '?' + new URLSearchParams(filters as any).toString() : '';
+    return request<any[]>(`/platform/subscriptions${params}`);
   },
 
-  // 3. Single product detail
-  getProduct: async (slug: string) => request<any>(`/catalog/products/${slug}`),
+  // Per-shop subscription management
+  getShopSubscription: (shopId: string) =>
+    request<any>(`/platform/shops/${shopId}/subscription`),
 
-  // 4. Categories
-  getCategories: async () => request<any>('/catalog/categories'),
+  assignSubscription: (shopId: string, dto: {
+    plan_id: string; status?: string; is_trial?: boolean; trial_ends_at?: string;
+    current_period_start?: string; current_period_end?: string;
+    next_payment_at?: string; promo_code?: string; payment_status?: string;
+  }) => request<any>(`/platform/shops/${shopId}/subscription`, { method: 'POST', body: JSON.stringify(dto) }),
 
-  // 5. Brands
-  getBrands: async () => request<any>('/catalog/brands'),
+  cancelSubscription: (shopId: string, dto?: { reason?: string }) =>
+    request<any>(`/platform/shops/${shopId}/subscription`, { method: 'DELETE', body: JSON.stringify(dto || {}) }),
 
-  // ─── Merchant Admin (write operations, scoped to current tenant) ───────────
-  createProduct: async (productData: any, token?: string) =>
-    request<any>('/catalog/admin/products', {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify(productData),
+  addAddon: (shopId: string, addonId: string, quantity?: number) =>
+    request<any>(`/platform/shops/${shopId}/subscription/addons/${addonId}`, {
+      method: 'POST', body: JSON.stringify({ quantity }),
     }),
 
-  createBanner: async (bannerData: any, token?: string) =>
-    request<any>('/catalog/admin/banners', {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify(bannerData),
-    }),
+  removeAddon: (shopId: string, addonId: string) =>
+    request<any>(`/platform/shops/${shopId}/subscription/addons/${addonId}`, { method: 'DELETE' }),
 
-  createSection: async (sectionData: any, token?: string) =>
-    request<any>('/catalog/admin/sections', {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify(sectionData),
-    }),
+  getPaymentHistory: (shopId: string) =>
+    request<any[]>(`/platform/shops/${shopId}/subscription/payments`),
 
-  getProductById: async (id: string, token?: string) =>
-    request<any>(`/catalog/admin/products/${id}`, {
-      method: 'GET',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }),
-
-  updateProduct: async (id: string, productData: any, token?: string) =>
-    request<any>(`/catalog/admin/products/${id}`, {
-      method: 'PATCH',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify(productData),
-    }),
-
-  deleteProduct: async (id: string, token?: string) =>
-    request<any>(`/catalog/admin/products/${id}`, {
-      method: 'DELETE',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }),
-
-  createCategory: async (categoryData: any, token?: string) =>
-    request<any>('/catalog/admin/categories', {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify(categoryData),
-    }),
-
-  updateCategory: async (id: string, categoryData: any, token?: string) =>
-    request<any>(`/catalog/admin/categories/${id}`, {
-      method: 'PATCH',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify(categoryData),
-    }),
-
-  deleteCategory: async (id: string, token?: string) =>
-    request<any>(`/catalog/admin/categories/${id}`, {
-      method: 'DELETE',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }),
-
-  deleteBanner: async (id: string, token?: string) =>
-    request<any>(`/catalog/admin/banners/${id}`, {
-      method: 'DELETE',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }),
-
-  getOrders: async (token?: string) =>
-    request<any>('/catalog/admin/orders', {
-      method: 'GET',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }),
-
-  updateOrderStatus: async (id: string, status: string, note?: string, extra?: {
-    courier_name?: string;
-    tracking_number?: string;
-    tracking_url?: string;
-    dispatched_at?: string;
-    expected_delivery_at?: string;
-    fulfillment_status?: string;
-    staff_notes?: string;
-    return_status?: string;
-    paid_amount?: number;
-    payment_method?: string;
-  }, token?: string) =>
-    request<any>(`/catalog/admin/orders/${id}/status`, {
-      method: 'PATCH',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify({ status, note, ...(extra || {}) }),
-    }),
-
-  // ── Review Management ──────────────────────────────────────────────────────
-  getProductReviews: async (productId: string, token?: string) =>
-    request<any>(`/catalog/admin/products/${productId}/reviews`, {
-      method: 'GET',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }),
-
-  createReview: async (productId: string, reviewData: {
-    reviewer_name?: string;
-    rating: number;
-    title?: string;
-    body?: string;
-    status?: string;
-  }, token?: string) =>
-    request<any>(`/catalog/admin/products/${productId}/reviews`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify(reviewData),
-    }),
-
-  updateReviewStatus: async (reviewId: string, status: string, token?: string) =>
-    request<any>(`/catalog/admin/reviews/${reviewId}/status`, {
-      method: 'PATCH',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify({ status }),
-    }),
-
-  deleteReview: async (reviewId: string, token?: string) =>
-    request<any>(`/catalog/admin/reviews/${reviewId}`, {
-      method: 'DELETE',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }),
-
-  // ── Variant & Stock Management ─────────────────────────────────────────────
-  getProductVariants: async (productId: string) =>
-    request<any>(`/catalog/admin/products/${productId}/variants`),
-
-  createVariant: async (productId: string, dto: {
-    label?: string; sku?: string; price: number;
-    compare_price?: number; cost_price?: number;
-    stock_qty?: number; low_stock_at?: number;
-    image_url?: string; is_active?: boolean;
-  }) =>
-    request<any>(`/catalog/admin/products/${productId}/variants`, {
-      method: 'POST',
-      body: JSON.stringify(dto),
-    }),
-
-  updateVariant: async (variantId: string, dto: {
-    label?: string; price?: number; compare_price?: number;
-    cost_price?: number; low_stock_at?: number;
-    image_url?: string; is_active?: boolean; sort_order?: number;
-  }) =>
-    request<any>(`/catalog/admin/variants/${variantId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(dto),
-    }),
-
-  deleteVariant: async (variantId: string) =>
-    request<any>(`/catalog/admin/variants/${variantId}`, { method: 'DELETE' }),
-
-  adjustStock: async (variantId: string, data: {
-    adjustment: number; type?: string; note?: string;
-  }) =>
-    request<any>(`/catalog/admin/variants/${variantId}/stock`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  getStockLogs: async (productId: string) =>
-    request<any>(`/catalog/admin/products/${productId}/stock-logs`),
-
-  getInventoryOverview: async () =>
-    request<any>('/catalog/admin/inventory'),
-
-  // ─── Public tenant signup ──────────────────────────────────────────────────
-  submitTenantRequest: async (requestData: {
-    name: string; slug: string; ownerName: string; ownerEmail: string; phone?: string; category?: string
-  }) => request<any>('/catalog/tenant-requests', { method: 'POST', body: JSON.stringify(requestData) }),
-
-  // ─── Platform Super Admin APIs ────────────────────────────────────────────
-  // Admin Login
-  adminLogin: async (data: { email: string; password: string }) =>
-    request<{ token: string; admin?: { id: string; email: string; name: string; permissions?: string[] } }>('/catalog/admin/login', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  // Dashboard stats
-  getAdminStats: async () => request<any>('/catalog/admin/platform-stats'),
-
-  // Shops
-  getShops: async () => request<any>('/catalog/admin/shops'),
-  getShopDetail: async (id: string) => request<any>(`/catalog/admin/shops/${id}`),
-
-  updateShop: async (id: string, dto: { name?: string; plan?: string; status?: string; description?: string }) =>
-    request<any>(`/catalog/admin/shops/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
-
-  deleteShop: async (id: string) =>
-    request<any>(`/catalog/admin/shops/${id}`, { method: 'DELETE' }),
-
-
-  switchMerchantTheme: async (dto: { industry: string; theme: string }) =>
-    request<any>('/catalog/merchant/switch-theme', {
-      method: 'POST',
-      body: JSON.stringify(dto),
-    }),
-
-  registerShop: async (shopData: {
-    name: string; slug: string; ownerEmail: string; ownerName: string; ownerPassword?: string; industry?: string; theme?: string;
-  }) => request<any>('/catalog/register-shop', { method: 'POST', body: JSON.stringify(shopData) }),
-
-  // Tenant requests
-  getTenantRequests: async () => request<any>('/catalog/admin/tenant-requests'),
-
-  approveTenantRequest: async (id: string) =>
-    request<any>(`/catalog/admin/tenant-requests/${id}/approve`, { method: 'POST' }),
-
-  rejectTenantRequest: async (id: string) =>
-    request<any>(`/catalog/admin/tenant-requests/${id}/reject`, { method: 'POST' }),
-
-  deleteTenantRequest: async (id: string) =>
-    request<any>(`/catalog/admin/tenant-requests/${id}`, { method: 'DELETE' }),
-
-  placeOrder: async (orderData: {
-    customer_name: string;
-    customer_email: string;
-    customer_phone: string;
-    shipping_address: any;
-    payment_method: string;
-    notes?: string;
-    items: { variant_id: string; qty: number }[];
-  }) => request<any>('/catalog/orders', { method: 'POST', body: JSON.stringify(orderData) }),
-
-  // Get public order details for the payment page (tenant-scoped)
-  getPublicOrder: async (orderId: string) =>
-    request<any>(`/catalog/orders/${orderId}`),
+  recordPayment: (shopId: string, dto: {
+    amount: number; currency?: string; status: string; gateway?: string;
+    transaction_id?: string; invoice_url?: string; failure_reason?: string;
+  }) => request<any>(`/platform/shops/${shopId}/subscription/payments`, {
+    method: 'POST', body: JSON.stringify(dto),
+  }),
 };
 
-// ─── Payment APIs ─────────────────────────────────────────────────────────────
-export const paymentApi = {
-  getPaymentGateways: async () =>
-    request<any[]>('/payments/gateways'),
+// ─── Add-ons ─────────────────────────────────────────────────────────────────
+export const platformAddonsApi = {
+  getAddons: () => request<any[]>('/platform/addons'),
 
-  getAdminPaymentGateways: async () =>
-    request<any[]>('/payments/admin/gateways'),
+  createAddon: (dto: { name: string; slug: string; description?: string; price: number; interval?: string }) =>
+    request<any>('/platform/addons', { method: 'POST', body: JSON.stringify(dto) }),
 
-  updateAdminPaymentGateway: async (id: string, data: {
-    name?: string;
-    is_active?: boolean;
-    config?: any;
-    sort_order?: number;
-  }) => request<any>(`/payments/admin/gateways/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  updateAddon: (id: string, dto: any) =>
+    request<any>(`/platform/addons/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
 
-  createRazorpayOrder: async (orderData: { amount: number; currency?: string; receiptId: string }) =>
-    request<any>('/payments/razorpay/order', { method: 'POST', body: JSON.stringify(orderData) }),
-
-  // Initialize Razorpay payment for an existing pending order
-  initializeRazorpayPayment: async (orderId: string) =>
-    request<any>(`/payments/razorpay/initialize/${orderId}`, { method: 'POST' }),
-
-  verifyPayment: async (data: {
-    orderId: string;
-    razorpay_payment_id: string;
-    razorpay_order_id: string;
-    razorpay_signature: string;
-  }) => request<any>('/payments/razorpay/verify', { method: 'POST', body: JSON.stringify(data) }),
+  deleteAddon: (id: string) =>
+    request<any>(`/platform/addons/${id}`, { method: 'DELETE' }),
 };
 
-// ─── Customer Auth APIs ───────────────────────────────────────────────────────
-export const customerApi = {
-  register: async (data: { name: string; email: string; phone?: string; password: string }) =>
-    request<{ customer: any; token: string }>('/catalog/customer/register', {
-      method: 'POST', body: JSON.stringify(data),
-    }),
+// ─── Promo Codes ─────────────────────────────────────────────────────────────
+export const platformPromosApi = {
+  getPromoCodes: () => request<any[]>('/platform/promos'),
 
-  login: async (data: { email: string; password: string }) =>
-    request<{ customer: any; token: string }>('/catalog/customer/login', {
-      method: 'POST', body: JSON.stringify(data),
-    }),
+  createPromoCode: (dto: {
+    code: string; description?: string; discount_type: string; discount_value: number;
+    applicable_plans?: string[]; max_uses?: number; starts_at?: string; expires_at?: string;
+  }) => request<any>('/platform/promos', { method: 'POST', body: JSON.stringify(dto) }),
 
-  getMe: async (token: string) =>
-    request<any>('/catalog/customer/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
+  validatePromoCode: (code: string, plan_slug: string) =>
+    request<any>('/platform/promos/validate', { method: 'POST', body: JSON.stringify({ code, plan_slug }) }),
 
-  updateMe: async (data: {
-    name?: string; phone?: string; avatar_url?: string;
-    current_password?: string; new_password?: string;
-  }, token: string) =>
-    request<any>('/catalog/customer/me', {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data),
-    }),
+  updatePromoCode: (id: string, dto: any) =>
+    request<any>(`/platform/promos/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
 
-  getMyOrders: async (token: string) =>
-    request<any[]>('/catalog/customer/orders', {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-
-  getPages: async () =>
-    request<{ shop: any; content: Record<string, string> }>('/catalog/pages'),
-
-  savePages: async (data: Record<string, string>) =>
-    request<{ success: boolean; saved: number }>('/catalog/pages', {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
-
-  submitContact: async (data: { name: string; email: string; subject?: string; message: string }) =>
-    request<{ success: boolean; message: string }>('/catalog/contact', {
-      method: 'POST', body: JSON.stringify(data),
-    }),
+  deletePromoCode: (id: string) =>
+    request<any>(`/platform/promos/${id}`, { method: 'DELETE' }),
 };
 
-// ─── Page Builder APIs ─────────────────────────────────────────────────────────
-export const pageBuilderApi = {
-  getPages: async () => request<any[]>('/page-builder/pages'),
-  getPageById: async (id: string) => request<any>(`/page-builder/pages/${id}`),
-  getPageBySlug: async (slug: string) => request<any>(`/page-builder/pages/by-slug/${slug}`),
-  savePage: async (data: any) =>
-    request<any>('/page-builder/pages', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  publishPage: async (id: string) =>
-    request<any>(`/page-builder/pages/${id}/publish`, {
-      method: 'POST',
-    }),
-  deletePage: async (id: string) =>
-    request<any>(`/page-builder/pages/${id}`, {
-      method: 'DELETE',
-    }),
-};
+// ─── Backwards-compatible aliases (used by existing page components) ──────────
+// Remove these once page components are updated to use named exports above.
 
-// ─── Platform Team APIs ───────────────────────────────────────────────────────
-export const platformTeamApi = {
-  getTeam: async () => request<any[]>('/catalog/admin/team'),
-  getAdminDetail: async (id: string) => request<any>(`/catalog/admin/team/${id}`),
-  createAdmin: async (data: { name: string; email: string; password?: string; permissions?: string[] }) =>
-    request<any>('/catalog/admin/team', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateAdmin: async (id: string, data: { status?: string; permissions?: string[] }) =>
-    request<any>(`/catalog/admin/team/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
-  deleteAdmin: async (id: string) =>
-    request<any>(`/catalog/admin/team/${id}`, {
-      method: 'DELETE',
-    }),
+/** @deprecated use platformAuthApi, platformShopsApi, platformRequestsApi, platformTeamApi */
+export const catalogApi = {
+  adminLogin: platformAuthApi.login,
+  getAdminStats: platformStatsApi.getStats,
+  getShops: platformShopsApi.getShops,
+  getShopDetail: platformShopsApi.getShopDetail,
+  updateShop: platformShopsApi.updateShop,
+  deleteShop: platformShopsApi.deleteShop,
+  switchMerchantTheme: platformShopsApi.switchShopTheme,
+  registerShop: platformShopsApi.registerShop,
+  getTenantRequests: platformRequestsApi.getRequests,
+  approveTenantRequest: platformRequestsApi.approveRequest,
+  rejectTenantRequest: platformRequestsApi.rejectRequest,
+  deleteTenantRequest: platformRequestsApi.deleteRequest,
+  placeOrder: () => { throw new Error('placeOrder must be called from storefront-live'); },
+  getPublicOrder: () => { throw new Error('getPublicOrder must be called from storefront-live'); },
 };
-

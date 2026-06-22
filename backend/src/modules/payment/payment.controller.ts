@@ -26,7 +26,7 @@ export class PaymentController {
     return this.paymentService.getPaymentGateways(shopId, false);
   }
 
-  @Get('admin/gateways')
+  @Get('merchant/gateways')
   async getAdminGateways(@Req() req: Request & { shopId?: string }) {
     const shopId = req.shopId;
     if (!shopId) {
@@ -35,7 +35,7 @@ export class PaymentController {
     return this.paymentService.getPaymentGateways(shopId, true);
   }
 
-  @Patch('admin/gateways/:id')
+  @Patch('merchant/gateways/:id')
   async updateGateway(
     @Req() req: Request & { shopId?: string },
     @Param('id') id: string,
