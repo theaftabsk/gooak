@@ -21,8 +21,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@oaksol/api-client": ["./src/lib/api-client.ts"],
-      "@oaksol/shared-ui": ["./src/shared-ui/index.ts"],
-      "@oaksol/merchant-dashboard": ["./src/components/merchant-dashboard/App.tsx"]
+      "@oaksol/shared-ui": ["./src/shared-ui/index.ts"]
     }
   },
   "include": [

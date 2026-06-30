@@ -1,13 +1,37 @@
 import { Module } from '@nestjs/common';
-import { StorefrontController } from './storefront.controller';
-import { StorefrontService } from './storefront.service';
 import { PrismaModule } from '../../database/prisma.module';
-import { PaymentModule } from '../payment/payment.module';
+
+import { CatalogController } from './catalog/catalog.controller';
+import { CatalogService } from './catalog/catalog.service';
+
+import { CartController } from './cart/cart.controller';
+import { CartService } from './cart/cart.service';
+
+import { CheckoutController } from './checkout/checkout.controller';
+import { CheckoutService } from './checkout/checkout.service';
+
+import { OrderController } from './order/order.controller';
+import { OrderService } from './order/order.service';
+
+import { PagesController } from './pages/pages.controller';
+import { PagesService } from './pages/pages.service';
 
 @Module({
-  imports: [PrismaModule, PaymentModule],
-  controllers: [StorefrontController],
-  providers: [StorefrontService],
-  exports: [StorefrontService],
+  imports: [PrismaModule],
+  controllers: [
+    CatalogController,
+    CartController,
+    CheckoutController,
+    OrderController,
+    PagesController,
+  ],
+  providers: [
+    CatalogService,
+    CartService,
+    CheckoutService,
+    OrderService,
+    PagesService,
+  ],
+  exports: [CartService, CheckoutService, OrderService],
 })
 export class StorefrontModule {}

@@ -1,10 +1,9 @@
 'use client';
 
-import React from 'react';
 import dynamic from 'next/dynamic';
 
 const StorefrontApp = dynamic(
-  () => import('../../components/storefront/App'),
+  () => import('@/components/layout/StorefrontShell'),
   { ssr: false }
 );
 

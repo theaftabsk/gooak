@@ -33,7 +33,7 @@ export class MerchantService {
     if (userSku?.trim()) {
       const candidate = userSku.trim();
       const existing = await this.prisma.productVariant.count({
-        where: { sku: candidate },
+        where: { sku: candidate, shop_id: shopId },
       });
       if (existing === 0) {
         return candidate;
@@ -52,7 +52,7 @@ export class MerchantService {
     let count = 0;
     while (true) {
       const existing = await this.prisma.productVariant.count({
-        where: { sku: candidate },
+        where: { sku: candidate, shop_id: shopId },
       });
       if (existing === 0) {
         return candidate;
@@ -595,16 +595,66 @@ export class MerchantService {
     });
   }
 
-  async getOrders(shopId: string) {
-    return this.prisma.order.findMany({
-      where: { shop_id: shopId },
+  async getOrders(
+    shopId: string,
+    query?: {
+      page?: number; limit?: number;
+      status?: string; fulfillment_status?: string;
+      search?: string;
+      from?: string; to?: string;
+    },
+  ) {
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 30;
+    const skip = (page - 1) * limit;
+
+    const where: any = { shop_id: shopId };
+    if (query?.status) where.status = query.status;
+    if (query?.fulfillment_status) where.fulfillment_status = query.fulfillment_status;
+    if (query?.from || query?.to) {
+      where.created_at = {};
+      if (query.from) where.created_at.gte = new Date(query.from);
+      if (query.to) where.created_at.lte = new Date(query.to);
+    }
+    if (query?.search) {
+      where.OR = [
+        { order_number: { contains: query.search, mode: 'insensitive' } },
+        { guest_email: { contains: query.search, mode: 'insensitive' } },
+        { guest_name: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        include: {
+          items: { select: { id: true, qty: true, unit_price: true, line_total: true, product_snap: true } },
+          payments: { orderBy: { created_at: 'desc' }, take: 1 },
+        },
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return { orders, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async getOrderDetail(shopId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { shop_id: shopId, id: orderId },
       include: {
         items: true,
         status_logs: { orderBy: { created_at: 'asc' } },
-        payments: true,
+        tracking: { orderBy: { occurred_at: 'asc' } },
+        refunds: { include: { items: true } },
+        payments: { orderBy: { created_at: 'desc' } },
+        coupon: { select: { code: true, type: true, value: true } },
       },
-      orderBy: { created_at: 'desc' },
     });
+    if (!order) throw new NotFoundException('Order not found');
+    return order;
   }
 
   async updateOrderStatus(
@@ -620,17 +670,12 @@ export class MerchantService {
       expected_delivery_at?: string;
       fulfillment_status?: string;
       staff_notes?: string;
-      return_status?: string;
       paid_amount?: number;
       payment_method?: string;
     },
   ) {
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId, shop_id: shopId },
-    });
-    if (!order) {
-      throw new Error('Order not found');
-    }
+    const order = await this.prisma.order.findUnique({ where: { id: orderId, shop_id: shopId } });
+    if (!order) throw new NotFoundException('Order not found');
 
     return this.prisma.$transaction(async (tx) => {
       const updateData: any = { status };
@@ -643,49 +688,183 @@ export class MerchantService {
         if (extra.expected_delivery_at !== undefined) updateData.expected_delivery_at = extra.expected_delivery_at ? new Date(extra.expected_delivery_at) : null;
         if (extra.fulfillment_status !== undefined) updateData.fulfillment_status = extra.fulfillment_status;
         if (extra.staff_notes !== undefined) updateData.staff_notes = extra.staff_notes || null;
-        if (extra.return_status !== undefined) updateData.return_status = extra.return_status || null;
         if (extra.paid_amount !== undefined) {
-          if (extra.paid_amount === null || String(extra.paid_amount).trim() === '') {
-            updateData.paid_amount = null;
-          } else {
-            const val = parseFloat(String(extra.paid_amount));
-            updateData.paid_amount = isNaN(val) ? null : val;
-          }
+          const val = parseFloat(String(extra.paid_amount));
+          updateData.paid_amount = isNaN(val) ? null : val;
         }
         if (extra.payment_method !== undefined) updateData.payment_method = extra.payment_method || null;
       }
 
-      const updatedOrder = await tx.order.update({
-        where: { id: orderId },
-        data: updateData,
-      });
+      // When shipping: auto-set fulfillment_status and dispatched_at
+      if (status === 'shipped' && !updateData.fulfillment_status) {
+        updateData.fulfillment_status = 'fulfilled';
+        if (!updateData.dispatched_at) updateData.dispatched_at = new Date();
+      }
+      if (status === 'delivered' && !updateData.fulfillment_status) {
+        updateData.fulfillment_status = 'delivered';
+      }
 
-      // Only create status log if status actually changed
-      if (status !== order.status) {
+      const updatedOrder = await tx.order.update({ where: { id: orderId }, data: updateData });
+
+      if (status !== order.status || note) {
         await tx.orderStatusLog.create({
           data: {
             shop_id: shopId,
             order_id: orderId,
             from_status: order.status,
             to_status: status,
-            note: note || `Order status updated to ${status}`,
+            note: note || `Status changed to ${status}`,
           },
         });
-      } else if (note) {
-        // Log note even if status unchanged
-        await tx.orderStatusLog.create({
+      }
+
+      // Auto-add tracking milestone for key status transitions
+      const trackingMessage: Record<string, string> = {
+        confirmed: 'Order confirmed and being prepared',
+        processing: 'Order is being processed',
+        shipped: `Order shipped${extra?.courier_name ? ` via ${extra.courier_name}` : ''}${extra?.tracking_number ? ` — ${extra.tracking_number}` : ''}`,
+        delivered: 'Order delivered successfully',
+        cancelled: 'Order cancelled by merchant',
+      };
+      if (trackingMessage[status] && status !== order.status) {
+        await tx.orderTracking.create({
           data: {
             shop_id: shopId,
             order_id: orderId,
-            from_status: order.status,
-            to_status: status,
-            note,
+            status,
+            message: trackingMessage[status],
+            ...(status === 'shipped' && extra?.tracking_number
+              ? { location: extra.tracking_number }
+              : {}),
           },
         });
       }
 
       return updatedOrder;
     });
+  }
+
+  // Add a manual tracking milestone (e.g. from courier webhook or manual entry)
+  async addOrderTracking(
+    shopId: string,
+    orderId: string,
+    dto: { status: string; message?: string; location?: string; occurred_at?: string },
+  ) {
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, shop_id: shopId } });
+    if (!order) throw new NotFoundException('Order not found');
+
+    return this.prisma.orderTracking.create({
+      data: {
+        shop_id: shopId,
+        order_id: orderId,
+        status: dto.status,
+        message: dto.message || null,
+        location: dto.location || null,
+        occurred_at: dto.occurred_at ? new Date(dto.occurred_at) : new Date(),
+      },
+    });
+  }
+
+  // ─── Refunds ───────────────────────────────────────────────────────────────
+
+  async getRefunds(shopId: string, query?: { status?: string; page?: number; limit?: number }) {
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 30;
+    const skip = (page - 1) * limit;
+
+    const where: any = { shop_id: shopId };
+    if (query?.status) where.status = query.status;
+
+    const [refunds, total] = await Promise.all([
+      this.prisma.refund.findMany({
+        where,
+        include: {
+          items: true,
+          order: { select: { order_number: true, total: true, payment_method: true, guest_email: true, customer_id: true } },
+        },
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.refund.count({ where }),
+    ]);
+
+    return { refunds, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async processRefund(
+    shopId: string,
+    refundId: string,
+    action: 'approve' | 'reject' | 'process',
+    dto?: { merchant_notes?: string; gateway_refund_id?: string; method?: string },
+  ) {
+    const refund = await this.prisma.refund.findFirst({
+      where: { id: refundId, shop_id: shopId },
+      include: { order: { include: { items: true } } },
+    });
+    if (!refund) throw new NotFoundException('Refund request not found');
+
+    if (action === 'approve') {
+      if (refund.status !== 'pending') throw new BadRequestException(`Cannot approve a refund with status "${refund.status}"`);
+      return this.prisma.refund.update({
+        where: { id: refundId },
+        data: { status: 'approved', merchant_notes: dto?.merchant_notes || null },
+      });
+    }
+
+    if (action === 'reject') {
+      if (!['pending', 'approved'].includes(refund.status)) {
+        throw new BadRequestException(`Cannot reject a refund with status "${refund.status}"`);
+      }
+      await this.prisma.refund.update({
+        where: { id: refundId },
+        data: { status: 'rejected', merchant_notes: dto?.merchant_notes || null },
+      });
+      // Restore refund_status on order to 'none'
+      const otherPending = await this.prisma.refund.count({
+        where: { order_id: refund.order_id, status: { in: ['pending', 'approved', 'processed'] }, id: { not: refundId } },
+      });
+      if (otherPending === 0) {
+        await this.prisma.order.update({ where: { id: refund.order_id }, data: { refund_status: 'none' } });
+      }
+      return { success: true, message: 'Refund rejected' };
+    }
+
+    if (action === 'process') {
+      if (refund.status !== 'approved') throw new BadRequestException('Refund must be approved before processing');
+
+      return this.prisma.$transaction(async (tx) => {
+        const updated = await tx.refund.update({
+          where: { id: refundId },
+          data: {
+            status: 'processed',
+            processed_at: new Date(),
+            merchant_notes: dto?.merchant_notes || refund.merchant_notes,
+            gateway_refund_id: dto?.gateway_refund_id || null,
+            method: dto?.method || refund.method,
+          },
+        });
+
+        // Update refunded_qty on order items
+        const refundItems = await tx.refundItem.findMany({ where: { refund_id: refundId } });
+        for (const ri of refundItems) {
+          await tx.orderItem.update({
+            where: { id: ri.order_item_id },
+            data: { refunded_qty: { increment: ri.qty } },
+          });
+        }
+
+        // Determine if fully or partially refunded
+        const orderTotal = Number(refund.order.total);
+        const refundedTotal = Number(refund.refund_amount);
+        const refundStatus = refundedTotal >= orderTotal ? 'refunded' : 'partial';
+        await tx.order.update({ where: { id: refund.order_id }, data: { refund_status: refundStatus } });
+
+        return updated;
+      });
+    }
+
+    throw new BadRequestException('Invalid action. Use approve, reject, or process.');
   }
 
   // Update shop settings from merchant console

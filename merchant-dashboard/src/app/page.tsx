@@ -1,13 +1,10 @@
 'use client';
+import { OverviewPage } from '@/pages/OverviewPage';
+import { useDashboardData } from '@/context/DashboardData';
+import { useRouter } from 'next/navigation';
 
-import React from 'react';
-import dynamic from 'next/dynamic';
-
-const MerchantDashboard = dynamic(
-  () => import('../components/merchant-dashboard/App'),
-  { ssr: false }
-);
-
-export default function Home() {
-  return <MerchantDashboard />;
+export default function Page() {
+  const { shopInfo, products, orders } = useDashboardData();
+  const router = useRouter();
+  return <OverviewPage shopInfo={shopInfo} products={products} orders={orders} onNavigate={(tab) => router.push(`/${tab}`)} />;
 }

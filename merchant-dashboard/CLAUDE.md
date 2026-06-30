@@ -33,7 +33,7 @@ In production, the shop is resolved from the window hostname (subdomain or custo
 
 ## Route Structure
 
-All pages live under `/dashboard/...` via the catch-all `src/app/dashboard/[[...path]]/page.tsx`.
+All pages live at the root via the catch-all `src/app/[[...path]]/page.tsx`. No `/dashboard` prefix — routes are `/{tab}` (e.g. `/products`, `/orders`, `/settings`).
 
 ## Key API Routes Used
 

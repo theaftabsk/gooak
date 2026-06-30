@@ -47,8 +47,10 @@ model Shop {
   orders            Order[]
   order_items       OrderItem[]
   order_status_logs OrderStatusLog[]
+  order_tracking    OrderTracking[]
   shipping_rates    ShippingRate[]
   coupons           Coupon[]
+  coupon_usages     CouponUsage[]
   payment_gateways  PaymentGateway[]
   payments          Payment[]
   taxes             Tax[]
@@ -66,6 +68,10 @@ model Shop {
   home_sections     HomeSection[]
   pages             Page[]
   subscription      ShopSubscription?
+  refunds           Refund[]
+  refund_items      RefundItem[]
+  wishlists         Wishlist[]
+  wishlist_items    WishlistItem[]
 
   @@map("shops")
 }
@@ -301,12 +307,13 @@ model ProductVariant {
   created_at      DateTime           @default(now()) @db.Timestamptz
   updated_at      DateTime           @default(now()) @updatedAt @db.Timestamptz
 
-  shop          Shop               @relation(fields: [shop_id], references: [id], onDelete: Cascade)
-  product       Product            @relation(fields: [product_id], references: [id], onDelete: Cascade)
-  attributes    VariantAttribute[]
+  shop           Shop               @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  product        Product            @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  attributes     VariantAttribute[]
   inventory_logs InventoryLog[]
-  cart_items    CartItem[]
-  order_items   OrderItem[]
+  cart_items     CartItem[]
+  order_items    OrderItem[]
+  wishlist_items WishlistItem[]
 
   @@index([product_id], name: "idx_variants_product")
   @@index([sku], name: "idx_variants_sku")
@@ -417,6 +424,7 @@ model Customer {
   orders        Order[]
   reviews       Review[]
   notifications Notification[]
+  wishlists     Wishlist[]
 
   @@unique([shop_id, email])
   @@index([shop_id], name: "idx_customers_shop")
@@ -499,6 +507,12 @@ model Order {
   shipping_address Json
   billing_address  Json?
   notes            String?          @db.Text
+  // Guest order info (null when customer_id is set)
+  guest_email          String?      @db.VarChar(255)
+  guest_name           String?      @db.VarChar(150)
+  guest_phone          String?      @db.VarChar(30)
+  // Coupon snapshot (code preserved even after coupon is deleted/expired)
+  coupon_code          String?      @db.VarChar(60)
   // Shipping & Tracking
   courier_name         String?      @db.VarChar(100)
   tracking_number      String?      @db.VarChar(100)
@@ -507,9 +521,13 @@ model Order {
   expected_delivery_at DateTime?    @db.Timestamptz
   // Fulfillment
   fulfillment_status   String       @default("unfulfilled") @db.VarChar(30)
-  // Staff Notes & Returns
+  // Cancellation
+  cancelled_at         DateTime?    @db.Timestamptz
+  cancel_reason        String?      @db.Text
+  // Refund: none | requested | partial | refunded
+  refund_status        String       @default("none") @db.VarChar(30)
+  // Staff notes (internal only)
   staff_notes          String?      @db.Text
-  return_status        String?      @db.VarChar(30)
   // Payment snapshot
   paid_amount          Decimal?     @db.Decimal(12, 2)
   payment_method       String?      @db.VarChar(50)
@@ -522,7 +540,10 @@ model Order {
   shipping_rate    ShippingRate?    @relation(fields: [shipping_rate_id], references: [id], onDelete: SetNull)
   items            OrderItem[]
   status_logs      OrderStatusLog[]
+  tracking         OrderTracking[]
   payments         Payment[]
+  refunds          Refund[]
+  coupon_usages    CouponUsage[]
 
   @@unique([shop_id, order_number])
   @@index([shop_id], name: "idx_orders_shop")
@@ -536,14 +557,18 @@ model OrderItem {
   order_id     String         @db.Uuid
   variant_id   String         @db.Uuid
   product_snap Json
-  qty          Int
-  unit_price   Decimal        @db.Decimal(12, 2)
-  line_total   Decimal        @db.Decimal(12, 2)
-  created_at   DateTime       @default(now()) @db.Timestamptz
+  qty             Int
+  unit_price      Decimal        @db.Decimal(12, 2)
+  discount_amount Decimal        @default(0) @db.Decimal(12, 2)
+  tax_amount      Decimal        @default(0) @db.Decimal(12, 2)
+  line_total      Decimal        @db.Decimal(12, 2)
+  refunded_qty    Int            @default(0)
+  created_at      DateTime       @default(now()) @db.Timestamptz
 
   shop         Shop           @relation(fields: [shop_id], references: [id], onDelete: Cascade)
   order        Order          @relation(fields: [order_id], references: [id], onDelete: Cascade)
   variant      ProductVariant @relation(fields: [variant_id], references: [id], onDelete: Cascade)
+  refund_items RefundItem[]
 
   @@index([order_id], name: "idx_order_items_order")
   @@map("order_items")
@@ -585,20 +610,27 @@ model ShippingRate {
 model Coupon {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   shop_id     String   @db.Uuid
-  code        String   @db.VarChar(60)
-  type        String   @db.VarChar(20)
-  value       Decimal  @db.Decimal(10, 2)
-  min_order   Decimal  @default(0) @db.Decimal(10, 2)
-  usage_limit Int?
-  used_count  Int      @default(0)
-  starts_at   DateTime? @db.Timestamptz
-  ends_at     DateTime? @db.Timestamptz
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now()) @db.Timestamptz
+  code               String    @db.VarChar(60)
+  // type: percentage | fixed | free_shipping
+  type               String    @db.VarChar(20)
+  value              Decimal   @db.Decimal(10, 2)
+  min_order          Decimal   @default(0) @db.Decimal(10, 2)
+  // applies_to: all | category | product | collection
+  applies_to         String    @default("all") @db.VarChar(30)
+  target_ids         String[]  @default([])
+  usage_limit        Int?
+  per_customer_limit Int?
+  used_count         Int       @default(0)
+  free_shipping      Boolean   @default(false)
+  starts_at          DateTime? @db.Timestamptz
+  ends_at            DateTime? @db.Timestamptz
+  is_active          Boolean   @default(true)
+  created_at         DateTime  @default(now()) @db.Timestamptz
 
-  shop        Shop     @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  shop        Shop          @relation(fields: [shop_id], references: [id], onDelete: Cascade)
   carts       Cart[]
   orders      Order[]
+  usages      CouponUsage[]
 
   @@unique([shop_id, code])
   @@map("coupons")
@@ -1074,4 +1106,122 @@ model SubscriptionPayment {
 
   @@index([subscription_id], name: "idx_sub_payments_sub")
   @@map("subscription_payments")
+}
+
+// ─── Refund System ────────────────────────────────────────────────────────────
+
+model Refund {
+  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id           String      @db.Uuid
+  order_id          String      @db.Uuid
+  // who initiated: customer | merchant
+  requested_by      String      @default("customer") @db.VarChar(20)
+  reason            String?     @db.Text
+  // status: pending | approved | rejected | processed
+  status            String      @default("pending") @db.VarChar(30)
+  refund_amount     Decimal     @db.Decimal(12, 2)
+  // method: original_payment | store_credit | bank_transfer | manual
+  method            String?     @db.VarChar(50)
+  gateway_refund_id String?     @db.VarChar(255)
+  merchant_notes    String?     @db.Text
+  processed_at      DateTime?   @db.Timestamptz
+  created_at        DateTime    @default(now()) @db.Timestamptz
+  updated_at        DateTime    @default(now()) @updatedAt @db.Timestamptz
+
+  shop  Shop        @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  order Order       @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  items RefundItem[]
+
+  @@index([order_id], name: "idx_refunds_order")
+  @@index([shop_id, status], name: "idx_refunds_shop_status")
+  @@map("refunds")
+}
+
+model RefundItem {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id       String    @db.Uuid
+  refund_id     String    @db.Uuid
+  order_item_id String    @db.Uuid
+  qty           Int
+  amount        Decimal   @db.Decimal(12, 2)
+  reason        String?   @db.Text
+
+  shop       Shop      @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  refund     Refund    @relation(fields: [refund_id], references: [id], onDelete: Cascade)
+  order_item OrderItem @relation(fields: [order_item_id], references: [id], onDelete: Cascade)
+
+  @@map("refund_items")
+}
+
+// ─── Order Tracking Milestones ────────────────────────────────────────────────
+// Append-only log of delivery milestones (ordered → packed → shipped → delivered).
+// Courier integrations will insert rows here; merchants can also add manually.
+
+model OrderTracking {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id     String   @db.Uuid
+  order_id    String   @db.Uuid
+  // status: ordered | confirmed | packed | shipped | out_for_delivery | delivered | failed_delivery | cancelled
+  status      String   @db.VarChar(60)
+  message     String?  @db.Text
+  location    String?  @db.VarChar(255)
+  occurred_at DateTime @default(now()) @db.Timestamptz
+
+  shop  Shop  @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
+
+  @@index([order_id, occurred_at(sort: Desc)], name: "idx_tracking_order_time")
+  @@map("order_tracking")
+}
+
+// ─── Coupon Usage Log ─────────────────────────────────────────────────────────
+// Tracks who used which coupon on which order. Enforces per_customer_limit.
+
+model CouponUsage {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id     String   @db.Uuid
+  coupon_id   String   @db.Uuid
+  customer_id String?  @db.Uuid
+  guest_email String?  @db.VarChar(255)
+  order_id    String   @db.Uuid
+  used_at     DateTime @default(now()) @db.Timestamptz
+
+  shop   Shop   @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  coupon Coupon @relation(fields: [coupon_id], references: [id], onDelete: Cascade)
+  order  Order  @relation(fields: [order_id], references: [id], onDelete: Cascade)
+
+  @@index([coupon_id, customer_id], name: "idx_coupon_usage_cust")
+  @@index([coupon_id, guest_email], name: "idx_coupon_usage_guest")
+  @@map("coupon_usages")
+}
+
+// ─── Wishlist ─────────────────────────────────────────────────────────────────
+
+model Wishlist {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id     String         @db.Uuid
+  customer_id String         @db.Uuid
+  created_at  DateTime       @default(now()) @db.Timestamptz
+
+  shop     Shop           @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  customer Customer       @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  items    WishlistItem[]
+
+  @@unique([shop_id, customer_id])
+  @@map("wishlists")
+}
+
+model WishlistItem {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id     String         @db.Uuid
+  wishlist_id String         @db.Uuid
+  variant_id  String         @db.Uuid
+  added_at    DateTime       @default(now()) @db.Timestamptz
+
+  shop     Shop           @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  wishlist Wishlist       @relation(fields: [wishlist_id], references: [id], onDelete: Cascade)
+  variant  ProductVariant @relation(fields: [variant_id], references: [id], onDelete: Cascade)
+
+  @@unique([wishlist_id, variant_id])
+  @@map("wishlist_items")
 }

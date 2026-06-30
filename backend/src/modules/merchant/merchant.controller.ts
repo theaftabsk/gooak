@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   Req,
   BadRequestException,
   Header,
@@ -265,10 +266,20 @@ export class MerchantController {
   // ─── Orders ───────────────────────────────────────────────────────────────
 
   @Get('orders')
-  async getOrders(@Req() req: Request & { shopId?: string }) {
+  async getOrders(
+    @Req() req: Request & { shopId?: string },
+    @Query() query: { page?: number; limit?: number; status?: string; fulfillment_status?: string; search?: string; from?: string; to?: string },
+  ) {
     const shopId = req.shopId;
     if (!shopId) throw new BadRequestException('Shop context missing');
-    return this.merchantService.getOrders(shopId);
+    return this.merchantService.getOrders(shopId, query);
+  }
+
+  @Get('orders/:id')
+  async getOrderDetail(@Req() req: Request & { shopId?: string }, @Param('id') id: string) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getOrderDetail(shopId, id);
   }
 
   @Patch('orders/:id/status')
@@ -285,7 +296,6 @@ export class MerchantController {
       expected_delivery_at?: string;
       fulfillment_status?: string;
       staff_notes?: string;
-      return_status?: string;
       paid_amount?: number;
       payment_method?: string;
     },
@@ -299,6 +309,42 @@ export class MerchantController {
       console.error('[updateOrderStatus] ERROR:', err?.message, err?.code, JSON.stringify(err?.meta));
       throw err;
     }
+  }
+
+  @Post('orders/:id/tracking')
+  async addOrderTracking(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+    @Body() dto: { status: string; message?: string; location?: string; occurred_at?: string },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    if (!dto.status) throw new BadRequestException('status is required');
+    return this.merchantService.addOrderTracking(shopId, id, dto);
+  }
+
+  // ─── Refunds ──────────────────────────────────────────────────────────────
+
+  @Get('refunds')
+  async getRefunds(
+    @Req() req: Request & { shopId?: string },
+    @Query() query: { status?: string; page?: number; limit?: number },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getRefunds(shopId, query);
+  }
+
+  @Patch('refunds/:refundId')
+  async processRefund(
+    @Req() req: Request & { shopId?: string },
+    @Param('refundId') refundId: string,
+    @Body() body: { action: 'approve' | 'reject' | 'process'; merchant_notes?: string; gateway_refund_id?: string; method?: string },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    if (!body.action) throw new BadRequestException('action is required');
+    return this.merchantService.processRefund(shopId, refundId, body.action, body);
   }
 
   // ─── Banners ──────────────────────────────────────────────────────────────

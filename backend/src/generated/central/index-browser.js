@@ -396,14 +396,20 @@ exports.Prisma.OrderScalarFieldEnum = {
   shipping_address: 'shipping_address',
   billing_address: 'billing_address',
   notes: 'notes',
+  guest_email: 'guest_email',
+  guest_name: 'guest_name',
+  guest_phone: 'guest_phone',
+  coupon_code: 'coupon_code',
   courier_name: 'courier_name',
   tracking_number: 'tracking_number',
   tracking_url: 'tracking_url',
   dispatched_at: 'dispatched_at',
   expected_delivery_at: 'expected_delivery_at',
   fulfillment_status: 'fulfillment_status',
+  cancelled_at: 'cancelled_at',
+  cancel_reason: 'cancel_reason',
+  refund_status: 'refund_status',
   staff_notes: 'staff_notes',
-  return_status: 'return_status',
   paid_amount: 'paid_amount',
   payment_method: 'payment_method',
   created_at: 'created_at',
@@ -418,7 +424,10 @@ exports.Prisma.OrderItemScalarFieldEnum = {
   product_snap: 'product_snap',
   qty: 'qty',
   unit_price: 'unit_price',
+  discount_amount: 'discount_amount',
+  tax_amount: 'tax_amount',
   line_total: 'line_total',
+  refunded_qty: 'refunded_qty',
   created_at: 'created_at'
 };
 
@@ -451,8 +460,12 @@ exports.Prisma.CouponScalarFieldEnum = {
   type: 'type',
   value: 'value',
   min_order: 'min_order',
+  applies_to: 'applies_to',
+  target_ids: 'target_ids',
   usage_limit: 'usage_limit',
+  per_customer_limit: 'per_customer_limit',
   used_count: 'used_count',
+  free_shipping: 'free_shipping',
   starts_at: 'starts_at',
   ends_at: 'ends_at',
   is_active: 'is_active',
@@ -788,6 +801,67 @@ exports.Prisma.HomeSectionScalarFieldEnum = {
   created_at: 'created_at'
 };
 
+exports.Prisma.RefundScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  order_id: 'order_id',
+  requested_by: 'requested_by',
+  reason: 'reason',
+  status: 'status',
+  refund_amount: 'refund_amount',
+  method: 'method',
+  gateway_refund_id: 'gateway_refund_id',
+  merchant_notes: 'merchant_notes',
+  processed_at: 'processed_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.RefundItemScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  refund_id: 'refund_id',
+  order_item_id: 'order_item_id',
+  qty: 'qty',
+  amount: 'amount',
+  reason: 'reason'
+};
+
+exports.Prisma.OrderTrackingScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  order_id: 'order_id',
+  status: 'status',
+  message: 'message',
+  location: 'location',
+  occurred_at: 'occurred_at'
+};
+
+exports.Prisma.CouponUsageScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  coupon_id: 'coupon_id',
+  customer_id: 'customer_id',
+  guest_email: 'guest_email',
+  order_id: 'order_id',
+  used_at: 'used_at'
+};
+
+exports.Prisma.WishlistScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  customer_id: 'customer_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.WishlistItemScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  wishlist_id: 'wishlist_id',
+  variant_id: 'variant_id',
+  added_at: 'added_at'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -869,7 +943,13 @@ exports.Prisma.ModelName = {
   MediaLibrary: 'MediaLibrary',
   Faq: 'Faq',
   Testimonial: 'Testimonial',
-  HomeSection: 'HomeSection'
+  HomeSection: 'HomeSection',
+  Refund: 'Refund',
+  RefundItem: 'RefundItem',
+  OrderTracking: 'OrderTracking',
+  CouponUsage: 'CouponUsage',
+  Wishlist: 'Wishlist',
+  WishlistItem: 'WishlistItem'
 };
 
 /**
