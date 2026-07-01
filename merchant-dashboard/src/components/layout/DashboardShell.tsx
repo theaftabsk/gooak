@@ -237,10 +237,9 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
                   </div>
                   {expandedGroups[group.key] && !isSidebarCollapsed && (
                     <div className="sidebar-group-children">
-                      {group.items.map(([slug, label], i) => (
+                      {group.items.map(([slug, label]) => (
                         <Link key={slug} href={`/${slug}`} className={isActive(`/${slug}`) ? 'active' : ''} title={label}>
-                          <span className="sidebar-tree-indent">{i === group.items.length - 1 ? '└' : '├'}</span>
-                          <span className="sidebar-nav-item-text">{label}</span>
+                          {label}
                         </Link>
                       ))}
                     </div>
