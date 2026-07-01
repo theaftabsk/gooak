@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { PagesService } from './pages.service';
 
@@ -9,6 +9,11 @@ export class PagesController {
   @Get('page-content')
   getPageContent(@Req() req: Request & { shopId?: string }) {
     return this.pagesService.getPageContent(req.shopId!);
+  }
+
+  @Get('pages/:slug')
+  getPageBySlug(@Req() req: Request & { shopId?: string }, @Param('slug') slug: string) {
+    return this.pagesService.getPageBySlug(req.shopId!, slug);
   }
 
   @Post('contact')

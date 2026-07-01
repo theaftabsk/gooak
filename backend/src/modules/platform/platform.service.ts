@@ -174,6 +174,7 @@ export class PlatformService {
         { title: 'Home', url: '/' },
         { title: 'Products', url: '/products' },
         { title: 'Categories', url: '/categories' },
+        { title: 'Collections', url: '/collections' },
         { title: 'About Us', url: '/about' },
         { title: 'Contact Us', url: '/contact' }
       ]), group: 'pages' },
@@ -208,6 +209,61 @@ export class PlatformService {
 
     await this.prisma.setting.createMany({
       data: defaultSettings,
+    });
+
+    // 4b. Seed default CMS pages with structured sections (Shopify-style widgets).
+    const shopSlug = dto.slug.toLowerCase().replace(/\s/g, '');
+    await this.prisma.page.createMany({
+      data: [
+        {
+          shop_id: shop.id, title: 'About Us', slug: 'about', status: 'published',
+          sections: [
+            { type: 'hero', data: { title: 'About Us', subtitle: 'Skincare rooted in science, crafted with care.' } },
+            { type: 'image_text', data: { image_side: 'right', image_url: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=800', title: 'Our Story', text: `${dto.name} was founded with a simple belief — effective skincare should not cost a fortune. Every formula is clinically backed and designed to actually work.` } },
+            { type: 'cards', data: { title: 'Our Values', items: [{ icon: '🔬', title: 'Science-First', text: 'Every ingredient is chosen for proven efficacy.' }, { icon: '💚', title: 'Clean & Honest', text: 'Full transparency on every label.' }, { icon: '🌱', title: 'Sustainable', text: 'Responsible sourcing and recyclable packaging.' }] } },
+            { type: 'cta', data: { title: 'Ready to start your skin journey?', button_label: 'Shop All Products', button_url: '/products' } },
+          ],
+        },
+        {
+          shop_id: shop.id, title: 'Contact Us', slug: 'contact', status: 'published',
+          sections: [
+            { type: 'hero', data: { title: 'Contact Us', subtitle: 'We typically respond to all queries within 24 hours.' } },
+            { type: 'contact_form', data: { title: 'Send us a message', subtitle: 'Fill out the form and our team will get back to you shortly.' } },
+            { type: 'cards', data: { title: 'Other Ways to Reach Us', items: [{ icon: '📧', title: 'Email', text: `support@${shopSlug}.com` }, { icon: '📞', title: 'Phone', text: '+91 98765 43210\nMon–Fri, 9 AM – 6 PM IST' }] } },
+          ],
+        },
+        {
+          shop_id: shop.id, title: 'Privacy Policy', slug: 'privacy', status: 'published',
+          sections: [
+            { type: 'hero', data: { title: 'Privacy Policy', subtitle: 'Your privacy matters. Here is how we handle your data.' } },
+            { type: 'rich_text', data: { html: '<h3>What we collect</h3><p>When you place an order we collect your name, email, shipping address, and payment information.</p><h3>How we use it</h3><p>To process orders, send shipping updates, and provide customer support.</p><h3>What we do not do</h3><p>We never sell or rent your personal data to third parties.</p><h3>Security</h3><p>All transactions are encrypted using SSL/TLS technology.</p>' } },
+          ],
+        },
+        {
+          shop_id: shop.id, title: 'Terms & Conditions', slug: 'terms', status: 'published',
+          sections: [
+            { type: 'hero', data: { title: 'Terms & Conditions', subtitle: 'Please read these terms carefully before using our store.' } },
+            { type: 'rich_text', data: { html: '<h3>Acceptance</h3><p>By accessing this website you agree to be bound by these terms of service.</p><h3>Products</h3><p>All product descriptions are accurate to the best of our knowledge.</p><h3>Pricing</h3><p>All prices are in Indian Rupees (INR) and include applicable GST.</p><h3>Orders</h3><p>Once confirmed, orders cannot be modified. Cancellations possible within 2 hours.</p>' } },
+          ],
+        },
+        {
+          shop_id: shop.id, title: 'Refund Policy', slug: 'refund', status: 'published',
+          sections: [
+            { type: 'hero', data: { title: 'Refund & Returns', subtitle: 'Not happy? We make it right.' } },
+            { type: 'cards', data: { title: 'At a Glance', items: [{ icon: '📦', title: '14-Day Returns', text: 'Return unopened items within 14 days of delivery.' }, { icon: '✅', title: 'Easy Process', text: 'Email us with your order number. We handle the rest.' }, { icon: '💳', title: 'Fast Refunds', text: 'Approved refunds arrive within 5–7 business days.' }] } },
+            { type: 'rich_text', data: { html: '<h3>Eligibility</h3><p>Items must be unopened and in original packaging with seals intact.</p><h3>Non-returnable items</h3><p>Opened skincare products cannot be returned for hygiene reasons unless defective.</p><h3>Defective items</h3><p>Contact us within <strong>48 hours</strong> of delivery with photos for a free replacement or full refund.</p>' } },
+          ],
+        },
+      ],
+    });
+
+    // 4c. Seed default collections so the storefront has browsable groupings immediately
+    await this.prisma.collection.createMany({
+      data: [
+        { shop_id: shop.id, name: 'New Arrivals', slug: 'new-arrivals', description: 'Freshly added to the store', is_active: true },
+        { shop_id: shop.id, name: 'Best Sellers', slug: 'best-sellers', description: 'Customer favorites', is_active: true },
+        { shop_id: shop.id, name: 'Featured Products', slug: 'featured-products', description: 'Highlighted picks of the month', is_active: true },
+      ],
     });
 
     // 5. Seed default payment gateways

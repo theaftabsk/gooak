@@ -1428,7 +1428,7 @@ export class MerchantService {
         banner_image: dto.banner_image || null,
         seo_title: dto.seo_title || null,
         seo_description: dto.seo_description || null,
-        content: dto.content || null,
+        sections: dto.sections || null,
         status: dto.status || 'draft'
       }
     });
@@ -1452,7 +1452,7 @@ export class MerchantService {
         banner_image: dto.banner_image !== undefined ? dto.banner_image : undefined,
         seo_title: dto.seo_title !== undefined ? dto.seo_title : undefined,
         seo_description: dto.seo_description !== undefined ? dto.seo_description : undefined,
-        content: dto.content !== undefined ? dto.content : undefined,
+        sections: dto.sections !== undefined ? dto.sections : undefined,
         status: dto.status !== undefined ? dto.status : undefined
       }
     });

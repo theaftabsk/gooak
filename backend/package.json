@@ -25,6 +25,7 @@
     "db:sync": "prisma db push --schema=prisma/schema.prisma --accept-data-loss",
     "db:setup": "pnpm run db:push && pnpm run db:generate",
     "db:seed": "pnpm exec ts-node ./scripts/seed.ts",
+    "seed:shop": "pnpm exec ts-node ./scripts/seed-shop.ts",
     "db:rebuild": "pnpm run db:setup && pnpm run db:seed",
     "db:bootstrap": "pnpm run db:rebuild",
     "db:export": "ts-node scripts/db-export-helper.ts",

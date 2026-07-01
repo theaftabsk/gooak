@@ -1,5 +1,6 @@
+'use client';
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'next/navigation';
 
 export interface PageTheme {
   primaryColor: string;
@@ -16,7 +17,7 @@ const DEFAULT_THEME: PageTheme = {
 };
 
 export const usePageTheme = (slug: string) => {
-  const [searchParams] = useSearchParams();
+  const searchParams = useSearchParams();
   const actualSlug = slug === '/' || slug === '' ? 'index' : slug;
 
   const [theme, setTheme] = useState<PageTheme>(() => {

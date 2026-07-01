@@ -196,6 +196,52 @@ export class CatalogService {
     return this.prisma.brand.findMany({ where: { shop_id: shopId, is_active: true }, orderBy: { name: 'asc' } });
   }
 
+  async getCollections(shopId: string) {
+    return this.prisma.collection.findMany({
+      where: { shop_id: shopId, is_active: true },
+      orderBy: { name: 'asc' },
+      include: { _count: { select: { products: true } } },
+    });
+  }
+
+  async getCollectionBySlug(
+    shopId: string,
+    slug: string,
+    query: { limit?: number; page?: number; sort?: string },
+  ) {
+    const collection = await this.prisma.collection.findFirst({ where: { shop_id: shopId, slug, is_active: true } });
+    if (!collection) throw new NotFoundException(`Collection '${slug}' not found`);
+
+    const limit = Number(query.limit) || 12;
+    const page = Number(query.page) || 1;
+    const skip = (page - 1) * limit;
+
+    let orderBy: any = { created_at: 'desc' };
+    if (query.sort === 'price_asc') orderBy = { price: 'asc' };
+    if (query.sort === 'price_desc') orderBy = { price: 'desc' };
+    if (query.sort === 'popular') orderBy = { total_sold: 'desc' };
+
+    const where = {
+      shop_id: shopId,
+      status: 'active',
+      collections: { some: { collection_id: collection.id } },
+    };
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where, orderBy, skip, take: limit,
+        include: {
+          gallery: { where: { is_cover: true } },
+          variants: { where: { is_active: true } },
+          category: { select: { id: true, name: true, slug: true, parent_id: true } },
+        },
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return { collection, products, pagination: { totalItems: total, totalPages: Math.ceil(total / limit), currentPage: page, limit } };
+  }
+
   async getPublicSystemSettings() {
     return this.prisma.systemSetting.findMany({
       where: { is_public: true },

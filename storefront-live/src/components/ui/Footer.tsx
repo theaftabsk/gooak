@@ -1,9 +1,11 @@
+'use client';
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { customerApi } from '@/lib/api-client';
 
 export const Footer: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
+  const navigate = (path: string) => router.push(path);
   const [shop, setShop] = useState<any>(null);
   const [content, setContent] = useState<Record<string, string>>({});
   const [footItems, setFootItems] = useState<any[]>([]);
@@ -102,10 +104,10 @@ export const Footer: React.FC = () => {
         <div className="sf-footer-col">
           <h4 className="sf-footer-heading">Shop</h4>
           <nav className="sf-footer-nav">
-            <Link to="/" className="sf-footer-link">Home</Link>
-            <Link to="/products" className="sf-footer-link">All Products</Link>
-            <Link to="/categories" className="sf-footer-link">Categories</Link>
-            <Link to="/search" className="sf-footer-link">Search</Link>
+            <a href="/" className="sf-footer-link">Home</a>
+            <a href="/products" className="sf-footer-link">All Products</a>
+            <a href="/categories" className="sf-footer-link">Categories</a>
+            <a href="/search" className="sf-footer-link">Search</a>
           </nav>
         </div>
 
@@ -113,10 +115,10 @@ export const Footer: React.FC = () => {
         <div className="sf-footer-col">
           <h4 className="sf-footer-heading">Account</h4>
           <nav className="sf-footer-nav">
-            <Link to="/login" className="sf-footer-link">Sign In</Link>
-            <Link to="/register" className="sf-footer-link">Create Account</Link>
-            <Link to="/account/orders" className="sf-footer-link">My Orders</Link>
-            <Link to="/wishlist" className="sf-footer-link">Wishlist</Link>
+            <a href="/login" className="sf-footer-link">Sign In</a>
+            <a href="/register" className="sf-footer-link">Create Account</a>
+            <a href="/account/orders" className="sf-footer-link">My Orders</a>
+            <a href="/wishlist" className="sf-footer-link">Wishlist</a>
           </nav>
         </div>
 
@@ -171,9 +173,9 @@ export const Footer: React.FC = () => {
         <div className="sf-footer-bottom-inner">
           <p className="sf-footer-copy">© {year} {shop?.name || 'Our Store'}. All rights reserved.</p>
           <div className="sf-footer-bottom-links">
-            <Link to="/privacy" className="sf-footer-bottom-link">Privacy</Link>
+            <a href="/privacy" className="sf-footer-bottom-link">Privacy</a>
             <span>·</span>
-            <Link to="/terms" className="sf-footer-bottom-link">Terms</Link>
+            <a href="/terms" className="sf-footer-bottom-link">Terms</a>
           </div>
         </div>
       </div>

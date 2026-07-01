@@ -31,6 +31,16 @@ export class CatalogController {
     return this.catalogService.getBrands(req.shopId!);
   }
 
+  @Get('collections')
+  getCollections(@Req() req: Request & { shopId?: string }) {
+    return this.catalogService.getCollections(req.shopId!);
+  }
+
+  @Get('collections/:slug')
+  getCollectionBySlug(@Req() req: Request & { shopId?: string }, @Param('slug') slug: string, @Query() query: any) {
+    return this.catalogService.getCollectionBySlug(req.shopId!, slug, query);
+  }
+
   @Get('settings')
   getSettings() {
     return this.catalogService.getPublicSystemSettings();

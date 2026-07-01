@@ -1,9 +1,10 @@
+'use client';
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'next/navigation';
 import { customerApi } from '@/lib/api-client';
 
 export const useLiveSettings = () => {
-  const [searchParams] = useSearchParams();
+  const searchParams = useSearchParams();
   const [data, setData] = useState<{ shop: any; content: Record<string, string> } | null>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('oaksol_preview_settings');

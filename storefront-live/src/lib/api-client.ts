@@ -12,19 +12,19 @@
 const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'posix.digital';
 
 // Returns the value to send as X-Tenant-Domain header.
-// - plain localhost:  slug comes from the first URL path segment → "amir.localhost"
-// - subdomain:        use the hostname as-is → "amir.posix.digital"
-// - custom domain:    use the hostname as-is → "www.mystore.com"
+// - subdomain dev:    "testShop.localhost:3001/products" → hostname "testShop.localhost" → use as-is
+// - plain localhost:  read shop slug from localStorage (key: oaksol_shop_slug), default "testShop"
+// - production:       use the full hostname → "amir.posix.digital" or "www.mystore.com"
 function getTenantDomain(): string {
   if (typeof window === 'undefined') return '';
   const hostname = window.location.hostname;
 
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    const slug = window.location.pathname.split('/').filter(Boolean)[0] || '';
-    return slug ? `${slug}.localhost` : 'localhost';
+    const slug = localStorage.getItem('oaksol_shop_slug') || 'testShop';
+    return `${slug}.localhost`;
   }
 
-  return window.location.hostname;
+  return hostname;
 }
 
 const getApiBaseUrl = (): string => {
@@ -139,6 +139,17 @@ export const storefrontApi = {
 
   getPageContent: () =>
     request<{ shop: any; content: Record<string, string> }>('/storefront/page-content'),
+
+  // Merchant-authored CMS page (About/Contact/Privacy/Terms/Refund are seeded
+  // by default; custom slugs created in the merchant dashboard also resolve here)
+  getPage: (slug: string) => request<any>(`/storefront/pages/${slug}`),
+
+  getCollections: () => request<any[]>('/storefront/collections'),
+
+  getCollection: (slug: string, params: Record<string, string | number> = {}) => {
+    const query = new URLSearchParams(params as any).toString();
+    return request<any>(`/storefront/collections/${slug}${query ? `?${query}` : ''}`);
+  },
 
   submitContact: (data: { name: string; email: string; subject?: string; message: string }) =>
     request<{ success: boolean; message: string }>('/storefront/contact', {

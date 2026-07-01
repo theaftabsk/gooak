@@ -111,3 +111,11 @@ pnpm db:bootstrap      # full db setup + seed
 pnpm db:studio          # inspect the central schema
 pnpm db:studio:tenant   # inspect the tenant schema
 ```
+
+### 4. SEED TEST shop data
+
+# from repo root
+cd backend && pnpm run seed:shop -- --slug=testShop
+
+# or by shop UUID
+cd backend && pnpm run seed:shop -- --id=<uuid>

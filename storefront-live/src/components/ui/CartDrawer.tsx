@@ -1,12 +1,14 @@
+'use client';
 import React from 'react';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@oaksol/shared-ui';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { getCurrencySymbol } from '@/lib/utils';
 
 export const CartDrawer: React.FC = () => {
   const { cartItems, cartTotal, isCartOpen, setCartOpen, updateQty, removeFromCart } = useCart();
-  const navigate = useNavigate();
+  const router = useRouter();
+  const navigate = (path: string) => router.push(path);
 
   if (!isCartOpen) return null;
 
