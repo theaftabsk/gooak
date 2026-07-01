@@ -1,12 +1,15 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { CartProvider } from '@/context/CartContext';
 import { CustomerProvider } from '@/context/CustomerContext';
 import { Header } from '@/components/ui/Header';
 import { Footer } from '@/components/ui/Footer';
 import { CartDrawer } from '@/components/ui/CartDrawer';
 import { Icons } from '@/components/ui/Icons';
+
+const NO_CHROME_PREFIXES = ['/checkout', '/account', '/login', '/register'];
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
   constructor(props: any) {
@@ -57,16 +60,19 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 export default function StorefrontShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() ?? '';
+  const hideChrome = NO_CHROME_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'));
+
   return (
     <ErrorBoundary>
       <CustomerProvider>
         <CartProvider>
-          <div className="storefront-app-shell" style={{ background: 'var(--sf-bg, #FAF7F2)', minHeight: '100vh', paddingTop: '70px', display: 'flex', flexDirection: 'column' }}>
-            <Header />
+          <div className="storefront-app-shell" style={{ background: 'var(--sf-bg, #FAF7F2)', minHeight: '100vh', paddingTop: hideChrome ? 0 : '70px', display: 'flex', flexDirection: 'column' }}>
+            {!hideChrome && <Header />}
             <main className="storefront-main-content" style={{ flex: 1 }}>
               {children}
             </main>
-            <Footer />
+            {!hideChrome && <Footer />}
             <CartDrawer />
           </div>
         </CartProvider>

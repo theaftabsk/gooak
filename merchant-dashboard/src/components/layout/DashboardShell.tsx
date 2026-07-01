@@ -59,7 +59,7 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
       setExpandedGroups(g => ({ ...g, orders: true }));
     if (['/customers', '/groups', '/reviews'].some(p => pathname.startsWith(p)))
       setExpandedGroups(g => ({ ...g, customers: true }));
-    if (['/pages', '/banners', '/blog', '/media', '/faq', '/testimonials', '/home-sections'].some(p => pathname.startsWith(p)))
+    if (['/pages', '/blog', '/media', '/faq', '/testimonials'].some(p => pathname.startsWith(p)))
       setExpandedGroups(g => ({ ...g, content: true }));
   }, [pathname]);
 
@@ -98,14 +98,16 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
   };
 
   const merchantEmail =
-    typeof window !== 'undefined'
-      ? (localStorage.getItem(`oaksol_merchant_email_${tenantSlug}`) ?? 'admin@oaksol.in')
-      : 'admin@oaksol.in';
+    shopInfo?.owner?.email ||
+    (typeof window !== 'undefined' ? localStorage.getItem(`oaksol_merchant_email_${tenantSlug}`) : null) ||
+    '';
 
-  const isActive = (href: string): boolean =>
-    href === '/'
+  const isActive = (href: string): boolean => {
+    const path = href.split('?')[0];
+    return path === '/'
       ? pathname === '/'
-      : pathname === href || pathname.startsWith(href + '/');
+      : pathname === path || pathname.startsWith(path + '/');
+  };
 
   const isGroupActive = (paths: string[]): boolean => paths.some(p => pathname.startsWith(p));
 
@@ -181,12 +183,13 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
       key: 'content',
       label: 'Content',
       icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>,
-      paths: ['/pages', '/banners', '/blog', '/media', '/faq', '/testimonials', '/home-sections'],
-      items: [['pages','Pages'],['banners','Banners'],['blog','Blog'],['media','Media Library'],['faq','FAQ'],['testimonials','Testimonials'],['home-sections','Home Sections']],
+      paths: ['/pages', '/blog', '/media', '/faq', '/testimonials'],
+      items: [['pages','Pages'],['blog','Blog'],['media','Media Library'],['faq','FAQ'],['testimonials','Testimonials']],
     },
   ];
 
   const topLinks: [string, string, React.ReactNode][] = [
+    ['/customize', 'Customize', <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>],
     ['/analytics', 'Analytics', <Icons.BarChart />],
     ['/payments', 'Payments', <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>],
     ['/settings', 'Settings', <Icons.Settings />],
@@ -265,11 +268,11 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
 
             <div className="sidebar-footer">
               <div className="sidebar-profile">
-                <div className="sidebar-avatar">{merchantEmail.charAt(0).toUpperCase()}</div>
+                <div className="sidebar-avatar">{merchantEmail ? merchantEmail.charAt(0).toUpperCase() : '?'}</div>
                 <div className="sidebar-profile-info">
-                  <span className="sidebar-profile-name">Merchant Admin</span>
+                  <span className="sidebar-profile-name">{shopInfo?.owner?.name || 'Shop Owner'}</span>
                   <span className="sidebar-profile-role" title={merchantEmail}>
-                    {merchantEmail.length > 20 ? `${merchantEmail.substring(0, 17)}...` : merchantEmail}
+                    {merchantEmail ? (merchantEmail.length > 22 ? `${merchantEmail.substring(0, 19)}…` : merchantEmail) : 'Loading…'}
                   </span>
                 </div>
               </div>

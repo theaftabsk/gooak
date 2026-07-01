@@ -216,6 +216,22 @@ export class PlatformService {
     await this.prisma.page.createMany({
       data: [
         {
+          shop_id: shop.id, title: 'Home', slug: 'home', status: 'published',
+          sections: [
+            { type: 'announcement_bar', data: { text: `🌿 FREE SHIPPING FOR ORDERS ABOVE ₹500 — Welcome to ${dto.name}!`, active: true } },
+            { type: 'banner_slider', data: { banners: [
+              { title: `Welcome to ${dto.name}`, image_url: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=1400', link_url: '/products' },
+              { title: 'New Arrivals', image_url: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1400', link_url: '/collections/new-arrivals' },
+            ] } },
+            { type: 'categories_carousel', data: { badge: 'Collections', title: 'Product Categories' } },
+            { type: 'products_grid', data: { badge: 'Trending', title: 'Best Sellers', subtitle: "Deals You Can't Miss", limit: 4, view_all_url: '/products', view_all_label: 'VIEW ALL →' } },
+            { type: 'products_grid', data: { badge: 'New Arrivals', title: 'Featured Collection', limit: 8, columns: 4, view_all_url: '/products' } },
+            { type: 'features_strip', data: {} },
+            { type: 'about_section', data: { title: `About ${dto.name}`, content: `${dto.name} was founded with a simple belief — effective products should not cost a fortune. Every item in our range is carefully curated and designed to actually work.`, tagline: '"Quality you can trust."' } },
+            { type: 'cta', data: { title: 'Start your journey today', subtitle: 'Join thousands of happy customers.', button_label: 'Shop All Products', button_url: '/products', button2_label: 'Our Story', button2_url: '/about' } },
+          ],
+        },
+        {
           shop_id: shop.id, title: 'About Us', slug: 'about', status: 'published',
           sections: [
             { type: 'hero', data: { title: 'About Us', subtitle: 'Skincare rooted in science, crafted with care.' } },

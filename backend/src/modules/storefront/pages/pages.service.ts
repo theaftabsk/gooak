@@ -10,6 +10,22 @@ import { PrismaService } from '../../../database/prisma.service';
 //   contact_form  — renders the live contact form widget: title?, subtitle?
 
 const DEFAULT_PAGES: Record<string, { title: string; sections: any[] }> = {
+  home: {
+    title: 'Home',
+    sections: [
+      { type: 'announcement_bar', data: { text: '🌿 FREE SHIPPING FOR ORDERS ABOVE ₹500 — 100% Natural Products', active: true } },
+      { type: 'banner_slider', data: { banners: [
+        { title: 'Discover Our Collection', image_url: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=1400', link_url: '/products' },
+        { title: 'New Arrivals', image_url: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1400', link_url: '/collections/new-arrivals' },
+      ] } },
+      { type: 'categories_carousel', data: { badge: 'Collections', title: 'Product Categories' } },
+      { type: 'products_grid', data: { badge: 'Trending', title: 'Best Sellers', subtitle: 'Deals You Can\'t Miss', limit: 4, view_all_url: '/products', view_all_label: 'VIEW ALL →' } },
+      { type: 'products_grid', data: { badge: 'New Arrivals', title: 'Featured Collection', limit: 8, columns: 4, view_all_url: '/products' } },
+      { type: 'features_strip', data: {} },
+      { type: 'about_section', data: { title: 'About Us', content: 'We are a natural beauty and health company. Our products are chemical-free, handcrafted following traditional methods and formulations.', tagline: '"Live Healthy. Stay Beautiful."' } },
+      { type: 'cta', data: { title: 'Start your wellness journey today', subtitle: 'Join thousands of happy customers who have transformed their routine with our premium organic products.', button_label: 'Shop All Products', button_url: '/products', button2_label: 'Our Story', button2_url: '/about' } },
+    ],
+  },
   about: {
     title: 'About Us',
     sections: [

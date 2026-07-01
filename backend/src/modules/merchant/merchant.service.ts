@@ -1463,6 +1463,38 @@ export class MerchantService {
     return this.prisma.page.delete({ where: { id } });
   }
 
+  async saveDraftSections(shopId: string, id: string, sections: any[]) {
+    await this.getAdminPageById(shopId, id);
+    const json = JSON.stringify(sections);
+    await this.prisma.$executeRawUnsafe(
+      `UPDATE pages SET draft_sections = $1::jsonb, updated_at = NOW() WHERE id = $2`,
+      json,
+      id,
+    );
+    return this.getAdminPageById(shopId, id);
+  }
+
+  async publishPage(shopId: string, id: string) {
+    const page = await this.getAdminPageById(shopId, id);
+    const toPublish = (page.draft_sections as any[]) ?? (page.sections as any[]) ?? [];
+    const json = JSON.stringify(toPublish);
+    await this.prisma.$executeRawUnsafe(
+      `UPDATE pages SET sections = $1::jsonb, draft_sections = $1::jsonb, status = 'published', updated_at = NOW() WHERE id = $2`,
+      json,
+      id,
+    );
+    return this.getAdminPageById(shopId, id);
+  }
+
+  async unpublishPage(shopId: string, id: string) {
+    await this.getAdminPageById(shopId, id);
+    await this.prisma.$executeRawUnsafe(
+      `UPDATE pages SET status = 'draft', updated_at = NOW() WHERE id = $1`,
+      id,
+    );
+    return this.getAdminPageById(shopId, id);
+  }
+
   // ─── BANNERS CRUD ───────────────────────────────────────────────────────────
   async getAdminBanners(shopId: string) {
     return this.prisma.banner.findMany({

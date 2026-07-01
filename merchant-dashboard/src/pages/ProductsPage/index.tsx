@@ -218,7 +218,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
                           <button className="btn-ghost-sm" onClick={() => handleEditClick(p)}>
-                            <Icons.Eye /> Details
+                            <Icons.Edit /> Edit
                           </button>
                           <button className="btn-danger-sm" onClick={() => handleDeleteClick(p)} disabled={deleting}>
                             <Icons.Trash /> Delete

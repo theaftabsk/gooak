@@ -90,7 +90,7 @@ export const Header: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const isPreview = window.location.search.includes('preview=true');
+    const isPreview = window.location.search.includes('preview=1');
     if (!isPreview) return;
 
     const handleMessage = (event: MessageEvent) => {
@@ -150,12 +150,48 @@ export const Header: React.FC = () => {
         {/* Center: Nav with dropdown subcategories */}
         <nav className="site-nav" onMouseLeave={() => setOpenDropdown(null)}>
           {navItems.map((item: any, index: number) => {
+            // Explicit children always take priority over auto-populated dropdowns
+            if (item.children?.length > 0) {
+              const key = `custom-${index}`;
+              return (
+                <div key={index} className="nav-item-wrap has-dropdown"
+                  onMouseEnter={() => setOpenDropdown(key)}
+                  onMouseLeave={() => setOpenDropdown(null)}>
+                  <span className={openDropdown === key ? 'active' : ''} onClick={() => handleLinkClick(item.url)}>
+                    {item.title}
+                    <Icons.ChevronDown />
+                  </span>
+                  {openDropdown === key && (
+                    <div className="nav-dropdown">
+                      {item.url && (
+                        <>
+                          <div className="nav-dropdown-header" onClick={() => handleLinkClick(item.url)}>
+                            <strong>All {item.title}</strong>
+                            <span className="view-all-link">View All →</span>
+                          </div>
+                          <div className="nav-dropdown-divider" />
+                        </>
+                      )}
+                      <div className="nav-dropdown-grid">
+                        {item.children.map((child: any, ci: number) => (
+                          <div key={ci} className="nav-dropdown-item" onClick={() => handleLinkClick(child.url)}>
+                            <span className="sub-dot">●</span>
+                            {child.title}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             const isCollections = item.url === '/collections';
             const hasCollectionsDropdown = isCollections && collections.length > 0;
 
             if (hasCollectionsDropdown) {
               return (
-                <div key={index} className="nav-item-wrap has-dropdown" onMouseEnter={() => setOpenDropdown('collections-nav')}>
+                <div key={index} className="nav-item-wrap has-dropdown" onMouseEnter={() => setOpenDropdown('collections-nav')} onMouseLeave={() => setOpenDropdown(null)}>
                   <span className={openDropdown === 'collections-nav' ? 'active' : ''} onClick={() => goTo('/collections')}>
                     {item.title}
                     <Icons.ChevronDown />
@@ -190,6 +226,7 @@ export const Header: React.FC = () => {
                   key={index}
                   className="nav-item-wrap has-dropdown"
                   onMouseEnter={() => setOpenDropdown('categories-nav')}
+                  onMouseLeave={() => setOpenDropdown(null)}
                 >
                   <span
                     className={openDropdown === 'categories-nav' ? 'active' : ''}
@@ -234,6 +271,7 @@ export const Header: React.FC = () => {
                   key={index}
                   className="nav-item-wrap has-dropdown"
                   onMouseEnter={() => setOpenDropdown(matchedCategory.id)}
+                  onMouseLeave={() => setOpenDropdown(null)}
                 >
                   <span
                     className={openDropdown === matchedCategory.id ? 'active' : ''}
@@ -344,23 +382,27 @@ export const Header: React.FC = () => {
         <nav className="mobile-nav-links">
           {navItems.map((item: any, index: number) => {
             const matchedCategory = menuCategories.find((cat: any) => `/categories/${cat.slug}` === item.url);
-            const subs = matchedCategory ? (matchedCategory.children || []).filter((s: any) => s.show_in_menu !== false) : [];
-            const isExpanded = mobileExpanded === matchedCategory?.id;
+            const subs = matchedCategory
+              ? (matchedCategory.children || []).filter((s: any) => s.show_in_menu !== false)
+              : (item.children || []);
+            const expandKey = matchedCategory?.id ?? `custom-${index}`;
+            const isExpanded = mobileExpanded === expandKey;
 
-            if (matchedCategory && subs.length > 0) {
+            if (subs.length > 0) {
               return (
                 <div key={index} className="mobile-cat-group">
                   <div className="mobile-cat-header">
-                    <span onClick={() => { goTo(item.url); setMobileMenuOpen(false); }}>{item.title}</span>
-                    <button className="mobile-expand-btn" onClick={() => setMobileExpanded(isExpanded ? null : matchedCategory.id)}>
+                    <span onClick={() => { handleLinkClick(item.url); setMobileMenuOpen(false); }}>{item.title}</span>
+                    <button className="mobile-expand-btn" onClick={() => setMobileExpanded(isExpanded ? null : expandKey)}>
                       {isExpanded ? '▲' : '▼'}
                     </button>
                   </div>
                   {isExpanded && (
                     <div className="mobile-subcats">
-                      {subs.map((sub: any) => (
-                        <span key={sub.id} className="mobile-subcat-item" onClick={() => { goTo(`/categories/${sub.slug}`); setMobileMenuOpen(false); }}>
-                          ↳ {sub.name}
+                      {subs.map((sub: any, si: number) => (
+                        <span key={sub.id ?? si} className="mobile-subcat-item"
+                          onClick={() => { handleLinkClick(matchedCategory ? `/categories/${sub.slug}` : sub.url); setMobileMenuOpen(false); }}>
+                          ↳ {sub.name ?? sub.title}
                         </span>
                       ))}
                     </div>
@@ -528,6 +570,15 @@ export const Header: React.FC = () => {
           padding: 8px;
           z-index: 200;
           animation: nav-dd-in 0.15s ease;
+        }
+        /* Transparent bridge fills the 8px gap so mouse can reach dropdown without closing it */
+        .nav-dropdown::before {
+          content: '';
+          position: absolute;
+          bottom: 100%;
+          left: 0;
+          right: 0;
+          height: 10px;
         }
 
         @keyframes nav-dd-in {

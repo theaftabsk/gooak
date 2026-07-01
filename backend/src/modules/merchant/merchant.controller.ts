@@ -476,6 +476,37 @@ export class MerchantController {
     return this.merchantService.deleteAdminPage(shopId, id);
   }
 
+  @Patch('pages/:id/draft')
+  async saveDraft(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+    @Body() body: { sections: any[] },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.saveDraftSections(shopId, id, body.sections);
+  }
+
+  @Post('pages/:id/publish')
+  async publishPage(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.publishPage(shopId, id);
+  }
+
+  @Post('pages/:id/unpublish')
+  async unpublishPage(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.unpublishPage(shopId, id);
+  }
+
   // Static page text content (About, Privacy, Terms, etc.)
   @Get('page-content')
   async getPageContent(@Req() req: Request & { shopId?: string }) {

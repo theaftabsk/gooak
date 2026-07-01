@@ -981,6 +981,7 @@ model Page {
   seo_title       String?  @db.VarChar(255)
   seo_description String?  @db.Text
   sections        Json?
+  draft_sections  Json?
   status          String   @default("draft") @db.VarChar(30)
   created_at      DateTime @default(now()) @db.Timestamptz
   updated_at      DateTime @default(now()) @updatedAt @db.Timestamptz

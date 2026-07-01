@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import { Home } from '@/components/Home';
+import { CustomPage } from '@/components/CustomPage';
 
 export default function HomePage() {
-  return <Suspense><Home /></Suspense>;
+  return <Suspense><CustomPage pageSlug="home" /></Suspense>;
 }

@@ -261,6 +261,9 @@ export const merchantApi = {
   createPage: (dto: any) => request<any>('/merchant/pages', { method: 'POST', body: JSON.stringify(dto) }),
   updatePage: (id: string, dto: any) => request<any>(`/merchant/pages/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
   deletePage: (id: string) => request<any>(`/merchant/pages/${id}`, { method: 'DELETE' }),
+  saveDraft: (id: string, sections: any[]) => request<any>(`/merchant/pages/${id}/draft`, { method: 'PATCH', body: JSON.stringify({ sections }) }),
+  publishPage: (id: string) => request<any>(`/merchant/pages/${id}/publish`, { method: 'POST' }),
+  unpublishPage: (id: string) => request<any>(`/merchant/pages/${id}/unpublish`, { method: 'POST' }),
 
   // Static page text content (About, Privacy, Terms)
   getPageContent: () => request<any>('/merchant/page-content'),

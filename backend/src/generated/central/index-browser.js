@@ -739,6 +739,7 @@ exports.Prisma.PageScalarFieldEnum = {
   seo_title: 'seo_title',
   seo_description: 'seo_description',
   sections: 'sections',
+  draft_sections: 'draft_sections',
   status: 'status',
   created_at: 'created_at',
   updated_at: 'updated_at'
