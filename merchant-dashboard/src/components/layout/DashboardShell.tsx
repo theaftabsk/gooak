@@ -215,17 +215,6 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
                   <span className="sidebar-brand-sub">Merchant Console</span>
                 </div>
               </div>
-              <div className="sidebar-active-store-container">
-                <label className="sidebar-active-store-label">Active Store</label>
-                <div className="sidebar-active-store-box">
-                  <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', color:'#38BDF8', width:14, height:14, flexShrink:0 }}>
-                    <Icons.Store />
-                  </span>
-                  <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                    {shopInfo?.name || tenantSlug.toUpperCase()} ({tenantSlug})
-                  </span>
-                </div>
-              </div>
             </div>
 
             <nav className="sidebar-nav">

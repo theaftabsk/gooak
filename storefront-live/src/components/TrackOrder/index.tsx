@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { catalogApi } from '@/lib/api-client';
 import { usePageTheme } from '@/hooks/usePageTheme';
-import { STATIC_PAGE_STYLES } from '../About/index';
 
 export const TrackOrder: React.FC = () => {
   const { cssVariables } = usePageTheme('track-order');
@@ -411,7 +410,13 @@ export const TrackOrder: React.FC = () => {
       </div>
 
       <style>{`
-        ${STATIC_PAGE_STYLES}
+        .sp-page { min-height: 100vh; background: var(--sf-bg, #fff); }
+        .sp-hero { padding: 72px 24px 56px; text-align: center; }
+        .sp-hero-inner { max-width: 640px; margin: 0 auto; }
+        .sp-hero-title { font-family: var(--font-serif, Georgia, serif); font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; color: var(--sf-text-main, #111); margin: 0 0 14px; line-height: 1.2; }
+        .sp-hero-sub { font-size: 1rem; color: var(--sf-text-muted, #6b7280); margin: 0; line-height: 1.7; }
+        .sp-body { padding: 40px 24px 80px; }
+        .sp-container { max-width: 860px; margin: 0 auto; }
         .track-hero {
           background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #bfdbfe 100%);
           border-bottom: 1px solid #bfdbfe;

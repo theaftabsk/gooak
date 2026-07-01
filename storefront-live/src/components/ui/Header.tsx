@@ -1,28 +1,34 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useCustomer } from '@/context/CustomerContext';
 import { useRouter } from 'next/navigation';
 import { catalogApi, customerApi, storefrontApi } from '@/lib/api-client';
-import { Icons } from '@/components/ui/Icons';
 import { getWishlistCount } from '@/components/Wishlist';
 
 export const Header: React.FC = () => {
   const { cartCount, setCartOpen } = useCart();
   const { customer } = useCustomer();
   const router = useRouter();
-  const navigate = (path: string) => router.push(path);
   const [categories, setCategories] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
   const [shop, setShop] = useState<any>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const [wishCount, setWishCount] = useState(0);
   const [navItems, setNavItems] = useState<any[]>([]);
   const [customLogoUrl, setCustomLogoUrl] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const ddTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => { setWishCount(getWishlistCount()); }, []);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     const fetchHeaderData = async () => {
@@ -42,23 +48,18 @@ export const Header: React.FC = () => {
 
         const pageSettings = await customerApi.getPages().catch(() => null);
         if (pageSettings) {
-          if (pageSettings.content?.logo_url) {
-            setCustomLogoUrl(pageSettings.content.logo_url);
-          }
+          if (pageSettings.content?.logo_url) setCustomLogoUrl(pageSettings.content.logo_url);
           if (pageSettings.content?.navbar_menu) {
-            try {
-              setNavItems(JSON.parse(pageSettings.content.navbar_menu));
-            } catch(e) {
-              setNavItems([]);
-            }
+            try { setNavItems(JSON.parse(pageSettings.content.navbar_menu)); }
+            catch { setNavItems([]); }
           } else {
             setNavItems([
               { title: 'Home', url: '/' },
               { title: 'Products', url: '/products' },
               { title: 'Categories', url: '/categories' },
               { title: 'Collections', url: '/collections' },
-              { title: 'About Us', url: '/about' },
-              { title: 'Contact Us', url: '/contact' }
+              { title: 'About', url: '/about' },
+              { title: 'Contact', url: '/contact' },
             ]);
           }
         } else {
@@ -66,22 +67,21 @@ export const Header: React.FC = () => {
             { title: 'Home', url: '/' },
             { title: 'Products', url: '/products' },
             { title: 'Categories', url: '/categories' },
-            { title: 'About Us', url: '/about' },
-            { title: 'Contact Us', url: '/contact' }
+            { title: 'About', url: '/about' },
+            { title: 'Contact', url: '/contact' },
           ]);
         }
       } catch (err: any) {
-        console.error('Failed to load categories in header:', err);
-        const isMissingTenant = err.status === 404 || (err.message && (err.message.includes('Store domain mapping') || err.message.includes('Tenant-Domain')));
-        if (isMissingTenant) {
+        console.error('Header fetch error:', err);
+        const missing = err.status === 404 || (err.message && (err.message.includes('Store domain mapping') || err.message.includes('Tenant-Domain')));
+        if (missing) {
           const host = window.location.host;
-          const protocol = window.location.protocol;
+          const proto = window.location.protocol;
           if (host.includes('localhost') || host.includes('127.0.0.1')) {
             const port = host.split(':')[1] ? `:${host.split(':')[1]}` : '';
-            window.location.href = `${protocol}//localhost${port}`;
+            window.location.href = `${proto}//localhost${port}`;
           } else {
-            const platformDomain = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || 'posix.digital';
-            window.location.href = `${protocol}//${platformDomain}`;
+            window.location.href = `${proto}//${process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || 'posix.digital'}`;
           }
         }
       }
@@ -92,706 +92,460 @@ export const Header: React.FC = () => {
   useEffect(() => {
     const isPreview = window.location.search.includes('preview=1');
     if (!isPreview) return;
-
     const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'SETTINGS_UPDATE') {
-        const payload = event.data.payload;
-        if (payload) {
-          if (payload.logo_url !== undefined) {
-            setCustomLogoUrl(payload.logo_url);
-          }
-          if (payload.navbar_menu) {
-            try {
-              setNavItems(JSON.parse(payload.navbar_menu));
-            } catch (e) {
-              console.error('Header preview failed to parse navbar_menu:', e);
-            }
-          }
+      if (event.data?.type === 'SETTINGS_UPDATE') {
+        const p = event.data.payload;
+        if (!p) return;
+        if (p.logo_url !== undefined) setCustomLogoUrl(p.logo_url);
+        if (p.navbar_menu) {
+          try { setNavItems(JSON.parse(p.navbar_menu)); } catch { /* ignore */ }
         }
       }
     };
-
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Only root-level categories that should show in nav
-  const menuCategories = categories.filter((cat: any) => cat.show_in_menu !== false);
+  const menuCategories = categories.filter((c: any) => c.show_in_menu !== false);
 
-  const goTo = (path: string) => {
-    navigate(path);
-    setMobileMenuOpen(false);
+  const go = (path: string) => {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      window.open(path, '_blank', 'noopener,noreferrer');
+    } else {
+      router.push(path);
+    }
+    setMobileOpen(false);
     setOpenDropdown(null);
   };
 
-  const handleLinkClick = (url: string) => {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } else {
-      goTo(url);
+  const openDD = (key: string) => {
+    if (ddTimer.current) clearTimeout(ddTimer.current);
+    setOpenDropdown(key);
+  };
+  const closeDD = () => {
+    ddTimer.current = setTimeout(() => setOpenDropdown(null), 100);
+  };
+
+  type NavResolved = { ddKey: string | null; subs: { title: string; url: string }[] };
+  const resolveItem = (item: any, index: number): NavResolved => {
+    if (item.children?.length > 0) return { ddKey: `c-${index}`, subs: item.children.map((c: any) => ({ title: c.title, url: c.url })) };
+    if (item.url === '/collections' && collections.length > 0)
+      return { ddKey: 'coll', subs: collections.map((c: any) => ({ title: c.name, url: `/collections/${c.slug}` })) };
+    if (item.url === '/categories' && menuCategories.length > 0)
+      return { ddKey: 'cats', subs: menuCategories.map((c: any) => ({ title: c.name, url: `/categories/${c.slug}` })) };
+    const matched = menuCategories.find((c: any) => `/categories/${c.slug}` === item.url);
+    if (matched) {
+      const subs = (matched.children || []).filter((s: any) => s.show_in_menu !== false).map((s: any) => ({ title: s.name, url: `/categories/${s.slug}` }));
+      if (subs.length > 0) return { ddKey: matched.id, subs };
     }
+    return { ddKey: null, subs: [] };
   };
 
   return (
-    <header className="site-header">
-      <div className="header-container">
-        {/* Left: Brand */}
-        <div className="logo-area" onClick={() => goTo('/')}>
-          {customLogoUrl || shop?.logo_url ? (
-            <img src={customLogoUrl || shop.logo_url} alt={shop?.name || 'Store Logo'} className="brand-logo-img" style={{ height: '36px', width: 'auto', objectFit: 'contain', display: 'block' }} />
-          ) : (
-            <>
-              <span className="brand-name">{shop?.name || 'STOREFRONT'}</span>
-              {shop?.description && <span className="brand-tag">{shop.description}</span>}
-            </>
-          )}
-        </div>
+    <>
+      <header className={`hdr${scrolled ? ' hdr--up' : ''}`}>
+        <div className="hdr-inner">
 
-        {/* Center: Nav with dropdown subcategories */}
-        <nav className="site-nav" onMouseLeave={() => setOpenDropdown(null)}>
-          {navItems.map((item: any, index: number) => {
-            // Explicit children always take priority over auto-populated dropdowns
-            if (item.children?.length > 0) {
-              const key = `custom-${index}`;
-              return (
-                <div key={index} className="nav-item-wrap has-dropdown"
-                  onMouseEnter={() => setOpenDropdown(key)}
-                  onMouseLeave={() => setOpenDropdown(null)}>
-                  <span className={openDropdown === key ? 'active' : ''} onClick={() => handleLinkClick(item.url)}>
-                    {item.title}
-                    <Icons.ChevronDown />
-                  </span>
-                  {openDropdown === key && (
-                    <div className="nav-dropdown">
-                      {item.url && (
-                        <>
-                          <div className="nav-dropdown-header" onClick={() => handleLinkClick(item.url)}>
-                            <strong>All {item.title}</strong>
-                            <span className="view-all-link">View All →</span>
-                          </div>
-                          <div className="nav-dropdown-divider" />
-                        </>
-                      )}
-                      <div className="nav-dropdown-grid">
-                        {item.children.map((child: any, ci: number) => (
-                          <div key={ci} className="nav-dropdown-item" onClick={() => handleLinkClick(child.url)}>
-                            <span className="sub-dot">●</span>
-                            {child.title}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
-            const isCollections = item.url === '/collections';
-            const hasCollectionsDropdown = isCollections && collections.length > 0;
-
-            if (hasCollectionsDropdown) {
-              return (
-                <div key={index} className="nav-item-wrap has-dropdown" onMouseEnter={() => setOpenDropdown('collections-nav')} onMouseLeave={() => setOpenDropdown(null)}>
-                  <span className={openDropdown === 'collections-nav' ? 'active' : ''} onClick={() => goTo('/collections')}>
-                    {item.title}
-                    <Icons.ChevronDown />
-                  </span>
-                  {openDropdown === 'collections-nav' && (
-                    <div className="nav-dropdown">
-                      <div className="nav-dropdown-header" onClick={() => goTo('/collections')}>
-                        <strong>All Collections</strong>
-                        <span className="view-all-link">View All →</span>
-                      </div>
-                      <div className="nav-dropdown-divider" />
-                      <div className="nav-dropdown-grid">
-                        {collections.map((col: any) => (
-                          <div key={col.id} className="nav-dropdown-item" onClick={() => goTo(`/collections/${col.slug}`)}>
-                            <span className="sub-dot">●</span>
-                            {col.name}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
-            const isCategories = item.url === '/categories';
-            const hasCategoriesDropdown = isCategories && menuCategories.length > 0;
-
-            if (hasCategoriesDropdown) {
-              return (
-                <div
-                  key={index}
-                  className="nav-item-wrap has-dropdown"
-                  onMouseEnter={() => setOpenDropdown('categories-nav')}
-                  onMouseLeave={() => setOpenDropdown(null)}
-                >
-                  <span
-                    className={openDropdown === 'categories-nav' ? 'active' : ''}
-                    onClick={() => goTo('/categories')}
-                  >
-                    {item.title}
-                    <Icons.ChevronDown />
-                  </span>
-
-                  {openDropdown === 'categories-nav' && (
-                    <div className="nav-dropdown">
-                      <div className="nav-dropdown-header" onClick={() => goTo('/categories')}>
-                        <strong>All Categories</strong>
-                        <span className="view-all-link">View All →</span>
-                      </div>
-                      <div className="nav-dropdown-divider" />
-                      <div className="nav-dropdown-grid">
-                        {menuCategories.map((cat: any) => (
-                          <div
-                            key={cat.id}
-                            className="nav-dropdown-item"
-                            onClick={() => goTo(`/categories/${cat.slug}`)}
-                          >
-                            <span className="sub-dot">●</span>
-                            {cat.name}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
-            const matchedCategory = menuCategories.find((cat: any) => `/categories/${cat.slug}` === item.url);
-            const subCategories = matchedCategory ? (matchedCategory.children || []).filter((s: any) => s.show_in_menu !== false) : [];
-            const hasSubDropdown = matchedCategory && subCategories.length > 0;
-
-            if (hasSubDropdown) {
-              return (
-                <div
-                  key={index}
-                  className="nav-item-wrap has-dropdown"
-                  onMouseEnter={() => setOpenDropdown(matchedCategory.id)}
-                  onMouseLeave={() => setOpenDropdown(null)}
-                >
-                  <span
-                    className={openDropdown === matchedCategory.id ? 'active' : ''}
-                    onClick={() => goTo(item.url)}
-                  >
-                    {item.title}
-                    <Icons.ChevronDown />
-                  </span>
-
-                  {openDropdown === matchedCategory.id && (
-                    <div className="nav-dropdown">
-                      <div className="nav-dropdown-header" onClick={() => goTo(item.url)}>
-                        <strong>All {matchedCategory.name}</strong>
-                        <span className="view-all-link">View All →</span>
-                      </div>
-                      <div className="nav-dropdown-divider" />
-                      <div className="nav-dropdown-grid">
-                        {subCategories.map((sub: any) => (
-                          <div
-                            key={sub.id}
-                            className="nav-dropdown-item"
-                            onClick={() => goTo(`/categories/${sub.slug}`)}
-                          >
-                            <span className="sub-dot">●</span>
-                            {sub.name}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
-            return (
-              <span key={index} onClick={() => handleLinkClick(item.url)}>
-                {item.title}
-              </span>
-            );
-          })}
-        </nav>
-
-        {/* Right: Search + Wishlist + Account + Cart + Mobile Toggle */}
-        <div className="header-actions">
-          <button className="hdr-icon-btn" onClick={() => navigate('/search')} title="Search" aria-label="Search">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-          <button className="hdr-icon-btn" onClick={() => navigate('/wishlist')} title="Wishlist" aria-label="Wishlist" style={{ position: 'relative' }}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill={wishCount > 0 ? 'var(--sf-accent)' : 'none'} stroke="var(--sf-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            {wishCount > 0 && <span className="hdr-wish-badge">{wishCount}</span>}
-          </button>
-          <button className="hdr-icon-btn" onClick={() => navigate(customer ? '/account' : '/login')} title={customer ? 'My Account' : 'Login'} aria-label="Account">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            {customer && <span className="hdr-acct-dot" />}
-          </button>
-          <div className="cart-trigger-icon" onClick={() => { setCartOpen(true); setMobileMenuOpen(false); }}>
-            <span className="cart-bag-symbol">🛒</span>
-            {cartCount > 0 && <span className="cart-badge-count">{cartCount}</span>}
+          {/* Logo */}
+          <div className="hdr-logo" onClick={() => go('/')}>
+            {customLogoUrl || shop?.logo_url
+              ? <img src={customLogoUrl || shop.logo_url} alt={shop?.name || 'Store'} className="hdr-logo-img" />
+              : <span className="hdr-brand">{shop?.name || 'STORE'}</span>}
           </div>
-          <button
-            className={`mobile-menu-toggle ${mobileMenuOpen ? 'open' : ''}`}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle Menu"
-          >
-            <span className="bar"></span>
-            <span className="bar"></span>
-            <span className="bar"></span>
+
+          {/* Desktop Nav */}
+          <nav className="hdr-nav">
+            {navItems.map((item: any, idx: number) => {
+              const key = `n${idx}`;
+              const { ddKey, subs } = resolveItem(item, idx);
+              if (ddKey && subs.length > 0) {
+                return (
+                  <div key={key} className="hdr-nitem" onMouseEnter={() => openDD(ddKey)} onMouseLeave={closeDD}>
+                    <button className={`hdr-nbtn${openDropdown === ddKey ? ' hdr-nbtn--on' : ''}`} onClick={() => go(item.url)}>
+                      {item.title}
+                      <svg className="hdr-chev" width="10" height="6" viewBox="0 0 10 6" fill="none">
+                        <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                    {openDropdown === ddKey && (
+                      <div className="hdr-dd" onMouseEnter={() => openDD(ddKey)} onMouseLeave={closeDD}>
+                        <div className="hdr-dd-head" onClick={() => go(item.url)}>
+                          <span className="hdr-dd-title">All {item.title}</span>
+                          <span className="hdr-dd-all">View all →</span>
+                        </div>
+                        <div className="hdr-dd-line" />
+                        {subs.map((s, si) => (
+                          <button key={si} className="hdr-dd-item" onClick={() => go(s.url)}>{s.title}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              return <button key={key} className="hdr-nbtn" onClick={() => go(item.url)}>{item.title}</button>;
+            })}
+          </nav>
+
+          {/* Action Icons */}
+          <div className="hdr-acts">
+            <button className="hdr-ico hdr-ico--search" onClick={() => router.push('/search')} aria-label="Search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+
+            <button className="hdr-ico" onClick={() => router.push('/wishlist')} aria-label="Wishlist" style={{ position: 'relative' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={wishCount > 0 ? 'var(--sf-accent)' : 'none'} stroke="var(--sf-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+              {wishCount > 0 && <span className="hdr-dot hdr-dot--red">{wishCount}</span>}
+            </button>
+
+            <button className="hdr-ico hdr-ico--account" onClick={() => router.push(customer ? '/account' : '/login')} aria-label="Account" style={{ position: 'relative' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+              {customer && <span className="hdr-dot hdr-dot--green" />}
+            </button>
+
+            <button className="hdr-ico hdr-ico--cart" onClick={() => { setCartOpen(true); setMobileOpen(false); }} aria-label="Cart" style={{ position: 'relative' }}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <path d="M16 10a4 4 0 01-8 0"/>
+              </svg>
+              {cartCount > 0 && <span className="hdr-dot hdr-dot--accent">{cartCount}</span>}
+            </button>
+
+            <button className={`hdr-burger${mobileOpen ? ' hdr-burger--x' : ''}`} onClick={() => setMobileOpen(v => !v)} aria-label="Menu">
+              <span /><span /><span />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Dim overlay */}
+      <div className={`hdr-mask${mobileOpen ? ' hdr-mask--on' : ''}`} onClick={() => setMobileOpen(false)} />
+
+      {/* Mobile slide-in panel */}
+      <div className={`mob${mobileOpen ? ' mob--open' : ''}`}>
+
+        <div className="mob-head">
+          <div className="mob-logo" onClick={() => go('/')}>
+            {customLogoUrl || shop?.logo_url
+              ? <img src={customLogoUrl || shop.logo_url} alt="" style={{ height: 26, width: 'auto', objectFit: 'contain' }} />
+              : <span className="hdr-brand" style={{ fontSize: '1.05rem' }}>{shop?.name || 'STORE'}</span>}
+          </div>
+          <button className="mob-x" onClick={() => setMobileOpen(false)} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
-      </div>
 
-      {/* Mobile Drawer */}
-      <div className={`mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}>
-        {/* Mobile Search */}
-        <div className="mobile-search-wrap">
-          <button className="mobile-search-bar" onClick={() => goTo('/search')}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            Search products…
-          </button>
-        </div>
+        <button className="mob-srch" onClick={() => go('/search')}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Search…
+        </button>
 
-        {/* Account */}
-        <div className="mobile-acct-row">
-          {customer ? (
-            <>
-              <div className="mobile-acct-avatar">{customer.name?.charAt(0)?.toUpperCase() || 'U'}</div>
-              <div>
-                <div className="mobile-acct-name">{customer.name}</div>
-                <div className="mobile-acct-email">{customer.email}</div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="mobile-acct-avatar" style={{ background: '#e5e7eb', color: '#6b7280' }}>?</div>
-              <div>
-                <div className="mobile-acct-name" style={{ color: 'var(--sf-text-muted)' }}>Not signed in</div>
-                <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                  <button className="mobile-auth-btn" onClick={() => goTo('/login')}>Login</button>
-                  <button className="mobile-auth-btn primary" onClick={() => goTo('/register')}>Register</button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        {customer ? (
+          <div className="mob-user">
+            <div className="mob-av">{customer.name?.charAt(0)?.toUpperCase() || 'U'}</div>
+            <div>
+              <div className="mob-uname">{customer.name}</div>
+              <div className="mob-uemail">{customer.email}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="mob-authrow">
+            <button className="mob-abtn" onClick={() => go('/login')}>Sign in</button>
+            <button className="mob-abtn mob-abtn--p" onClick={() => go('/register')}>Register</button>
+          </div>
+        )}
 
-        {/* Shop Nav */}
-        <div className="mobile-section-label">Shop Menu</div>
-        <nav className="mobile-nav-links">
-          {navItems.map((item: any, index: number) => {
-            const matchedCategory = menuCategories.find((cat: any) => `/categories/${cat.slug}` === item.url);
-            const subs = matchedCategory
-              ? (matchedCategory.children || []).filter((s: any) => s.show_in_menu !== false)
-              : (item.children || []);
-            const expandKey = matchedCategory?.id ?? `custom-${index}`;
-            const isExpanded = mobileExpanded === expandKey;
+        <div className="mob-sep" />
 
+        <nav className="mob-nav">
+          {navItems.map((item: any, idx: number) => {
+            const key = `m${idx}`;
+            const { ddKey, subs } = resolveItem(item, idx);
+            const ekey = ddKey ?? key;
+            const open = mobileExpanded === ekey;
             if (subs.length > 0) {
               return (
-                <div key={index} className="mobile-cat-group">
-                  <div className="mobile-cat-header">
-                    <span onClick={() => { handleLinkClick(item.url); setMobileMenuOpen(false); }}>{item.title}</span>
-                    <button className="mobile-expand-btn" onClick={() => setMobileExpanded(isExpanded ? null : expandKey)}>
-                      {isExpanded ? '▲' : '▼'}
+                <div key={key}>
+                  <div className="mob-row">
+                    <span className="mob-link" onClick={() => go(item.url)}>{item.title}</span>
+                    <button className="mob-tog" onClick={() => setMobileExpanded(open ? null : ekey)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }}>
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
                     </button>
                   </div>
-                  {isExpanded && (
-                    <div className="mobile-subcats">
-                      {subs.map((sub: any, si: number) => (
-                        <span key={sub.id ?? si} className="mobile-subcat-item"
-                          onClick={() => { handleLinkClick(matchedCategory ? `/categories/${sub.slug}` : sub.url); setMobileMenuOpen(false); }}>
-                          ↳ {sub.name ?? sub.title}
-                        </span>
+                  {open && (
+                    <div className="mob-sub">
+                      {subs.map((s, si) => (
+                        <span key={si} className="mob-sublink" onClick={() => go(s.url)}>{s.title}</span>
                       ))}
                     </div>
                   )}
                 </div>
               );
             }
-
-            return (
-              <span key={index} onClick={() => { handleLinkClick(item.url); setMobileMenuOpen(false); }}>
-                {item.title}
-              </span>
-            );
+            return <span key={key} className="mob-link mob-link--solo" onClick={() => go(item.url)}>{item.title}</span>;
           })}
         </nav>
 
-        {/* Account Links (if logged in) */}
         {customer && (
           <>
-            <div className="mobile-section-label">My Account</div>
-            <nav className="mobile-nav-links plain">
-              <span onClick={() => goTo('/account')}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                My Profile
-              </span>
-              <span onClick={() => goTo('/account/orders')}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 02 2h14a2 2 0 0 02-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                My Orders
-              </span>
-              <span onClick={() => goTo('/wishlist')}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-                Wishlist {wishCount > 0 && <span className="mobile-badge">{wishCount}</span>}
+            <div className="mob-sep" />
+            <nav className="mob-nav mob-nav--sm">
+              <span className="mob-link" onClick={() => go('/account')}>My Profile</span>
+              <span className="mob-link" onClick={() => go('/account/orders')}>My Orders</span>
+              <span className="mob-link" onClick={() => go('/wishlist')}>
+                Wishlist {wishCount > 0 && <b className="mob-badge">{wishCount}</b>}
               </span>
             </nav>
           </>
         )}
-
-        {/* Collections (mobile) */}
-        {collections.length > 0 && (
-          <>
-            <div className="mobile-section-label">Collections</div>
-            <nav className="mobile-nav-links plain">
-              <span onClick={() => goTo('/collections')}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                All Collections
-              </span>
-              {collections.slice(0, 5).map((col: any) => (
-                <span key={col.id} onClick={() => { goTo(`/collections/${col.slug}`); setMobileMenuOpen(false); }}>
-                  <span style={{ fontSize: '0.5rem', color: 'var(--sf-accent)' }}>●</span>
-                  {col.name}
-                </span>
-              ))}
-            </nav>
-          </>
-        )}
-
-        {/* Info Pages */}
-        <div className="mobile-section-label">Information</div>
-        <nav className="mobile-nav-links plain">
-          <span onClick={() => goTo('/about')}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            About Us
-          </span>
-          <span onClick={() => goTo('/contact')}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.63 19.79 19.79 0 010 1.99 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
-            Contact Us
-          </span>
-          <span onClick={() => goTo('/privacy')}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            Privacy Policy
-          </span>
-          <span onClick={() => goTo('/terms')}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            Terms & Conditions
-          </span>
-        </nav>
       </div>
 
       <style>{`
-        .site-header {
-          position: fixed;
-          top: 0; left: 0; right: 0;
-          z-index: 100;
-          background: rgba(250, 247, 242, 0.92);
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-          border-bottom: 1px solid rgba(0,0,0,0.06);
+        /* ── HEADER ── */
+        .hdr {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+          background: color-mix(in srgb, var(--sf-bg,#fff) 88%, transparent);
+          backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+          border-bottom: 1px solid var(--sf-border, rgba(0,0,0,0.07));
+          transition: box-shadow .25s;
+        }
+        .hdr--up { box-shadow: 0 4px 28px rgba(0,0,0,0.09); }
+        .hdr-inner {
+          max-width: 1320px; margin: 0 auto;
+          height: 62px; padding: 0 28px;
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center; gap: 20px;
         }
 
-        .header-container {
-          width: 100%;
-          max-width: 1280px;
-          margin: 0 auto;
-          height: 70px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0 28px;
-          box-sizing: border-box;
+        /* ── Logo ── */
+        .hdr-logo { display: flex; align-items: center; cursor: pointer; flex-shrink: 0; }
+        .hdr-logo-img { height: 30px; width: auto; object-fit: contain; }
+        .hdr-brand {
+          font-family: var(--font-serif, Georgia, serif);
+          font-size: 1.25rem; font-weight: 700; letter-spacing: .045em;
+          color: var(--sf-text-main,#111);
         }
 
-        .logo-area {
-          display: flex; flex-direction: column; cursor: pointer;
-          flex-shrink: 0;
+        /* ── Desktop Nav ── */
+        .hdr-nav {
+          display: flex; align-items: center; gap: 2px;
+          justify-content: center;
         }
-        .brand-name {
-          font-family: var(--font-serif);
-          font-size: 1.45rem; font-weight: 700;
-          letter-spacing: 0.04em; color: var(--sf-text-main); line-height: 1;
-        }
-        .brand-tag {
-          font-size: 0.6rem; text-transform: uppercase;
-          letter-spacing: 0.15em; color: var(--sf-accent);
-          font-weight: 700; margin-top: 2px;
-        }
-
-        /* ─── Desktop Nav ─── */
-        .site-nav {
-          display: flex; gap: 4px; align-items: center;
-          flex: 1; justify-content: center;
-        }
-
-        .nav-item-wrap {
-          position: relative;
-        }
-
-        .site-nav > span,
-        .nav-item-wrap > span {
+        .hdr-nitem { position: relative; }
+        .hdr-nbtn {
           display: inline-flex; align-items: center; gap: 4px;
-          padding: 8px 14px;
-          font-size: 0.9rem; font-weight: 500;
-          color: var(--sf-text-muted);
-          cursor: pointer;
-          border-radius: 8px;
-          transition: all 0.2s;
-          white-space: nowrap;
-          user-select: none;
+          padding: 6px 12px; background: none; border: none; cursor: pointer;
+          font-size: .86rem; font-weight: 500;
+          color: var(--sf-text-muted,#6b7280);
+          border-radius: 7px; transition: color .15s, background .15s;
+          font-family: var(--font-sans,sans-serif); white-space: nowrap;
         }
+        .hdr-nbtn:hover, .hdr-nbtn--on {
+          color: var(--sf-text-main,#111);
+          background: color-mix(in srgb, var(--sf-text-main,#111) 6%, transparent);
+        }
+        .hdr-chev { opacity: .45; flex-shrink: 0; transition: transform .18s; }
+        .hdr-nbtn--on .hdr-chev { transform: rotate(180deg); opacity: .8; }
 
-        .site-nav > span:hover,
-        .nav-item-wrap > span:hover,
-        .nav-item-wrap > span.active {
-          color: var(--sf-text-main);
-          background: rgba(0,0,0,0.04);
-        }
-
-        .nav-chevron {
-          opacity: 0.5; transition: transform 0.2s; flex-shrink: 0;
-        }
-        .nav-item-wrap > span.active .nav-chevron {
-          transform: rotate(180deg); opacity: 1;
-        }
-
-        /* ─── Dropdown ─── */
-        .nav-dropdown {
-          position: absolute;
-          top: calc(100% + 8px);
-          left: 50%;
+        /* Dropdown */
+        .hdr-dd {
+          position: absolute; top: calc(100% + 10px); left: 50%;
           transform: translateX(-50%);
-          background: #FFFFFF;
-          border: 1px solid #E5E7EB;
-          border-radius: 16px;
-          box-shadow: 0 12px 40px rgba(0,0,0,0.12);
-          min-width: 220px;
-          padding: 8px;
-          z-index: 200;
-          animation: nav-dd-in 0.15s ease;
+          background: var(--sf-card-bg,#fff);
+          border: 1px solid var(--sf-border,#e5e7eb);
+          border-radius: 14px; padding: 5px;
+          min-width: 196px; z-index: 400;
+          box-shadow: 0 8px 32px rgba(0,0,0,.11), 0 1px 4px rgba(0,0,0,.05);
+          animation: ddin .12s ease;
         }
-        /* Transparent bridge fills the 8px gap so mouse can reach dropdown without closing it */
-        .nav-dropdown::before {
-          content: '';
-          position: absolute;
-          bottom: 100%;
-          left: 0;
-          right: 0;
-          height: 10px;
+        .hdr-dd::before { content:''; position:absolute; bottom:100%; left:0; right:0; height:12px; }
+        @keyframes ddin {
+          from { opacity:0; transform:translateX(-50%) translateY(-5px); }
+          to   { opacity:1; transform:translateX(-50%) translateY(0); }
         }
-
-        @keyframes nav-dd-in {
-          from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-
-        .nav-dropdown-header {
+        .hdr-dd-head {
           display: flex; justify-content: space-between; align-items: center;
-          padding: 10px 14px 6px;
-          cursor: pointer;
+          padding: 8px 11px 5px; cursor: pointer;
         }
-        .nav-dropdown-header strong {
-          font-size: 0.85rem; font-weight: 700; color: #111827;
+        .hdr-dd-title { font-size: .78rem; font-weight: 700; color: var(--sf-text-main,#111); }
+        .hdr-dd-all { font-size: .72rem; font-weight: 600; color: var(--sf-accent,#15803d); }
+        .hdr-dd-line { height: 1px; background: var(--sf-border,#f0f0f0); margin: 3px 0; }
+        .hdr-dd-item {
+          display: block; width: 100%; text-align: left;
+          padding: 8px 11px; background: none; border: none; cursor: pointer;
+          font-size: .85rem; color: var(--sf-text-muted,#374151); font-weight: 500;
+          border-radius: 8px; transition: background .12s, color .12s;
+          font-family: var(--font-sans,sans-serif);
         }
-        .view-all-link {
-          font-size: 0.75rem; font-weight: 600;
-          color: var(--sf-accent); white-space: nowrap;
-        }
-        .nav-dropdown-divider {
-          height: 1px; background: #F3F4F6; margin: 4px 0;
-        }
-        .nav-dropdown-grid {
-          display: flex; flex-direction: column; gap: 2px;
-        }
-        .nav-dropdown-item {
-          display: flex; align-items: center; gap: 10px;
-          padding: 9px 14px;
-          font-size: 0.88rem; color: #374151; font-weight: 500;
-          cursor: pointer;
-          border-radius: 10px;
-          transition: background 0.15s, color 0.15s;
-        }
-        .nav-dropdown-item:hover {
-          background: #F0FDF4; color: #15803D;
-        }
-        .sub-dot {
-          font-size: 0.45rem; color: #9CA3AF;
+        .hdr-dd-item:hover {
+          background: color-mix(in srgb, var(--sf-accent,#15803d) 9%, transparent);
+          color: var(--sf-accent,#15803d);
         }
 
-        @media (max-width: 900px) {
-          .site-nav { display: none; }
+        @media (max-width: 860px) {
+          .hdr-nav { display: none; }
+          .hdr-inner { grid-template-columns: 1fr auto; padding: 0 16px; }
+          .hdr-ico--search, .hdr-ico--account { display: none; }
         }
 
-        /* ─── Header Actions ─── */
-        .header-actions {
-          display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+        /* ── Actions ── */
+        .hdr-acts { display: flex; align-items: center; gap: 2px; }
+        .hdr-ico {
+          width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+          border: none; background: none; cursor: pointer; border-radius: 9px;
+          color: var(--sf-text-muted,#6b7280); transition: background .15s, color .15s;
         }
-        .cart-trigger-icon {
-          position: relative; cursor: pointer;
-          font-size: 1.35rem; padding: 6px;
-          transition: transform 0.2s; border-radius: 8px;
-        }
-        .cart-trigger-icon:hover { transform: scale(1.08); background: rgba(0,0,0,0.04); }
-        .cart-badge-count {
-          position: absolute; top: -2px; right: -4px;
-          background: var(--sf-accent); color: #fff;
-          font-size: 0.65rem; font-weight: 700;
-          width: 17px; height: 17px; border-radius: 50%;
+        .hdr-ico:hover { background: color-mix(in srgb, var(--sf-text-main,#111) 7%, transparent); color: var(--sf-text-main,#111); }
+        .hdr-ico--cart {}
+        .hdr-dot {
+          position: absolute; top: 3px; right: 3px;
+          min-width: 16px; height: 16px; border-radius: 99px; padding: 0 3px;
+          font-size: .58rem; font-weight: 700;
           display: flex; align-items: center; justify-content: center;
+          border: 2px solid var(--sf-bg,#fff);
+        }
+        .hdr-dot--accent { background: var(--sf-accent,#15803d); color: #fff; }
+        .hdr-dot--red    { background: #dc2626; color: #fff; }
+        .hdr-dot--green  {
+          width: 7px; height: 7px; min-width: 0; padding: 0;
+          top: auto; right: auto; bottom: 7px; right: 7px;
+          background: var(--sf-accent,#15803d); border: 1.5px solid var(--sf-bg,#fff);
         }
 
-        /* ─── Mobile Toggle ─── */
-        .mobile-menu-toggle {
-          display: none; flex-direction: column;
-          justify-content: space-between;
-          width: 22px; height: 15px;
-          background: transparent; border: none;
-          cursor: pointer; padding: 0; margin-left: 8px;
+        /* Burger */
+        .hdr-burger {
+          display: none; flex-direction: column; justify-content: center; align-items: center;
+          width: 38px; height: 38px; gap: 5px;
+          background: none; border: none; cursor: pointer; border-radius: 9px;
+          transition: background .15s;
         }
-        .mobile-menu-toggle .bar {
-          width: 100%; height: 2px;
-          background: var(--sf-text-main);
-          border-radius: 2px;
-          transition: all 0.25s;
+        .hdr-burger:hover { background: color-mix(in srgb, var(--sf-text-main,#111) 7%, transparent); }
+        .hdr-burger span {
+          width: 20px; height: 1.5px;
+          background: var(--sf-text-main,#111); border-radius: 2px; transition: all .24s;
         }
-        .mobile-menu-toggle.open .bar:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
-        .mobile-menu-toggle.open .bar:nth-child(2) { opacity: 0; }
-        .mobile-menu-toggle.open .bar:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+        .hdr-burger--x span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+        .hdr-burger--x span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+        .hdr-burger--x span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+        @media (max-width: 860px) { .hdr-burger { display: flex; } }
 
-        @media (max-width: 900px) {
-          .mobile-menu-toggle { display: flex; }
+        /* ── MASK ── */
+        .hdr-mask {
+          display: none; position: fixed; inset: 0; z-index: 298;
+          background: rgba(0,0,0,0); transition: background .3s;
+          pointer-events: none;
+        }
+        .hdr-mask--on {
+          display: block; background: rgba(0,0,0,.28); pointer-events: auto;
         }
 
-        /* ─── Mobile Drawer ─── */
-        .mobile-drawer {
-          position: fixed;
-          top: 70px; left: 0; right: 0; bottom: 0;
-          background: var(--sf-bg);
-          z-index: 99;
+        /* ── MOBILE PANEL ── */
+        .mob {
+          position: fixed; top: 0; right: 0; bottom: 0;
+          width: min(340px, 88vw);
+          background: var(--sf-bg,#fff);
+          border-left: 1px solid var(--sf-border,#e5e7eb);
+          z-index: 299; overflow-y: auto;
           transform: translateX(100%);
-          opacity: 0; visibility: hidden;
-          transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), opacity 0.25s, visibility 0.25s;
-          padding: 24px;
-          overflow-y: auto;
+          transition: transform .3s cubic-bezier(.16,1,.3,1);
+          display: flex; flex-direction: column;
         }
-        .mobile-drawer.open {
-          transform: translateX(0); opacity: 1; visibility: visible;
-        }
-        .mobile-nav-links {
-          display: flex; flex-direction: column; gap: 0;
-        }
-        .mobile-nav-links > span {
-          font-family: var(--font-serif);
-          font-size: 1.25rem; font-weight: 600;
-          color: var(--sf-text-main); cursor: pointer;
-          border-bottom: 1px solid var(--sf-border);
-          padding: 16px 0;
-          transition: color 0.2s;
-        }
-        .mobile-nav-links > span:hover { color: var(--sf-accent); }
+        .mob--open { transform: translateX(0); }
 
-        .mobile-cat-group {
-          border-bottom: 1px solid var(--sf-border);
+        .mob-head {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 16px 18px; border-bottom: 1px solid var(--sf-border,#f0f0f0); flex-shrink: 0;
         }
-        .mobile-cat-header {
-          display: flex; justify-content: space-between; align-items: center;
-          padding: 16px 0;
+        .mob-logo { display: flex; align-items: center; cursor: pointer; }
+        .mob-x {
+          width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+          background: none; border: none; cursor: pointer; border-radius: 8px;
+          color: var(--sf-text-muted,#6b7280); transition: background .15s;
         }
-        .mobile-cat-header > span {
-          font-family: var(--font-serif);
-          font-size: 1.25rem; font-weight: 600;
-          color: var(--sf-text-main); cursor: pointer;
-        }
-        .mobile-expand-btn {
-          background: none; border: none; cursor: pointer;
-          font-size: 0.7rem; color: var(--sf-text-muted); padding: 4px 8px;
-        }
-        .mobile-subcats {
-          display: flex; flex-direction: column; gap: 2px;
-          padding-bottom: 12px;
-        }
-        .mobile-subcat-item {
-          font-size: 1rem; color: var(--sf-text-muted);
-          cursor: pointer; padding: 8px 16px;
-          border-radius: 8px; transition: all 0.2s;
-        }
-        .mobile-subcat-item:hover {
-          color: var(--sf-accent); background: rgba(21,128,61,0.05);
-        }
-        .hdr-icon-btn {
-          display: flex; align-items: center; justify-content: center;
-          width: 36px; height: 36px; border-radius: 10px;
-          border: none; background: transparent; cursor: pointer;
-          color: var(--sf-text-muted); position: relative;
-          transition: background 0.15s, color 0.15s;
-        }
-        .hdr-icon-btn:hover { background: rgba(0,0,0,0.05); color: var(--sf-text-main); }
-        .hdr-wish-badge {
-          position: absolute; top: -4px; right: -4px;
-          background: #dc2626; color: #fff;
-          font-size: 0.6rem; font-weight: 700;
-          width: 16px; height: 16px; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .hdr-acct-dot {
-          position: absolute; bottom: 6px; right: 6px;
-          width: 7px; height: 7px; border-radius: 50%;
-          background: var(--sf-accent);
-        }
+        .mob-x:hover { background: color-mix(in srgb, var(--sf-text-main,#111) 7%, transparent); }
 
-        /* ─── Enhanced Mobile Drawer ─── */
-        .mobile-search-wrap { padding: 0 0 16px; }
-        .mobile-search-bar {
-          display: flex; align-items: center; gap: 10px;
-          width: 100%; padding: 12px 16px;
-          background: var(--sf-bg); border: 1.5px solid var(--sf-border);
-          border-radius: 12px; font-size: 0.9rem; color: var(--sf-text-muted);
-          cursor: pointer; font-family: var(--font-sans); text-align: left;
-          transition: border-color 0.2s;
+        .mob-srch {
+          display: flex; align-items: center; gap: 9px;
+          margin: 12px 18px;
+          padding: 10px 13px; border-radius: 9px;
+          border: 1px solid var(--sf-border,#e5e7eb);
+          background: color-mix(in srgb, var(--sf-text-main,#111) 3%, transparent);
+          font-size: .86rem; color: var(--sf-text-muted,#9ca3af);
+          cursor: pointer; font-family: var(--font-sans,sans-serif); text-align: left;
+          transition: border-color .15s;
         }
-        .mobile-search-bar:hover { border-color: var(--sf-accent); }
-        .mobile-acct-row {
-          display: flex; align-items: center; gap: 14px;
-          padding: 16px; background: var(--sf-bg);
-          border-radius: 14px; margin-bottom: 20px;
-          border: 1px solid var(--sf-border);
+        .mob-srch:hover { border-color: var(--sf-accent,#15803d); }
+
+        .mob-user {
+          display: flex; align-items: center; gap: 12px;
+          margin: 0 18px 0;
+          padding: 11px 13px;
+          background: color-mix(in srgb, var(--sf-accent,#15803d) 7%, transparent);
+          border-radius: 11px;
         }
-        .mobile-acct-avatar {
-          width: 46px; height: 46px; border-radius: 50%;
-          background: var(--sf-accent); color: #fff;
-          font-size: 1.3rem; font-weight: 700;
+        .mob-av {
+          width: 38px; height: 38px; border-radius: 50%;
+          background: var(--sf-accent,#15803d); color: #fff;
+          font-size: 1rem; font-weight: 700;
           display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
-        .mobile-acct-name { font-weight: 700; font-size: 0.93rem; color: var(--sf-text-main); }
-        .mobile-acct-email { font-size: 0.76rem; color: var(--sf-text-muted); margin-top: 2px; }
-        .mobile-auth-btn {
-          padding: 6px 14px; border-radius: 8px; font-size: 0.8rem;
-          font-weight: 600; cursor: pointer; font-family: var(--font-sans);
-          border: 1.5px solid var(--sf-border); background: #fff; color: var(--sf-text-main);
-          transition: all 0.15s;
+        .mob-uname  { font-size: .87rem; font-weight: 700; color: var(--sf-text-main,#111); }
+        .mob-uemail { font-size: .74rem; color: var(--sf-text-muted,#6b7280); margin-top: 1px; }
+
+        .mob-authrow { display: flex; gap: 8px; margin: 0 18px; }
+        .mob-abtn {
+          flex: 1; padding: 9px; border-radius: 9px;
+          font-size: .83rem; font-weight: 600; cursor: pointer;
+          font-family: var(--font-sans,sans-serif); transition: all .15s;
+          border: 1.5px solid var(--sf-border,#e5e7eb);
+          background: none; color: var(--sf-text-main,#111);
         }
-        .mobile-auth-btn.primary {
-          background: var(--sf-accent); color: #fff; border-color: var(--sf-accent);
+        .mob-abtn--p { background: var(--sf-accent,#15803d); color:#fff; border-color: var(--sf-accent,#15803d); }
+
+        .mob-sep { height: 1px; background: var(--sf-border,#f0f0f0); margin: 14px 18px; flex-shrink: 0; }
+
+        .mob-nav { display: flex; flex-direction: column; padding: 0 18px; }
+        .mob-nav--sm .mob-link { font-size: .88rem; font-weight: 500; color: var(--sf-text-muted,#6b7280); }
+        .mob-row { display: flex; align-items: center; justify-content: space-between; }
+        .mob-link {
+          display: block; flex: 1; padding: 12px 0;
+          font-size: .97rem; font-weight: 600; color: var(--sf-text-main,#111);
+          border-bottom: 1px solid var(--sf-border,#f5f5f5);
+          cursor: pointer; transition: color .15s;
         }
-        .mobile-section-label {
-          font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
-          letter-spacing: 0.1em; color: var(--sf-text-muted);
-          padding: 4px 0 10px; margin-top: 16px;
+        .mob-link--solo { border-bottom: 1px solid var(--sf-border,#f5f5f5); }
+        .mob-link:hover { color: var(--sf-accent,#15803d); }
+        .mob-tog {
+          background: none; border: none; cursor: pointer; padding: 8px;
+          color: var(--sf-text-muted,#9ca3af);
         }
-        .mobile-nav-links.plain > span {
-          display: flex; align-items: center; gap: 12px;
-          font-family: var(--font-sans) !important; font-size: 0.93rem !important;
-          font-weight: 500 !important; color: var(--sf-text-muted);
+        .mob-sub { padding: 4px 0 8px 10px; display: flex; flex-direction: column; }
+        .mob-sublink {
+          padding: 8px 10px; font-size: .86rem; color: var(--sf-text-muted,#6b7280);
+          cursor: pointer; border-radius: 7px; transition: all .15s;
         }
-        .mobile-nav-links.plain > span:hover { color: var(--sf-accent); }
-        .mobile-badge {
-          background: var(--sf-accent); color: #fff;
-          font-size: 0.65rem; font-weight: 700;
-          padding: 2px 6px; border-radius: 10px; margin-left: 4px;
+        .mob-sublink:hover {
+          background: color-mix(in srgb, var(--sf-accent,#15803d) 8%, transparent);
+          color: var(--sf-accent,#15803d);
+        }
+        .mob-badge {
+          display: inline-flex; align-items: center; justify-content: center;
+          background: var(--sf-accent,#15803d); color: #fff;
+          font-size: .62rem; font-weight: 700;
+          border-radius: 99px; padding: 1px 6px; margin-left: 6px;
         }
       `}</style>
-    </header>
+    </>
   );
 };
+
 export default Header;

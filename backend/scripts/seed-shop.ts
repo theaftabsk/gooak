@@ -47,10 +47,10 @@ if (!SHOP_SLUG && !SHOP_ID) {
 // ── Demo data ────────────────────────────────────────────────────────────────
 
 const DEMO_CATEGORIES = [
-  { name: 'Serums', slug: 'serums' },
-  { name: 'Moisturisers', slug: 'moisturisers' },
-  { name: 'Cleansers', slug: 'cleansers' },
-  { name: 'Sunscreen', slug: 'sunscreen' },
+  { name: 'Serums',        slug: 'serums',        image_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=800' },
+  { name: 'Moisturisers', slug: 'moisturisers',   image_url: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=800' },
+  { name: 'Cleansers',    slug: 'cleansers',       image_url: 'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?q=80&w=800' },
+  { name: 'Sunscreen',    slug: 'sunscreen',       image_url: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=800' },
 ];
 
 const DEMO_PRODUCTS = [
@@ -548,10 +548,13 @@ async function upsertCategories(shopId: string) {
   for (const cat of DEMO_CATEGORIES) {
     const existing = await prisma.category.findFirst({ where: { shop_id: shopId, slug: cat.slug } });
     if (existing) {
+      if (!existing.image_url && cat.image_url) {
+        await prisma.category.update({ where: { id: existing.id }, data: { image_url: cat.image_url } });
+      }
       results[cat.slug] = existing.id;
     } else {
       const created = await prisma.category.create({
-        data: { shop_id: shopId, name: cat.name, slug: cat.slug, is_active: true },
+        data: { shop_id: shopId, name: cat.name, slug: cat.slug, image_url: cat.image_url ?? null, is_active: true },
       });
       results[cat.slug] = created.id;
     }
@@ -654,6 +657,113 @@ async function upsertPaymentGateways(shopId: string) {
   }
 }
 
+async function upsertPageContent(shopId: string, shopName: string) {
+  const defaults: Record<string, string> = {
+    // Theme
+    color_bg: '#FAF7F2',
+    color_surface: '#FFFFFF',
+    color_text: '#1F2937',
+    color_muted: '#6B7280',
+    color_primary: '#111827',
+    color_accent: '#15803D',
+    color_accent_hover: '#166534',
+    color_border: '#E5E7EB',
+    color_footer_bg: '#111827',
+    font_heading: 'Playfair Display',
+    font_body: 'Inter',
+
+    // Announcement bar
+    announcement_bar: `🌿 FREE SHIPPING ON ORDERS ABOVE ₹500 — Welcome to ${shopName}!`,
+    announcement_bar_active: 'true',
+
+    // About section
+    about_title: `About ${shopName}`,
+    about_content: `We are a natural beauty and wellness brand committed to bringing you the finest quality products. Each formulation is carefully crafted using ethically sourced ingredients.`,
+    about_tagline: '"Live Healthy. Stay Beautiful."',
+    value_quality: 'All ingredients certified natural and organic.',
+    value_care: 'No harmful additives or parabens — ever.',
+    value_empowerment: 'Supporting fair-trade and local communities.',
+    value_delivery: 'Fast, reliable shipping across India.',
+
+    // CTA section
+    cta_title: 'Start Your Journey',
+    cta_subtitle: 'Premium quality products, delivered to your door.',
+    cta_btn1_text: 'Shop All',
+    cta_btn1_link: '/products',
+    cta_btn2_text: 'Our Story',
+    cta_btn2_link: '/about',
+
+    // Footer – store info
+    footer_tagline: `Quality ${shopName} products, delivered with care.`,
+    footer_copyright: `© ${new Date().getFullYear()} ${shopName}. All rights reserved.`,
+
+    // Footer – contact
+    contact_email: `hello@${shopName.toLowerCase().replace(/\s+/g, '')}.com`,
+    contact_phone: '',
+    contact_address: '',
+
+    // Footer – social (empty by default, merchant fills in)
+    social_instagram: '',
+    social_facebook: '',
+    social_twitter: '',
+    social_youtube: '',
+    social_linkedin: '',
+    social_pinterest: '',
+
+    // Footer – newsletter
+    footer_newsletter: 'true',
+    footer_newsletter_heading: 'Stay in the loop',
+    footer_newsletter_placeholder: 'Enter your email address',
+
+    // Footer – column 1 (Shop)
+    footer_col1_title: 'Shop',
+    footer_col1_links: JSON.stringify([
+      { title: 'Home', url: '/' },
+      { title: 'All Products', url: '/products' },
+      { title: 'Categories', url: '/categories' },
+      { title: 'Collections', url: '/collections' },
+      { title: 'Search', url: '/search' },
+    ]),
+
+    // Footer – column 2 (Account)
+    footer_col2_title: 'Account',
+    footer_col2_links: JSON.stringify([
+      { title: 'Sign In', url: '/login' },
+      { title: 'Create Account', url: '/register' },
+      { title: 'My Orders', url: '/account/orders' },
+      { title: 'Wishlist', url: '/wishlist' },
+      { title: 'Track Order', url: '/track-order' },
+    ]),
+
+    // Footer – column 3 (Information)
+    footer_col3_title: 'Information',
+    footer_menu: JSON.stringify([
+      { title: 'About Us', url: '/about' },
+      { title: 'Contact Us', url: '/contact' },
+      { title: 'Privacy Policy', url: '/privacy' },
+      { title: 'Terms & Conditions', url: '/terms' },
+      { title: 'Refund Policy', url: '/refund' },
+    ]),
+
+    // Footer – bottom bar
+    footer_bottom_links: JSON.stringify([
+      { title: 'Privacy', url: '/privacy' },
+      { title: 'Terms', url: '/terms' },
+      { title: 'Sitemap', url: '/sitemap' },
+    ]),
+  };
+
+  const promises = Object.entries(defaults).map(([key, value]) =>
+    prisma.setting.upsert({
+      where: { shop_id_key: { shop_id: shopId, key } },
+      create: { shop_id: shopId, key, value, group: 'pages' },
+      update: {},
+    }),
+  );
+  await Promise.all(promises);
+  console.log(`  ✓ Page content & footer settings seeded (${Object.keys(defaults).length} keys)`);
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -677,6 +787,7 @@ async function main() {
   await upsertProducts(shop.id, shop.slug, categoryIds, collectionIds);
   await upsertBanner(shop.id);
   await upsertPaymentGateways(shop.id);
+  await upsertPageContent(shop.id, shop.name);
 
   console.log(`\nDone. Visit: http://${shop.slug}.localhost:3001\n`);
 }

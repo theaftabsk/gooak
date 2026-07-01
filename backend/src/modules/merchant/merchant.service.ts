@@ -1475,12 +1475,9 @@ export class MerchantService {
   }
 
   async publishPage(shopId: string, id: string) {
-    const page = await this.getAdminPageById(shopId, id);
-    const toPublish = (page.draft_sections as any[]) ?? (page.sections as any[]) ?? [];
-    const json = JSON.stringify(toPublish);
+    await this.getAdminPageById(shopId, id);
     await this.prisma.$executeRawUnsafe(
-      `UPDATE pages SET sections = $1::jsonb, draft_sections = $1::jsonb, status = 'published', updated_at = NOW() WHERE id = $2`,
-      json,
+      `UPDATE pages SET sections = COALESCE(draft_sections, sections), status = 'published', updated_at = NOW() WHERE id = $1`,
       id,
     );
     return this.getAdminPageById(shopId, id);

@@ -239,10 +239,55 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
 
         <style>{`
           .categories-page-hero {
-            background: radial-gradient(ellipse at center, rgba(255,255,255,0.8), rgba(255,255,255,0)), var(--sf-bg, #FAF7F2);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            background: var(--sf-bg, #FAF7F2);
+            border-bottom: 1px solid var(--sf-border, rgba(0,0,0,0.06));
             padding: 80px 24px;
             text-align: center;
+          }
+          .catalog-hero-inner {
+            max-width: 720px;
+            margin: 0 auto;
+          }
+          .catalog-hero-badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--sf-text-muted, #777);
+            border: 1px solid var(--sf-border, rgba(0,0,0,0.12));
+            padding: 5px 14px;
+            margin-bottom: 20px;
+          }
+          .catalog-hero-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.2rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--sf-text-main, #111);
+            line-height: 1.1;
+            margin: 0 0 16px;
+          }
+          .catalog-hero-desc {
+            font-size: 1.05rem;
+            color: var(--sf-text-muted, #4B5563);
+            line-height: 1.6;
+            margin: 0;
+            font-weight: 400;
+          }
+          @media (max-width: 1024px) {
+            .catalog-hero-title { font-size: 2.4rem; }
+            .categories-page-hero { padding: 60px 20px; }
+          }
+          @media (max-width: 768px) {
+            .categories-page-hero { padding: 36px 20px; }
+            .catalog-hero-title { font-size: 1.9rem; }
+            .catalog-hero-desc { font-size: 0.9rem; }
+          }
+          @media (max-width: 480px) {
+            .categories-page-hero { padding: 28px 16px; }
+            .catalog-hero-title { font-size: 1.65rem; }
+            .catalog-hero-desc { font-size: 0.88rem; }
           }
           .categories-grid-container {
             max-width: 1200px;
@@ -253,30 +298,27 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           }
           .categories-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 36px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
           }
           .category-card-item {
             display: flex;
             flex-direction: column;
             text-decoration: none;
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.03);
-            border-radius: 24px;
+            background: var(--sf-card-bg, #ffffff);
+            border: 1px solid var(--sf-border, rgba(0,0,0,0.06));
+            border-radius: 2px;
             overflow: hidden;
-            box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.04);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: border-color 0.2s;
           }
           .category-card-item:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 25px 50px -20px rgba(0, 0, 0, 0.1);
-            border-color: var(--sf-accent, #15803D);
+            border-color: var(--sf-text-muted, rgba(0,0,0,0.15));
           }
           .category-card-img-wrap {
             position: relative;
             aspect-ratio: 16/11;
             overflow: hidden;
-            background: #F3F4F6;
+            background: var(--sf-card-bg, #F3F4F6);
           }
           .category-card-img {
             width: 100%;
@@ -285,59 +327,53 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
             transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
           }
           .category-card-item:hover .category-card-img {
-            transform: scale(1.06);
+            transform: scale(1.04);
           }
           .category-card-overlay {
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.25);
+            background: rgba(0, 0, 0, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.25s ease;
           }
           .category-card-item:hover .category-card-overlay {
             opacity: 1;
           }
           .category-card-btn {
             color: #ffffff;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 10px 20px;
-            border-radius: 50px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-            transform: translateY(10px);
-            transition: transform 0.3s ease;
-          }
-          .category-card-item:hover .category-card-btn {
-            transform: translateY(0);
+            letter-spacing: 0.1em;
+            padding: 9px 18px;
+            border: 1px solid rgba(255,255,255,0.5);
           }
           .category-card-info {
-            padding: 24px;
-            text-align: center;
+            padding: 20px 24px;
+            text-align: left;
           }
           .category-card-name {
             font-family: 'Outfit', sans-serif;
-            font-size: 1.25rem;
+            font-size: 1.05rem;
             font-weight: 700;
-            color: #111827;
-            margin: 0 0 6px;
+            color: var(--sf-text-main, #111);
+            margin: 0 0 4px;
           }
           .category-card-subtitle {
-            font-size: 0.78rem;
+            font-size: 0.72rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #9CA3AF;
+            letter-spacing: 0.08em;
+            color: var(--sf-text-muted, #9CA3AF);
             margin: 0;
           }
-          @media (max-width: 640px) {
+          @media (max-width: 768px) {
             .categories-grid {
-              grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-              gap: 24px;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 14px;
             }
             .categories-grid-container {
               padding-top: 40px;
@@ -806,15 +842,15 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           background: var(--sf-bg, #FAF7F2);
           min-height: 90vh;
           font-family: 'Inter', sans-serif;
-          color: #1F2937;
+          color: var(--sf-text-main, #1F2937);
           display: flex;
           flex-direction: column;
         }
 
         /* ─── Hero Styles ─── */
         .catalog-hero {
-          background: radial-gradient(ellipse at center, rgba(255,255,255,0.8), rgba(255,255,255,0)), var(--sf-bg, #FAF7F2);
-          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          background: var(--sf-bg, #FAF7F2);
+          border-bottom: 1px solid var(--sf-border, rgba(0,0,0,0.06));
           padding: 80px 24px;
           text-align: center;
         }
@@ -824,14 +860,13 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
         }
         .catalog-hero-badge {
           display: inline-block;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.15em;
-          color: var(--sf-accent, #15803D);
-          background: rgba(21, 128, 61, 0.08);
-          padding: 6px 16px;
-          border-radius: 99px;
+          color: var(--sf-text-muted, #777);
+          border: 1px solid var(--sf-border, rgba(0,0,0,0.12));
+          padding: 5px 14px;
           margin-bottom: 20px;
         }
         .catalog-hero-title {
@@ -839,16 +874,16 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           font-size: 3.2rem;
           font-weight: 800;
           letter-spacing: -0.03em;
-          color: #111827;
+          color: var(--sf-text-main, #111);
           line-height: 1.1;
           margin: 0 0 16px;
         }
         .catalog-hero-desc {
           font-size: 1.05rem;
-          color: #4B5563;
+          color: var(--sf-text-muted, #4B5563);
           line-height: 1.6;
           margin: 0;
-          font-weight: 500;
+          font-weight: 400;
         }
 
         /* ─── Workspace Layout ─── */
@@ -874,43 +909,40 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
         }
         .sidebar-section-title {
           font-family: 'Outfit', sans-serif;
-          font-size: 0.95rem;
+          font-size: 0.7rem;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: #111827;
-          margin: 0 0 16px;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-          padding-bottom: 8px;
+          letter-spacing: 0.12em;
+          color: var(--sf-text-muted, #9ca3af);
+          margin: 0 0 12px;
         }
         .search-input-wrapper {
           position: relative;
           display: flex;
           align-items: center;
-          background: #ffffff;
-          border: 1.5px solid rgba(0, 0, 0, 0.08);
-          border-radius: 12px;
+          background: var(--sf-card-bg, #fff);
+          border: 1px solid var(--sf-border, rgba(0,0,0,0.1));
+          border-radius: 2px;
           overflow: hidden;
-          transition: border-color 0.2s, box-shadow 0.2s;
+          transition: border-color 0.2s;
         }
         .search-input-wrapper:focus-within {
           border-color: var(--sf-accent, #15803D);
-          box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.08);
         }
         .search-icon {
-          width: 18px;
-          height: 18px;
-          color: #9CA3AF;
-          margin-left: 14px;
+          width: 16px;
+          height: 16px;
+          color: var(--sf-text-muted, #9CA3AF);
+          margin-left: 12px;
           flex-shrink: 0;
         }
         .search-field {
           flex: 1;
           border: none;
-          padding: 11px 12px 11px 8px;
-          font-size: 0.88rem;
+          padding: 10px 10px 10px 8px;
+          font-size: 0.85rem;
           background: transparent;
-          color: #111827;
+          color: var(--sf-text-main, #111);
           outline: none;
           min-width: 0;
         }
@@ -922,76 +954,73 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           align-items: center;
           justify-content: center;
           padding: 8px 12px;
-          color: #9CA3AF;
+          color: var(--sf-text-muted, #9CA3AF);
         }
         .search-clear-btn:hover {
-          color: #4B5563;
+          color: var(--sf-text-main, #4B5563);
         }
         .clear-icon {
-          width: 14px;
-          height: 14px;
+          width: 13px;
+          height: 13px;
         }
 
         /* Collections filter */
         .category-links {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 2px;
         }
         .category-link-btn {
           border: none;
           background: transparent;
           text-align: left;
-          padding: 10px 14px;
-          border-radius: 10px;
-          font-size: 0.88rem;
-          font-weight: 600;
-          color: #4B5563;
+          padding: 8px 10px;
+          border-radius: 2px;
+          font-size: 0.85rem;
+          font-weight: 500;
+          color: var(--sf-text-muted, #4B5563);
           cursor: pointer;
           text-decoration: none;
-          transition: all 0.15s ease;
+          transition: all 0.12s ease;
         }
         .category-link-btn:hover {
-          background: rgba(0, 0, 0, 0.03);
-          color: #111827;
-          padding-left: 18px;
+          background: rgba(0,0,0,0.04);
+          color: var(--sf-text-main, #111);
         }
         .category-link-btn.active {
-          background: #ffffff;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-          border: 1px solid rgba(0, 0, 0, 0.03);
+          background: rgba(0,0,0,0.04);
           color: var(--sf-accent, #15803D);
-          padding-left: 16px;
+          font-weight: 700;
         }
 
         /* Price inputs */
         .price-inputs {
           display: flex;
           align-items: center;
-          gap: 10px;
-          margin-bottom: 12px;
+          gap: 8px;
+          margin-bottom: 10px;
         }
         .price-input-box {
           position: relative;
           display: flex;
           align-items: center;
-          background: #ffffff;
-          border: 1.5px solid rgba(0, 0, 0, 0.08);
-          border-radius: 10px;
+          background: var(--sf-card-bg, #fff);
+          border: 1px solid var(--sf-border, rgba(0,0,0,0.1));
+          border-radius: 2px;
           flex: 1;
         }
         .price-input-prefix {
-          font-size: 0.82rem;
-          font-weight: 700;
-          color: #9CA3AF;
-          margin-left: 10px;
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: var(--sf-text-muted, #9CA3AF);
+          margin-left: 8px;
         }
         .price-field {
           border: none;
           background: transparent;
-          padding: 10px 6px;
-          font-size: 0.85rem;
-          color: #111827;
+          padding: 9px 5px;
+          font-size: 0.82rem;
+          color: var(--sf-text-main, #111);
           width: 100%;
           outline: none;
           -moz-appearance: textfield;
@@ -1002,22 +1031,23 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           margin: 0;
         }
         .price-divider {
-          font-size: 0.8rem;
-          color: #9CA3AF;
+          font-size: 0.78rem;
+          color: var(--sf-text-muted, #9CA3AF);
           font-weight: 600;
         }
         .price-apply-btn {
           width: 100%;
-          padding: 10px;
-          background: #ffffff;
-          border: 1.5px solid rgba(0,0,0,0.06);
-          border-radius: 10px;
-          font-size: 0.82rem;
+          padding: 9px;
+          background: transparent;
+          border: 1px solid var(--sf-border, rgba(0,0,0,0.1));
+          border-radius: 2px;
+          font-size: 0.78rem;
           font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
           cursor: pointer;
-          color: #1F2937;
-          transition: all 0.2s ease;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+          color: var(--sf-text-main, #1F2937);
+          transition: all 0.15s ease;
         }
         .price-apply-btn:hover {
           background: var(--sf-accent, #15803D);
@@ -1031,13 +1061,13 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
         }
         .sort-select-element {
           width: 100%;
-          padding: 11px 36px 11px 14px;
-          background: #ffffff;
-          border: 1.5px solid rgba(0, 0, 0, 0.08);
-          border-radius: 10px;
-          font-size: 0.88rem;
-          color: #111827;
-          font-weight: 600;
+          padding: 9px 32px 9px 12px;
+          background: var(--sf-card-bg, #fff);
+          border: 1px solid var(--sf-border, rgba(0,0,0,0.1));
+          border-radius: 2px;
+          font-size: 0.85rem;
+          color: var(--sf-text-main, #111);
+          font-weight: 500;
           outline: none;
           cursor: pointer;
           appearance: none;
@@ -1048,24 +1078,26 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
         }
         .custom-select-arrow {
           position: absolute;
-          right: 14px;
+          right: 12px;
           top: 50%;
           transform: translateY(-50%);
-          width: 16px;
-          height: 16px;
-          color: #9CA3AF;
+          width: 14px;
+          height: 14px;
+          color: var(--sf-text-muted, #9CA3AF);
           pointer-events: none;
         }
 
         .clear-all-filters-btn {
           width: 100%;
-          padding: 11px;
-          background: rgba(220, 38, 38, 0.06);
+          padding: 9px;
+          background: transparent;
           color: #dc2626;
-          border: 1px dashed rgba(220, 38, 38, 0.3);
-          border-radius: 12px;
-          font-size: 0.85rem;
+          border: 1px solid rgba(220,38,38,0.25);
+          border-radius: 2px;
+          font-size: 0.75rem;
           font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
           cursor: pointer;
           transition: all 0.15s ease;
         }
@@ -1093,15 +1125,15 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           gap: 12px;
           flex-wrap: wrap;
           margin-bottom: 24px;
-          background: rgba(255, 255, 255, 0.5);
-          border: 1px solid rgba(0,0,0,0.03);
+          background: var(--sf-card-bg, rgba(0,0,0,0.02));
+          border: 1px solid var(--sf-border, rgba(0,0,0,0.06));
           padding: 10px 16px;
-          border-radius: 14px;
+          border-radius: 2px;
         }
         .chips-label {
           font-size: 0.82rem;
           font-weight: 700;
-          color: #6B7280;
+          color: var(--sf-text-muted, #6B7280);
         }
         .chips-list {
           display: flex;
@@ -1113,19 +1145,19 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          background: #ffffff;
-          border: 1px solid rgba(0,0,0,0.06);
+          background: var(--sf-bg, #ffffff);
+          border: 1px solid var(--sf-border, rgba(0,0,0,0.08));
           padding: 4px 10px 4px 12px;
-          border-radius: 99px;
+          border-radius: 2px;
           font-size: 0.8rem;
           font-weight: 600;
-          color: #1F2937;
+          color: var(--sf-text-main, #1F2937);
         }
         .chip-remove-btn {
           background: none;
           border: none;
           font-size: 1rem;
-          color: #9CA3AF;
+          color: var(--sf-text-muted, #9CA3AF);
           cursor: pointer;
           display: inline-flex;
           align-items: center;
@@ -1156,7 +1188,7 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
         .results-count {
           font-size: 0.88rem;
           font-weight: 700;
-          color: #6B7280;
+          color: var(--sf-text-muted, #6B7280);
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -1168,14 +1200,14 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
         .sort-label {
           font-size: 0.85rem;
           font-weight: 700;
-          color: #6B7280;
+          color: var(--sf-text-muted, #6B7280);
         }
         .desktop-sort-select {
           border: none;
           background: transparent;
           font-size: 0.88rem;
           font-weight: 700;
-          color: #111827;
+          color: var(--sf-text-main, #111);
           outline: none;
           cursor: pointer;
           padding-right: 8px;
@@ -1184,33 +1216,30 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
         /* Products Grid */
         .products-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-          gap: 30px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px;
           margin-bottom: 48px;
         }
 
         /* Card designs */
         .product-card {
-          background: #ffffff;
-          border: 1px solid rgba(0, 0, 0, 0.03);
-          border-radius: 20px;
+          background: var(--sf-card-bg, #ffffff);
+          border: 1px solid var(--sf-border, rgba(0,0,0,0.06));
+          border-radius: 2px;
           overflow: hidden;
-          box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.03);
           display: flex;
           flex-direction: column;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: border-color 0.2s;
         }
         .product-card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
-          border-color: rgba(0,0,0,0.06);
+          border-color: var(--sf-text-muted, rgba(0,0,0,0.15));
         }
 
         .card-image-container {
           position: relative;
           aspect-ratio: 1;
           overflow: hidden;
-          background: #F9FAFB;
+          background: var(--sf-card-bg, #F9FAFB);
         }
         .product-image {
           width: 100%;
@@ -1233,49 +1262,46 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 4px 10px;
-          border-radius: 8px;
-          box-shadow: 0 4px 8px rgba(239, 68, 68, 0.2);
+          border-radius: 2px;
         }
         .sold-out-overlay {
           position: absolute;
           inset: 0;
-          background: rgba(255, 255, 255, 0.75);
-          backdrop-filter: blur(2px);
+          background: rgba(0,0,0,0.45);
           display: flex;
           align-items: center;
           justify-content: center;
         }
         .sold-out-badge {
-          background: #374151;
-          color: #ffffff;
+          background: var(--sf-bg, #fff);
+          color: var(--sf-text-main, #111);
           font-size: 0.72rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 6px 14px;
-          border-radius: 8px;
         }
 
         .product-card-body {
-          padding: 20px;
+          padding: 18px;
           display: flex;
           flex-direction: column;
           flex: 1;
         }
         .product-card-category {
-          font-size: 0.68rem;
+          font-size: 0.65rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.08em;
-          color: #9CA3AF;
-          margin-bottom: 6px;
+          color: var(--sf-text-muted, #9CA3AF);
+          margin-bottom: 5px;
         }
         .product-card-title {
           font-family: 'Outfit', sans-serif;
-          font-size: 0.98rem;
+          font-size: 0.95rem;
           font-weight: 700;
-          color: #111827;
-          margin: 0 0 14px;
+          color: var(--sf-text-main, #111);
+          margin: 0 0 12px;
           line-height: 1.4;
           display: -webkit-box;
           -webkit-line-clamp: 1;
@@ -1288,7 +1314,7 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           align-items: center;
           justify-content: space-between;
           padding-top: 12px;
-          border-top: 1px solid rgba(0, 0, 0, 0.03);
+          border-top: 1px solid var(--sf-border, rgba(0,0,0,0.06));
         }
         .price-wrapper {
           display: flex;
@@ -1296,13 +1322,13 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           gap: 6px;
         }
         .price-amount {
-          font-size: 1.05rem;
+          font-size: 1rem;
           font-weight: 800;
-          color: #111827;
+          color: var(--sf-text-main, #111);
         }
         .price-compare {
           font-size: 0.75rem;
-          color: #9CA3AF;
+          color: var(--sf-text-muted, #9CA3AF);
           text-decoration: line-through;
           font-weight: 500;
         }
@@ -1311,34 +1337,24 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          font-size: 0.78rem;
+          font-size: 0.75rem;
           font-weight: 800;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          color: var(--accent-color, #15803D);
+          color: var(--accent-color, var(--sf-accent, #15803D));
           text-decoration: none;
-          transition: all 0.2s ease;
+          transition: opacity 0.2s;
         }
-        .view-details-action:hover {
-          color: var(--accent-color, #15803D);
-          opacity: 0.85;
-        }
-        .details-arrow {
-          width: 14px;
-          height: 14px;
-          transition: transform 0.2s ease;
-        }
-        .view-details-action:hover .details-arrow {
-          transform: translateX(4px);
-        }
+        .view-details-action:hover { opacity: 0.75; }
+        .details-arrow { width: 13px; height: 13px; }
 
         /* ─── Empty state ─── */
         .empty-results-card {
           text-align: center;
           padding: 80px 24px;
-          background: #ffffff;
-          border: 1px dashed rgba(0,0,0,0.08);
-          border-radius: 24px;
+          background: var(--sf-card-bg, #ffffff);
+          border: 1px dashed var(--sf-border, rgba(0,0,0,0.1));
+          border-radius: 2px;
           margin: 20px 0;
         }
         .empty-icon {
@@ -1350,30 +1366,28 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           font-family: 'Outfit', sans-serif;
           font-size: 1.35rem;
           font-weight: 700;
-          color: #111827;
+          color: var(--sf-text-main, #111);
           margin: 0 0 8px;
         }
         .empty-desc {
           font-size: 0.88rem;
-          color: #6B7280;
+          color: var(--sf-text-muted, #6B7280);
           max-width: 400px;
           margin: 0 auto 24px;
           line-height: 1.5;
         }
         .empty-clear-btn {
           padding: 10px 24px;
-          background: #111827;
-          color: #ffffff;
+          background: var(--sf-text-main, #111);
+          color: var(--sf-bg, #fff);
           border: none;
-          border-radius: 12px;
+          border-radius: 2px;
           font-size: 0.85rem;
           font-weight: 700;
           cursor: pointer;
-          transition: background 0.15s;
+          transition: opacity 0.15s;
         }
-        .empty-clear-btn:hover {
-          background: var(--sf-accent, #15803D);
-        }
+        .empty-clear-btn:hover { opacity: 0.8; }
 
         /* ─── Pagination ─── */
         .pagination-wrapper {
@@ -1384,14 +1398,14 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           margin-top: 24px;
         }
         .pagination-btn {
-          border: 1.5px solid rgba(0, 0, 0, 0.06);
-          background: #ffffff;
+          border: 1.5px solid var(--sf-border, rgba(0,0,0,0.1));
+          background: var(--sf-card-bg, #ffffff);
+          color: var(--sf-text-main, #111);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           transition: all 0.2s ease;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.01);
         }
         .pagination-btn:hover:not(:disabled) {
           border-color: var(--sf-accent, #15803D);
@@ -1404,7 +1418,7 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
         .arrow-btn {
           width: 38px;
           height: 38px;
-          border-radius: 10px;
+          border-radius: 2px;
           padding: 0;
         }
         .arrow-btn svg {
@@ -1419,10 +1433,10 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
         .number-btn {
           width: 38px;
           height: 38px;
-          border-radius: 10px;
+          border-radius: 2px;
           font-size: 0.88rem;
           font-weight: 700;
-          color: #4B5563;
+          color: var(--sf-text-muted, #4B5563);
         }
         .number-btn.active {
           color: #ffffff;
@@ -1436,18 +1450,18 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
         }
         .card-image-skeleton {
           aspect-ratio: 1;
-          background: #E5E7EB;
+          background: var(--sf-border, rgba(0,0,0,0.08));
         }
         .card-body-skeleton {
-          padding: 20px;
+          padding: 18px;
           display: flex;
           flex-direction: column;
           gap: 10px;
         }
         .skeleton-line {
           height: 12px;
-          background: #E5E7EB;
-          border-radius: 6px;
+          background: var(--sf-border, rgba(0,0,0,0.06));
+          border-radius: 2px;
         }
         .skeleton-line.line-sm { width: 35%; }
         .skeleton-line.line-md { height: 16px; width: 85%; }
@@ -1465,12 +1479,12 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           justify-content: center;
         }
         .mobile-drawer-content {
-          background: #ffffff;
+          background: var(--sf-card-bg, #ffffff);
           width: 100%;
           max-width: 500px;
-          border-top-left-radius: 28px;
-          border-top-right-radius: 28px;
-          box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+          border-top-left-radius: 4px;
+          border-top-right-radius: 4px;
+          box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
           animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           max-height: 85vh;
           display: flex;
@@ -1486,20 +1500,20 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           justify-content: space-between;
           align-items: center;
           padding: 20px 24px;
-          border-bottom: 1px solid rgba(0,0,0,0.05);
+          border-bottom: 1px solid var(--sf-border, rgba(0,0,0,0.06));
         }
         .drawer-title {
           font-family: 'Outfit', sans-serif;
-          font-size: 1.15rem;
+          font-size: 1.1rem;
           font-weight: 800;
-          color: #111827;
+          color: var(--sf-text-main, #111);
           margin: 0;
         }
         .drawer-close-btn {
           border: none;
           background: transparent;
           cursor: pointer;
-          color: #9CA3AF;
+          color: var(--sf-text-muted, #9CA3AF);
           padding: 4px;
         }
         .drawer-close-btn svg {
@@ -1516,14 +1530,13 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           flex: 1;
         }
         .drawer-label {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.85rem;
+          font-size: 0.72rem;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: #111827;
+          letter-spacing: 0.1em;
+          color: var(--sf-text-muted, #9ca3af);
           display: block;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
         .mobile-category-chips {
           display: flex;
@@ -1531,13 +1544,13 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           gap: 8px;
         }
         .mobile-chip {
-          border: 1.5px solid rgba(0, 0, 0, 0.06);
-          background: #ffffff;
+          border: 1px solid var(--sf-border, rgba(0,0,0,0.1));
+          background: var(--sf-card-bg, #ffffff);
           padding: 8px 14px;
-          border-radius: 10px;
+          border-radius: 2px;
           font-size: 0.82rem;
           font-weight: 600;
-          color: #4B5563;
+          color: var(--sf-text-muted, #4B5563);
           cursor: pointer;
           text-decoration: none;
           transition: all 0.15s ease;
@@ -1553,7 +1566,7 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           background: var(--sf-accent, #15803D);
           color: #ffffff;
           border: none;
-          border-radius: 10px;
+          border-radius: 2px;
           font-size: 0.85rem;
           font-weight: 700;
           cursor: pointer;
@@ -1562,16 +1575,16 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
         .drawer-footer {
           display: flex;
           padding: 20px 24px;
-          border-top: 1px solid rgba(0,0,0,0.05);
+          border-top: 1px solid var(--sf-border, rgba(0,0,0,0.06));
           gap: 12px;
         }
         .drawer-reset-btn {
           flex: 1;
           padding: 12px;
-          background: rgba(0,0,0,0.03);
-          border: 1px solid rgba(0,0,0,0.06);
-          color: #4B5563;
-          border-radius: 12px;
+          background: transparent;
+          border: 1px solid var(--sf-border, rgba(0,0,0,0.1));
+          color: var(--sf-text-muted, #4B5563);
+          border-radius: 2px;
           font-size: 0.88rem;
           font-weight: 700;
           cursor: pointer;
@@ -1581,14 +1594,22 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
           padding: 12px;
           color: #ffffff;
           border: none;
-          border-radius: 12px;
+          border-radius: 2px;
           font-size: 0.88rem;
           font-weight: 700;
           cursor: pointer;
         }
 
         /* ─── Responsive Queries ─── */
+        @media (max-width: 1280px) and (min-width: 1025px) {
+          .products-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
         @media (max-width: 1024px) {
+          .products-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
           .catalog-workspace {
             grid-template-columns: 1fr;
             padding: 28px 20px 60px;
@@ -1607,19 +1628,19 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: #ffffff;
-            border: 1.5px solid rgba(0, 0, 0, 0.08);
+            background: var(--sf-card-bg, #ffffff);
+            border: 1px solid var(--sf-border, rgba(0,0,0,0.1));
             padding: 11px 16px;
-            border-radius: 12px;
+            border-radius: 2px;
             font-size: 0.88rem;
             font-weight: 700;
-            color: #1F2937;
+            color: var(--sf-text-main, #1F2937);
             cursor: pointer;
           }
           .filter-icon {
             width: 16px;
             height: 16px;
-            color: #4B5563;
+            color: var(--sf-text-muted, #4B5563);
           }
           .filter-badge {
             background: var(--sf-accent, #15803D);
@@ -1644,17 +1665,19 @@ export const Categories: React.FC<{ categorySlug?: string }> = ({ categorySlug }
             font-size: 2.4rem;
           }
         }
+        @media (max-width: 768px) {
+          .catalog-hero { padding: 36px 20px; }
+          .catalog-hero-title { font-size: 1.9rem; }
+          .catalog-hero-desc { font-size: 0.9rem; }
+        }
         @media (max-width: 480px) {
           .products-grid {
-            grid-template-columns: 1fr;
-            gap: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
           }
-          .catalog-hero-title {
-            font-size: 2rem;
-          }
-          .catalog-hero-desc {
-            font-size: 0.95rem;
-          }
+          .catalog-hero { padding: 28px 16px; }
+          .catalog-hero-title { font-size: 1.65rem; }
+          .catalog-hero-desc { font-size: 0.88rem; }
         }
       `}</style>
     </div>
