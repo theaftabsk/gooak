@@ -9,7 +9,7 @@
 
 body {
   margin: 0;
-  font-family: var(--font-sans);
+  font-family: var(--sf-font-body, var(--font-sans));
   background-color: var(--sf-bg);
   color: var(--sf-text-main);
   -webkit-font-smoothing: antialiased;
@@ -17,12 +17,16 @@ body {
   min-height: 100vh;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--sf-font-heading, var(--font-serif));
+}
+
 /* Atomic Button Styling Rules */
 .oaksol-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-sans);
+  font-family: var(--sf-font-body, var(--font-sans));
   font-weight: 500;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
@@ -72,7 +76,7 @@ body {
   background-color: var(--sf-primary);
   color: var(--sf-bg);
   border-radius: var(--radius-sm);
-  font-family: var(--font-sans);
+  font-family: var(--sf-font-body, var(--font-sans));
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 600;

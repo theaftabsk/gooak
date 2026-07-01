@@ -20,23 +20,38 @@ type Section =
   | { type: 'features_strip';     data: FeaturesStripData }
   | { type: 'about_section';      data: AboutSectionData };
 
-interface HeroData { title: string; subtitle?: string; bg_image?: string; bg_color?: string; button_label?: string; button_url?: string }
+interface HeroData { title: string; subtitle?: string; bg_image?: string; bg_color?: string; button_label?: string; button_url?: string; title_font?: string; subtitle_font?: string }
 interface RichTextData { title?: string; html: string }
 interface ImageTextData { title?: string; text: string; image_url: string; image_side?: 'left' | 'right' }
-interface CardsData { title?: string; items: { icon?: string; title: string; text: string }[] }
-interface CtaData { title: string; subtitle?: string; button_label: string; button_url: string; bg_color?: string; button2_label?: string; button2_url?: string }
+interface CardsData { title?: string; items: { icon?: string; title: string; text: string; title_font?: string }[] }
+interface CtaData { title: string; subtitle?: string; button_label: string; button_url: string; bg_color?: string; button2_label?: string; button2_url?: string; title_font?: string }
 interface ContactFormData { title?: string; subtitle?: string }
 interface AnnouncementBarData { text: string; active?: boolean }
-interface BannerSliderData { banners?: { title?: string; image_url: string; link_url?: string }[] }
+interface BannerSliderData { banners?: { title?: string; subtitle?: string; image_url: string; link_url?: string; text_position?: string; title_font?: string; subtitle_font?: string; button_label?: string }[] }
 interface CategoriesCarouselData { title?: string; badge?: string }
 interface ProductsGridData { title?: string; badge?: string; subtitle?: string; limit?: number; view_all_url?: string; view_all_label?: string; columns?: 3 | 4 }
-interface FeaturesStripData { items?: { emoji: string; title: string; desc: string }[] }
-interface AboutSectionData { title?: string; content?: string; tagline?: string; image_url?: string; values?: { icon: string; label: string; desc: string }[]; button_label?: string; button_url?: string }
+interface FeaturesStripData { items?: { emoji: string; title: string; desc: string; title_font?: string }[] }
+interface AboutSectionData { title?: string; content?: string; tagline?: string; image_url?: string; values?: { icon: string; label: string; desc: string }[]; button_label?: string; button_url?: string; title_font?: string }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const ACCENT = 'var(--sf-accent, #15803D)';
+const ACCENT       = 'var(--sf-accent, #15803D)';
+const ACCENT_HOVER = 'var(--sf-accent-hover, #166534)';
 const ACCENT_LIGHT = 'var(--sf-accent-light, rgba(21,128,61,0.08))';
+const TEXT_MAIN    = 'var(--sf-text-main, #111827)';
+const TEXT_MUTED   = 'var(--sf-text-muted, #6B7280)';
+const CARD_BG      = 'var(--sf-card-bg, #fff)';
+const PAGE_BG      = 'var(--sf-bg, #FAF7F2)';
+const FONT_HEADING = 'var(--sf-font-heading, var(--font-serif))';
+const FONT_BODY    = 'var(--sf-font-body, var(--font-sans))';
+
+// Resolves a per-item font override, falls back to the heading/body CSS var.
+function headingFont(override?: string) {
+  return override ? `'${override}', serif` : FONT_HEADING;
+}
+function bodyFont(override?: string) {
+  return override ? `'${override}', sans-serif` : FONT_BODY;
+}
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
@@ -46,16 +61,16 @@ function Badge({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SectionHeader({ badge, title, subtitle, viewAllUrl, viewAllLabel }: { badge?: string; title: string; subtitle?: string; viewAllUrl?: string; viewAllLabel?: string }) {
+function SectionHeader({ badge, title, subtitle, viewAllUrl, viewAllLabel, titleFont }: { badge?: string; title: string; subtitle?: string; viewAllUrl?: string; viewAllLabel?: string; titleFont?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 36, flexWrap: 'wrap', gap: 16 }}>
       <div>
         {badge && <Badge>{badge}</Badge>}
-        <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 'clamp(1.4rem,3vw,2rem)', fontWeight: 800, color: '#111827', margin: badge ? '8px 0 0' : '0', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{title}</h2>
-        {subtitle && <p style={{ fontSize: '0.88rem', color: '#6B7280', margin: '4px 0 0' }}>{subtitle}</p>}
+        <h2 style={{ fontFamily: headingFont(titleFont), fontSize: 'clamp(1.4rem,3vw,2rem)', fontWeight: 800, color: TEXT_MAIN, margin: badge ? '8px 0 0' : '0', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{title}</h2>
+        {subtitle && <p style={{ fontSize: '0.88rem', color: TEXT_MUTED, margin: '4px 0 0', fontFamily: FONT_BODY }}>{subtitle}</p>}
       </div>
       {viewAllUrl && (
-        <a href={viewAllUrl} style={{ fontSize: '0.82rem', fontWeight: 700, textDecoration: 'none', border: `1.5px solid ${ACCENT}`, color: ACCENT, padding: '8px 20px', borderRadius: 10, whiteSpace: 'nowrap' }}>
+        <a href={viewAllUrl} style={{ fontSize: '0.82rem', fontWeight: 700, textDecoration: 'none', border: `1.5px solid ${ACCENT}`, color: ACCENT, padding: '8px 20px', borderRadius: 10, whiteSpace: 'nowrap', fontFamily: FONT_BODY }}>
           {viewAllLabel || 'VIEW ALL →'}
         </a>
       )}
@@ -69,8 +84,8 @@ function SectionHero({ data }: { data: HeroData }) {
   return (
     <div className="cp-hero" style={data.bg_image ? { backgroundImage: `url(${data.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : data.bg_color ? { background: data.bg_color } : undefined}>
       <div className="cp-hero-inner">
-        <h1 className="cp-hero-title">{data.title}</h1>
-        {data.subtitle && <p className="cp-hero-sub">{data.subtitle}</p>}
+        <h1 className="cp-hero-title" style={{ fontFamily: headingFont(data.title_font) }}>{data.title}</h1>
+        {data.subtitle && <p className="cp-hero-sub" style={{ fontFamily: bodyFont(data.subtitle_font) }}>{data.subtitle}</p>}
         {data.button_label && (
           <a href={data.button_url || '#'} className="cp-btn-primary" style={{ marginTop: 24, display: 'inline-block' }}>{data.button_label}</a>
         )}
@@ -115,7 +130,7 @@ function SectionCards({ data }: { data: CardsData }) {
           {data.items.map((item, i) => (
             <div key={i} className="cp-card">
               {item.icon && <div className="cp-card-icon">{item.icon}</div>}
-              <h3 className="cp-card-title">{item.title}</h3>
+              <h3 className="cp-card-title" style={{ fontFamily: headingFont(item.title_font) }}>{item.title}</h3>
               <p className="cp-card-text" style={{ whiteSpace: 'pre-line' }}>{item.text}</p>
             </div>
           ))}
@@ -126,16 +141,16 @@ function SectionCards({ data }: { data: CardsData }) {
 }
 
 function SectionCta({ data }: { data: CtaData }) {
-  const bg = data.bg_color || `linear-gradient(135deg, ${ACCENT}, #059669)`;
+  const bg = data.bg_color || `linear-gradient(135deg, ${ACCENT}, ${ACCENT_HOVER})`;
   return (
     <div style={{ background: bg, padding: '70px 5%', textAlign: 'center' }}>
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
-        <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 'clamp(1.6rem,4vw,2.2rem)', fontWeight: 800, color: '#fff', margin: '0 0 12px', letterSpacing: '-0.02em' }}>{data.title}</h2>
-        {data.subtitle && <p style={{ color: 'rgba(255,255,255,0.9)', margin: '0 0 28px', lineHeight: 1.6 }}>{data.subtitle}</p>}
+        <h2 style={{ fontFamily: headingFont(data.title_font), fontSize: 'clamp(1.6rem,4vw,2.2rem)', fontWeight: 800, color: '#fff', margin: '0 0 12px', letterSpacing: '-0.02em' }}>{data.title}</h2>
+        {data.subtitle && <p style={{ color: 'rgba(255,255,255,0.9)', margin: '0 0 28px', lineHeight: 1.6, fontFamily: FONT_BODY }}>{data.subtitle}</p>}
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href={data.button_url} style={{ background: '#fff', color: '#111827', fontWeight: 800, fontSize: '0.9rem', padding: '13px 32px', borderRadius: 12, textDecoration: 'none' }}>{data.button_label}</a>
+          <a href={data.button_url} style={{ background: '#fff', color: TEXT_MAIN, fontWeight: 800, fontSize: '0.9rem', padding: '13px 32px', borderRadius: 12, textDecoration: 'none', fontFamily: FONT_BODY }}>{data.button_label}</a>
           {data.button2_label && (
-            <a href={data.button2_url || '#'} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.5)', fontWeight: 600, fontSize: '0.9rem', padding: '13px 32px', borderRadius: 12, textDecoration: 'none' }}>{data.button2_label}</a>
+            <a href={data.button2_url || '#'} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.5)', fontWeight: 600, fontSize: '0.9rem', padding: '13px 32px', borderRadius: 12, textDecoration: 'none', fontFamily: FONT_BODY }}>{data.button2_label}</a>
           )}
         </div>
       </div>
@@ -200,6 +215,12 @@ function SectionAnnouncementBar({ data }: { data: AnnouncementBarData }) {
   );
 }
 
+// Text placement → flexbox alignment maps
+const PLACEMENT_ALIGN:   Record<string, string> = { 'top-left':'flex-start','top-center':'flex-start','top-right':'flex-start','mid-left':'center','mid-center':'center','mid-right':'center','bot-left':'flex-end','bot-center':'flex-end','bot-right':'flex-end' };
+const PLACEMENT_JUSTIFY: Record<string, string> = { 'top-left':'flex-start','top-center':'center','top-right':'flex-end','mid-left':'flex-start','mid-center':'center','mid-right':'flex-end','bot-left':'flex-start','bot-center':'center','bot-right':'flex-end' };
+const PLACEMENT_TEXT_ALIGN: Record<string, 'left'|'center'|'right'> = { 'top-left':'left','top-center':'center','top-right':'right','mid-left':'left','mid-center':'center','mid-right':'right','bot-left':'left','bot-center':'center','bot-right':'right' };
+const PLACEMENT_ITEMS: Record<string, string> = { 'top-left':'flex-start','top-center':'center','top-right':'flex-end','mid-left':'flex-start','mid-center':'center','mid-right':'flex-end','bot-left':'flex-start','bot-center':'center','bot-right':'flex-end' };
+
 function SectionBannerSlider({ data }: { data: BannerSliderData }) {
   const [current, setCurrent] = useState(0);
 
@@ -217,13 +238,14 @@ function SectionBannerSlider({ data }: { data: BannerSliderData }) {
     <div style={{ padding: '24px 24px 0', maxWidth: 1400, margin: '0 auto', boxSizing: 'border-box' as const }}>
       <div style={{ position: 'relative', minHeight: 420, borderRadius: 24, overflow: 'hidden', boxShadow: '0 20px 48px -12px rgba(0,0,0,0.15)' }}>
         {slides.map((slide, i) => (
-          <div key={slide.id || i} style={{ position: 'absolute', inset: 0, opacity: i === current ? 1 : 0, zIndex: i === current ? 1 : 0, transition: 'opacity 0.8s ease-in-out', background: `url(${slide.image_url}) center/cover no-repeat`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div key={i} style={{ position: 'absolute', inset: 0, opacity: i === current ? 1 : 0, zIndex: i === current ? 1 : 0, transition: 'opacity 0.8s ease-in-out', background: `url(${slide.image_url}) center/cover no-repeat`, display: 'flex', alignItems: PLACEMENT_ALIGN[slide.text_position || 'mid-center'], justifyContent: PLACEMENT_JUSTIFY[slide.text_position || 'mid-center'] }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.42)' }} />
-            {slide.title && (
-              <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', padding: '30px 40px', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.2)', maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
-                <h1 style={{ fontSize: 'clamp(1.8rem,4vw,3.2rem)', fontWeight: 900, color: '#fff', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.15, fontFamily: "'Outfit',sans-serif", textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>{slide.title}</h1>
-                {slide.link_url && (
-                  <a href={slide.link_url} style={{ display: 'inline-block', background: ACCENT, color: '#fff', fontWeight: 700, fontSize: '0.92rem', padding: '12px 32px', borderRadius: 12, textDecoration: 'none' }}>SHOP NOW</a>
+            {(slide.title || slide.subtitle) && (
+              <div style={{ position: 'relative', zIndex: 2, textAlign: PLACEMENT_TEXT_ALIGN[slide.text_position || 'mid-center'], padding: '24px 32px', maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 10, alignItems: PLACEMENT_ITEMS[slide.text_position || 'mid-center'] }}>
+                {slide.title && <h1 style={{ fontSize: 'clamp(1.6rem,4vw,3rem)', fontWeight: 900, color: '#fff', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.15, fontFamily: headingFont(slide.title_font), textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>{slide.title}</h1>}
+                {slide.subtitle && <p style={{ fontSize: 'clamp(0.9rem,2vw,1.1rem)', color: 'rgba(255,255,255,0.9)', margin: 0, fontFamily: bodyFont(slide.subtitle_font) }}>{slide.subtitle}</p>}
+                {(slide.link_url || slide.button_label) && (
+                  <a href={slide.link_url || '#'} style={{ display: 'inline-block', background: ACCENT, color: '#fff', fontWeight: 700, fontSize: '0.92rem', padding: '12px 32px', borderRadius: 12, textDecoration: 'none', marginTop: 6, fontFamily: FONT_BODY }}>{slide.button_label || 'SHOP NOW'}</a>
                 )}
               </div>
             )}
@@ -256,7 +278,7 @@ function SectionCategoriesCarousel({ data }: { data: CategoriesCarouselData }) {
   const scroll = (dir: 'left' | 'right') => carouselRef.current?.scrollBy({ left: dir === 'right' ? 280 : -280, behavior: 'smooth' });
 
   return (
-    <section style={{ background: '#fff', padding: '56px 0' }}>
+    <section style={{ background: CARD_BG, padding: '56px 0' }}>
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', boxSizing: 'border-box' as const }}>
         <SectionHeader badge={data.badge || 'Collections'} title={data.title || 'Product Categories'} viewAllUrl="/categories" viewAllLabel="VIEW ALL →" />
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -269,8 +291,8 @@ function SectionCategoriesCarousel({ data }: { data: CategoriesCarouselData }) {
                   <div style={{ width: 140, height: 140, borderRadius: '50%', overflow: 'hidden', border: '3px solid rgba(0,0,0,0.06)', background: '#F9FAFB', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', flexShrink: 0 }}>
                     <img src={cover} alt={cat.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=400'; }} />
                   </div>
-                  <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#111827', textAlign: 'center' }}>{cat.name}</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: ACCENT }}>Shop Now</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.88rem', color: TEXT_MAIN, textAlign: 'center', fontFamily: FONT_BODY }}>{cat.name}</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: ACCENT, fontFamily: FONT_BODY }}>Shop Now</span>
                 </a>
               );
             })}
@@ -282,29 +304,29 @@ function SectionCategoriesCarousel({ data }: { data: CategoriesCarouselData }) {
   );
 }
 
-function ProductCard({ p, primary }: { p: any; primary: string }) {
+function ProductCard({ p }: { p: any }) {
   const cover = p.gallery?.find((g: any) => g.is_cover)?.url || p.gallery?.[0]?.url || 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=600';
   const isOnSale = p.compare_price && Number(p.compare_price) > Number(p.price);
   return (
-    <a href={`/products/${p.slug}`} style={{ background: '#fff', borderRadius: 20, border: '1px solid rgba(0,0,0,0.06)', overflow: 'hidden', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', transition: 'transform 0.25s, box-shadow 0.25s', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+    <a href={`/products/${p.slug}`} style={{ background: CARD_BG, borderRadius: 20, border: `1px solid var(--sf-border, rgba(0,0,0,0.06))`, overflow: 'hidden', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', transition: 'transform 0.25s, box-shadow 0.25s', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-6px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 16px 36px rgba(0,0,0,0.12)'; }}
       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}
     >
-      <div style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', background: '#F9FAFB' }}>
+      <div style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', background: PAGE_BG }}>
         <img src={cover} alt={p.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 16px', background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%)', display: 'flex', justifyContent: 'center' }}>
-          <span style={{ background: 'rgba(255,255,255,0.95)', color: primary, fontWeight: 800, fontSize: '0.75rem', padding: '7px 20px', borderRadius: 8, letterSpacing: '0.04em' }}>SHOP NOW</span>
+          <span style={{ background: 'rgba(255,255,255,0.95)', color: ACCENT, fontWeight: 800, fontSize: '0.75rem', padding: '7px 20px', borderRadius: 8, letterSpacing: '0.04em', fontFamily: FONT_BODY }}>SHOP NOW</span>
         </div>
       </div>
       <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF' }}>{p.category?.name || ''}</span>
-        <h3 style={{ fontWeight: 700, color: '#111827', fontSize: '0.92rem', margin: 0, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>{p.name}</h3>
+        <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: TEXT_MUTED, fontFamily: FONT_BODY }}>{p.category?.name || ''}</span>
+        <h3 style={{ fontWeight: 700, color: TEXT_MAIN, fontSize: '0.92rem', margin: 0, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, fontFamily: FONT_HEADING }}>{p.name}</h3>
         <div style={{ marginTop: 'auto', paddingTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontWeight: 800, color: primary, fontSize: '1rem' }}>{getCurrencySymbol()}{p.price}</span>
-            {isOnSale && <span style={{ fontSize: '0.75rem', color: '#9CA3AF', textDecoration: 'line-through' }}>{getCurrencySymbol()}{p.compare_price}</span>}
+            <span style={{ fontWeight: 800, color: ACCENT, fontSize: '1rem', fontFamily: FONT_BODY }}>{getCurrencySymbol()}{p.price}</span>
+            {isOnSale && <span style={{ fontSize: '0.75rem', color: TEXT_MUTED, textDecoration: 'line-through' }}>{getCurrencySymbol()}{p.compare_price}</span>}
           </div>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: primary }}>View →</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: ACCENT, fontFamily: FONT_BODY }}>View →</span>
         </div>
       </div>
     </a>
@@ -323,11 +345,11 @@ function SectionProductsGrid({ data }: { data: ProductsGridData }) {
   if (!products.length) return null;
 
   return (
-    <section style={{ padding: '56px 0', background: '#fff' }}>
+    <section style={{ padding: '56px 0', background: CARD_BG }}>
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', boxSizing: 'border-box' as const }}>
         <SectionHeader badge={data.badge} title={data.title || 'Products'} subtitle={data.subtitle} viewAllUrl={data.view_all_url || '/products'} viewAllLabel={data.view_all_label} />
         <div style={{ display: 'grid', gap: 24, gridTemplateColumns: `repeat(auto-fill, minmax(${cols === 4 ? 220 : 260}px, 1fr))` }}>
-          {products.map(p => <ProductCard key={p.id} p={p} primary={ACCENT} />)}
+          {products.map(p => <ProductCard key={p.id} p={p} />)}
         </div>
       </div>
     </section>
@@ -335,7 +357,7 @@ function SectionProductsGrid({ data }: { data: ProductsGridData }) {
 }
 
 function SectionFeaturesStrip({ data }: { data: FeaturesStripData }) {
-  const defaultItems = [
+  const defaultItems: NonNullable<FeaturesStripData['items']> = [
     { emoji: '🚚', title: 'Free & Fast Shipping', desc: 'Ships all over India at no additional costs.' },
     { emoji: '💵', title: 'Free COD Available', desc: 'Cash on Delivery available without any minimum order.' },
     { emoji: '↩️', title: 'Free & Easy Return', desc: 'Easy 7-day return policy for hassle-free experience.' },
@@ -349,10 +371,10 @@ function SectionFeaturesStrip({ data }: { data: FeaturesStripData }) {
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', boxSizing: 'border-box' as const }}>
         <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
           {items.map((f, i) => (
-            <div key={i} style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 18, padding: '28px 20px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <div key={i} style={{ background: CARD_BG, border: `1px solid var(--sf-border, rgba(0,0,0,0.06))`, borderRadius: 18, padding: '28px 20px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
               <span style={{ fontSize: '2rem', display: 'block', marginBottom: 12 }}>{f.emoji}</span>
-              <h3 style={{ fontFamily: "'Outfit',sans-serif", fontSize: '0.92rem', fontWeight: 700, color: '#111827', margin: '0 0 8px' }}>{f.title}</h3>
-              <p style={{ fontSize: '0.78rem', color: '#6B7280', lineHeight: 1.5, margin: 0 }}>{f.desc}</p>
+              <h3 style={{ fontFamily: headingFont(f.title_font), fontSize: '0.92rem', fontWeight: 700, color: TEXT_MAIN, margin: '0 0 8px' }}>{f.title}</h3>
+              <p style={{ fontSize: '0.78rem', color: TEXT_MUTED, lineHeight: 1.5, margin: 0, fontFamily: FONT_BODY }}>{f.desc}</p>
             </div>
           ))}
         </div>
@@ -371,23 +393,23 @@ function SectionAboutSection({ data }: { data: AboutSectionData }) {
   const values = data.values?.length ? data.values : defaultValues;
 
   return (
-    <section style={{ background: '#fff', padding: '56px 0' }}>
+    <section style={{ background: CARD_BG, padding: '56px 0' }}>
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', boxSizing: 'border-box' as const }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <Badge>Our Story</Badge>
-            <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 'clamp(1.4rem,3vw,2rem)', fontWeight: 800, color: '#111827', margin: '12px 0 0', letterSpacing: '-0.02em' }}>{data.title || 'About Us'}</h2>
-            <p style={{ fontSize: '0.92rem', color: '#4B5563', lineHeight: 1.75, margin: '16px 0' }}>{data.content || 'We are committed to bringing you the best products.'}</p>
-            {data.tagline && <p style={{ fontFamily: "'Outfit',sans-serif", fontSize: '1.2rem', fontWeight: 700, fontStyle: 'italic', color: ACCENT, margin: '0 0 24px' }}>{data.tagline}</p>}
-            <a href={data.button_url || '/about'} style={{ display: 'inline-block', background: ACCENT, color: '#fff', fontWeight: 700, fontSize: '0.88rem', padding: '13px 30px', borderRadius: 12, textDecoration: 'none', alignSelf: 'flex-start' }}>{data.button_label || 'Learn More About Us'}</a>
+            <h2 style={{ fontFamily: headingFont(data.title_font), fontSize: 'clamp(1.4rem,3vw,2rem)', fontWeight: 800, color: TEXT_MAIN, margin: '12px 0 0', letterSpacing: '-0.02em' }}>{data.title || 'About Us'}</h2>
+            <p style={{ fontSize: '0.92rem', color: TEXT_MUTED, lineHeight: 1.75, margin: '16px 0', fontFamily: FONT_BODY }}>{data.content || 'We are committed to bringing you the best products.'}</p>
+            {data.tagline && <p style={{ fontFamily: headingFont(data.title_font), fontSize: '1.2rem', fontWeight: 700, fontStyle: 'italic', color: ACCENT, margin: '0 0 24px' }}>{data.tagline}</p>}
+            <a href={data.button_url || '/about'} style={{ display: 'inline-block', background: ACCENT, color: '#fff', fontWeight: 700, fontSize: '0.88rem', padding: '13px 30px', borderRadius: 12, textDecoration: 'none', alignSelf: 'flex-start', fontFamily: FONT_BODY }}>{data.button_label || 'Learn More About Us'}</a>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {values.map((v, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, background: 'var(--sf-bg, #FAF7F2)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 14, padding: '18px 20px' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, background: PAGE_BG, border: `1px solid var(--sf-border, rgba(0,0,0,0.06))`, borderRadius: 14, padding: '18px 20px' }}>
                 <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>{v.icon}</span>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111827', marginBottom: 4 }}>{v.label}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.5 }}>{v.desc}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: TEXT_MAIN, marginBottom: 4, fontFamily: FONT_HEADING }}>{v.label}</div>
+                  <div style={{ fontSize: '0.8rem', color: TEXT_MUTED, lineHeight: 1.5, fontFamily: FONT_BODY }}>{v.desc}</div>
                 </div>
               </div>
             ))}
@@ -401,28 +423,28 @@ function SectionAboutSection({ data }: { data: AboutSectionData }) {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
-  .cp-page { min-height: 100vh; background: var(--sf-bg, #FAF7F2); font-family: 'Inter', sans-serif; color: #374151; }
+  .cp-page { min-height: 100vh; background: var(--sf-bg, #FAF7F2); font-family: var(--sf-font-body, var(--font-sans, 'Inter', sans-serif)); color: var(--sf-text-main, #374151); }
 
   /* Hero */
-  .cp-hero { padding: 90px 5% 100px; text-align: center; background: radial-gradient(circle at top, rgba(21,128,61,0.05) 0%, transparent 70%); border-bottom: 1px solid rgba(0,0,0,0.05); }
+  .cp-hero { padding: 90px 5% 100px; text-align: center; background: radial-gradient(circle at top, rgba(21,128,61,0.05) 0%, transparent 70%); border-bottom: 1px solid var(--sf-border, rgba(0,0,0,0.05)); }
   .cp-hero-inner { max-width: 680px; margin: 0 auto; }
-  .cp-hero-title { font-family: 'Outfit', sans-serif; font-size: clamp(2rem,5vw,3.2rem); font-weight: 800; color: #111827; margin: 0 0 16px; letter-spacing: -0.02em; line-height: 1.1; }
-  .cp-hero-sub { font-size: 1.1rem; color: #6B7280; margin: 0; line-height: 1.6; }
+  .cp-hero-title { font-family: var(--sf-font-heading, var(--font-serif)); font-size: clamp(2rem,5vw,3.2rem); font-weight: 800; color: var(--sf-text-main, #111827); margin: 0 0 16px; letter-spacing: -0.02em; line-height: 1.1; }
+  .cp-hero-sub { font-size: 1.1rem; color: var(--sf-text-muted, #6B7280); margin: 0; line-height: 1.6; font-family: var(--sf-font-body, var(--font-sans)); }
 
   /* Generic section */
   .cp-section { padding: 60px 5%; }
-  .cp-section-alt { background: #fff; }
+  .cp-section-alt { background: var(--sf-card-bg, #fff); }
   .cp-container { max-width: 900px; margin: 0 auto; }
-  .cp-section-title { font-family: 'Outfit', sans-serif; font-size: 1.6rem; font-weight: 700; color: #111827; margin: 0 0 20px; }
-  .cp-text { color: #4B5563; line-height: 1.8; font-size: 0.95rem; margin: 0; }
+  .cp-section-title { font-family: var(--sf-font-heading, var(--font-serif)); font-size: 1.6rem; font-weight: 700; color: var(--sf-text-main, #111827); margin: 0 0 20px; }
+  .cp-text { color: var(--sf-text-muted, #4B5563); line-height: 1.8; font-size: 0.95rem; margin: 0; font-family: var(--sf-font-body, var(--font-sans)); }
 
   /* Rich text */
-  .cp-rich-text { color: #4B5563; line-height: 1.8; font-size: 0.95rem; }
-  .cp-rich-text h3 { font-family: 'Outfit', sans-serif; font-size: 1.15rem; font-weight: 700; color: #111827; margin: 28px 0 10px; }
+  .cp-rich-text { color: var(--sf-text-muted, #4B5563); line-height: 1.8; font-size: 0.95rem; font-family: var(--sf-font-body, var(--font-sans)); }
+  .cp-rich-text h1,.cp-rich-text h2,.cp-rich-text h3,.cp-rich-text h4 { font-family: var(--sf-font-heading, var(--font-serif)); color: var(--sf-text-main, #111827); margin: 28px 0 10px; }
+  .cp-rich-text h3 { font-size: 1.15rem; font-weight: 700; }
   .cp-rich-text p { margin: 0 0 14px; }
-  .cp-rich-text a { color: #15803d; text-decoration: underline; }
-  .cp-rich-text strong { color: #111827; }
+  .cp-rich-text a { color: var(--sf-accent, #15803d); text-decoration: underline; }
+  .cp-rich-text strong { color: var(--sf-text-main, #111827); }
 
   /* Image + Text */
   .cp-image-text { display: flex; gap: 48px; align-items: center; flex-wrap: wrap; }
@@ -432,22 +454,22 @@ const STYLES = `
 
   /* Cards */
   .cp-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 32px; }
-  .cp-card { background: var(--sf-bg, #FAF7F2); border: 1px solid rgba(0,0,0,0.05); border-radius: 20px; padding: 28px 24px; }
+  .cp-card { background: var(--sf-bg, #FAF7F2); border: 1px solid var(--sf-border, rgba(0,0,0,0.05)); border-radius: 20px; padding: 28px 24px; }
   .cp-card-icon { font-size: 2rem; margin-bottom: 12px; }
-  .cp-card-title { font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 700; color: #111827; margin: 0 0 8px; }
-  .cp-card-text { color: #6B7280; font-size: 0.875rem; line-height: 1.6; margin: 0; }
+  .cp-card-title { font-family: var(--sf-font-heading, var(--font-serif)); font-size: 1rem; font-weight: 700; color: var(--sf-text-main, #111827); margin: 0 0 8px; }
+  .cp-card-text { color: var(--sf-text-muted, #6B7280); font-size: 0.875rem; line-height: 1.6; margin: 0; font-family: var(--sf-font-body, var(--font-sans)); }
 
   /* Button */
-  .cp-btn-primary { display: inline-block; background: #15803d; color: #fff; font-weight: 600; padding: 12px 28px; border-radius: 50px; border: none; cursor: pointer; font-size: 0.925rem; text-decoration: none; transition: background 0.2s; }
-  .cp-btn-primary:hover { background: #166534; }
+  .cp-btn-primary { display: inline-block; background: var(--sf-accent, #15803d); color: #fff; font-weight: 600; padding: 12px 28px; border-radius: 50px; border: none; cursor: pointer; font-size: 0.925rem; text-decoration: none; transition: background 0.2s; font-family: var(--sf-font-body, var(--font-sans)); }
+  .cp-btn-primary:hover { background: var(--sf-accent-hover, #166534); }
   .cp-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
   /* Contact form */
   .cp-form { display: flex; flex-direction: column; gap: 14px; }
   .cp-form-row { display: flex; gap: 14px; flex-wrap: wrap; }
   .cp-form-row .cp-input { flex: 1 1 200px; }
-  .cp-input { width: 100%; padding: 12px 16px; border: 1.5px solid #E5E7EB; border-radius: 12px; font-size: 0.9rem; background: #fff; color: #111827; outline: none; box-sizing: border-box; transition: border-color 0.15s; }
-  .cp-input:focus { border-color: #15803d; }
+  .cp-input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--sf-border, #E5E7EB); border-radius: 12px; font-size: 0.9rem; background: var(--sf-card-bg, #fff); color: var(--sf-text-main, #111827); outline: none; box-sizing: border-box; transition: border-color 0.15s; font-family: var(--sf-font-body, var(--font-sans)); }
+  .cp-input:focus { border-color: var(--sf-accent, #15803d); }
   .cp-textarea { resize: vertical; min-height: 120px; }
 
   /* Carousel scrollbar hide */

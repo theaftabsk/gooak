@@ -255,7 +255,7 @@ const BannerSlider: React.FC<{ banners: any[]; theme: any }> = ({ banners, theme
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const Home: React.FC = () => {
-  const [theme] = useState(DEFAULT_THEME);
+  const [theme, setTheme] = useState(DEFAULT_THEME);
   const [pageSettings, setPageSettings] = useState<PageSettings>({});
   const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -305,12 +305,32 @@ export const Home: React.FC = () => {
 
   useEffect(() => { loadPage(); }, [loadPage]);
 
-  // ── Apply CSS vars ───────────────────────────────────────────────────────
+  // ── Sync theme from page content settings ───────────────────────────────
   useEffect(() => {
-    document.documentElement.style.setProperty('--sf-accent', theme.primaryColor);
-    document.documentElement.style.setProperty('--sf-primary', theme.primaryColor);
-    document.documentElement.style.setProperty('--sf-bg', theme.backgroundColor);
-  }, [theme]);
+    if (pageSettings.color_accent || pageSettings.color_bg) {
+      setTheme({
+        primaryColor: pageSettings.color_accent || DEFAULT_THEME.primaryColor,
+        secondaryColor: pageSettings.color_accent_hover || DEFAULT_THEME.secondaryColor,
+        backgroundColor: pageSettings.color_bg || DEFAULT_THEME.backgroundColor,
+      });
+    }
+  }, [pageSettings.color_accent, pageSettings.color_bg, pageSettings.color_accent_hover]);
+
+  // ── Preview: respond to THEME_UPDATE from editor iframe parent ──────────
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'THEME_UPDATE' && e.data?.payload) {
+        const p = e.data.payload;
+        setTheme({
+          primaryColor: p.color_accent || DEFAULT_THEME.primaryColor,
+          secondaryColor: p.color_accent_hover || DEFAULT_THEME.secondaryColor,
+          backgroundColor: p.color_bg || DEFAULT_THEME.backgroundColor,
+        });
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const primary = theme.primaryColor;
   const bg = theme.backgroundColor;
@@ -341,7 +361,7 @@ export const Home: React.FC = () => {
   const actualBanners = banners.length > 0 ? banners : fallbackBanners;
 
   return (
-    <div style={{ background: bg, fontFamily: "'Inter', sans-serif", color: '#1F2937', minHeight: '100vh' }}>
+    <div style={{ background: bg, fontFamily: 'var(--sf-font-body, var(--font-sans))', color: 'var(--sf-text-main, #1F2937)', minHeight: '100vh' }}>
       <style>{baseCss}</style>
 
       {/* ── 1. Announcement Bar ── */}

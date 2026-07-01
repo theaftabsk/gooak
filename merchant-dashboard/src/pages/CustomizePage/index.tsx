@@ -56,9 +56,10 @@ const DEFAULT_SECTION_DATA: Record<SectionType, Record<string, any>> = {
 function DraggableItemList({ items, onChange, renderItem }: {
   items: any[];
   onChange: (items: any[]) => void;
-  renderItem: (item: any, update: (updated: any) => void, remove: () => void, index: number) => React.ReactNode;
+  renderItem: (item: any, update: (u: any) => void, remove: () => void, index: number, isExpanded: boolean, toggle: () => void) => React.ReactNode;
 }) {
   const [dragOver, setDragOver] = useState<number | null>(null);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const dragRef = useRef<number | null>(null);
 
   return (
@@ -78,6 +79,7 @@ function DraggableItemList({ items, onChange, renderItem }: {
             onChange(next);
             dragRef.current = null;
             setDragOver(null);
+            setExpandedIdx(null);
           }}
           onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
           style={{ border: `1px solid ${dragOver === i ? '#15803d' : '#E5E7EB'}`, borderRadius: 7, marginBottom: 5, display: 'flex', alignItems: 'flex-start', background: '#fff' }}>
@@ -89,7 +91,14 @@ function DraggableItemList({ items, onChange, renderItem }: {
             </svg>
           </div>
           <div style={{ flex: 1, minWidth: 0, padding: '6px 8px 6px 4px' }}>
-            {renderItem(item, (updated) => { const arr = [...items]; arr[i] = updated; onChange(arr); }, () => onChange(items.filter((_, j) => j !== i)), i)}
+            {renderItem(
+              item,
+              (updated) => { const arr = [...items]; arr[i] = updated; onChange(arr); },
+              () => { onChange(items.filter((_, j) => j !== i)); if (expandedIdx === i) setExpandedIdx(null); },
+              i,
+              expandedIdx === i,
+              () => setExpandedIdx(expandedIdx === i ? null : i),
+            )}
           </div>
         </div>
       ))}
@@ -116,6 +125,129 @@ function FieldInput({ label, value, onChange, multiline = false, placeholder = '
   );
 }
 
+
+// ── Fonts ─────────────────────────────────────────────────────────────────────
+
+const FONTS = [
+  { label: 'Default', value: '' },
+  { label: 'Inter', value: 'Inter' },
+  { label: 'Poppins', value: 'Poppins' },
+  { label: 'Montserrat', value: 'Montserrat' },
+  { label: 'Raleway', value: 'Raleway' },
+  { label: 'Open Sans', value: 'Open Sans' },
+  { label: 'DM Sans', value: 'DM Sans' },
+  { label: 'Nunito', value: 'Nunito' },
+  { label: 'Playfair Display', value: 'Playfair Display' },
+  { label: 'Lora', value: 'Lora' },
+  { label: 'Cormorant Garamond', value: 'Cormorant Garamond' },
+  { label: 'Merriweather', value: 'Merriweather' },
+];
+
+function FontPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{label}</label>
+      <select value={value || ''} onChange={e => onChange(e.target.value)}
+        style={{ width: '100%', padding: '6px 8px', border: '1.5px solid #E5E7EB', borderRadius: 7, fontSize: '0.82rem', fontFamily: value || 'inherit', background: '#fff' }}>
+        {FONTS.map(f => <option key={f.value} value={f.value} style={{ fontFamily: f.value || 'inherit' }}>{f.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+// ── Text placement picker (3×3 grid) ──────────────────────────────────────────
+
+const PLACEMENT_GRID = [
+  ['top-left','↖'],    ['top-center','↑'],    ['top-right','↗'],
+  ['mid-left','←'],    ['mid-center','·'],     ['mid-right','→'],
+  ['bot-left','↙'],    ['bot-center','↓'],     ['bot-right','↘'],
+] as const;
+
+function PlacementPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const active = value || 'mid-center';
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Text Position</label>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3, background: '#F3F4F6', borderRadius: 8, padding: 4 }}>
+        {PLACEMENT_GRID.map(([pos, icon]) => (
+          <button key={pos} onClick={() => onChange(pos)} title={pos.replace('-', ' ')}
+            style={{ border: `1.5px solid ${active === pos ? '#15803d' : 'transparent'}`, background: active === pos ? '#F0FDF4' : 'transparent', borderRadius: 5, padding: '5px 0', cursor: 'pointer', fontSize: '0.95rem', color: active === pos ? '#15803d' : '#9CA3AF', fontWeight: active === pos ? 700 : 400, lineHeight: 1 }}>
+            {icon}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Theme presets + color picker ──────────────────────────────────────────────
+
+const DEFAULT_THEME = {
+  font_heading: '',
+  font_body: '',
+  color_bg: '#FAF7F2',
+  color_surface: '#FFFFFF',
+  color_text: '#1F2937',
+  color_muted: '#6B7280',
+  color_primary: '#111827',
+  color_accent: '#15803D',
+  color_accent_hover: '#166534',
+  color_border: '#E5E7EB',
+};
+
+const THEME_PRESETS = [
+  { label: 'Linen', colors: { color_bg: '#FAF7F2', color_surface: '#FFFFFF', color_text: '#1F2937', color_muted: '#6B7280', color_primary: '#111827', color_accent: '#15803D', color_accent_hover: '#166534', color_border: '#E5E7EB' }, fonts: { font_heading: 'Playfair Display', font_body: 'Inter' } },
+  { label: 'Dark', colors: { color_bg: '#0F172A', color_surface: '#1E293B', color_text: '#F8FAFC', color_muted: '#94A3B8', color_primary: '#F8FAFC', color_accent: '#4ADE80', color_accent_hover: '#22C55E', color_border: '#334155' }, fonts: { font_heading: 'Cormorant Garamond', font_body: 'Inter' } },
+  { label: 'Minimal', colors: { color_bg: '#FFFFFF', color_surface: '#F9FAFB', color_text: '#111827', color_muted: '#6B7280', color_primary: '#111827', color_accent: '#2563EB', color_accent_hover: '#1D4ED8', color_border: '#E5E7EB' }, fonts: { font_heading: 'Inter', font_body: 'Inter' } },
+  { label: 'Earth', colors: { color_bg: '#FEF3C7', color_surface: '#FFFBEB', color_text: '#78350F', color_muted: '#92400E', color_primary: '#78350F', color_accent: '#D97706', color_accent_hover: '#B45309', color_border: '#FDE68A' }, fonts: { font_heading: 'Lora', font_body: 'Open Sans' } },
+  { label: 'Slate', colors: { color_bg: '#F8FAFC', color_surface: '#FFFFFF', color_text: '#0F172A', color_muted: '#64748B', color_primary: '#0F172A', color_accent: '#7C3AED', color_accent_hover: '#6D28D9', color_border: '#E2E8F0' }, fonts: { font_heading: 'Montserrat', font_body: 'DM Sans' } },
+];
+
+function ColorRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+      <input type="color" value={value || '#000000'} onChange={e => onChange(e.target.value)}
+        style={{ width: 30, height: 30, padding: 2, border: '1px solid #E5E7EB', borderRadius: 6, cursor: 'pointer', flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '0.67rem', fontWeight: 600, color: '#374151', marginBottom: 2 }}>{label}</div>
+        <input type="text" value={value || ''} onChange={e => onChange(e.target.value)}
+          style={{ width: '100%', padding: '2px 6px', border: '1px solid #E5E7EB', borderRadius: 5, fontSize: '0.72rem', fontFamily: 'monospace', boxSizing: 'border-box' }} />
+      </div>
+    </div>
+  );
+}
+
+// ── Compact item row ──────────────────────────────────────────────────────────
+
+function CompactItemRow({ label, sub, isExpanded, toggle, remove, children }: {
+  label: string; sub?: string; isExpanded: boolean; toggle: () => void; remove: () => void; children: React.ReactNode;
+}) {
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {label || <span style={{ color: '#9CA3AF', fontStyle: 'italic' }}>Untitled</span>}
+          </div>
+          {sub && <div style={{ fontSize: '0.67rem', color: '#9CA3AF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
+        </div>
+        <button onClick={toggle} title="Edit"
+          style={{ flexShrink: 0, background: isExpanded ? '#EFF6FF' : '#F3F4F6', border: `1px solid ${isExpanded ? '#BFDBFE' : '#E5E7EB'}`, borderRadius: 4, padding: '3px 7px', cursor: 'pointer', fontSize: '0.7rem', color: isExpanded ? '#2563EB' : '#6B7280', lineHeight: 1 }}>
+          ✏
+        </button>
+        <button onClick={remove} title="Remove"
+          style={{ flexShrink: 0, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 4, padding: '3px 7px', cursor: 'pointer', fontSize: '0.7rem', color: '#EF4444', lineHeight: 1 }}>
+          ✕
+        </button>
+      </div>
+      {isExpanded && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #E5E7EB' }}>
+          {children}
+        </div>
+      )}
+    </>
+  );
+}
 
 // ── Section editor ─────────────────────────────────────────────────────────────
 
@@ -154,19 +286,21 @@ function SectionEditor({ section, onChange }: { section: Section; onChange: (s: 
       return (<>
         <FieldInput label="Section Title" value={section.data.title} onChange={v => set('title', v)} />
         <div style={{ marginBottom: 8 }}>
-          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: 8 }}>Cards</label>
+          <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Cards</label>
           <DraggableItemList
             items={section.data.items || []}
             onChange={items => set('items', items)}
-            renderItem={(item, update, remove) => (<>
-              <FieldInput label="Icon" value={item.icon} onChange={v => update({ ...item, icon: v })} placeholder="🌟" />
-              <FieldInput label="Title" value={item.title} onChange={v => update({ ...item, title: v })} />
-              <FieldInput label="Text" value={item.text} onChange={v => update({ ...item, text: v })} multiline />
-              <button onClick={remove} style={{ fontSize: '0.75rem', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Remove card</button>
-            </>)}
+            renderItem={(item, update, remove, _i, isExpanded, toggle) => (
+              <CompactItemRow label={`${item.icon || ''} ${item.title || 'Card'}`.trim()} sub={item.text?.substring(0, 40)} isExpanded={isExpanded} toggle={toggle} remove={remove}>
+                <FieldInput label="Icon / Emoji" value={item.icon} onChange={v => update({ ...item, icon: v })} placeholder="🌟" />
+                <FieldInput label="Title" value={item.title} onChange={v => update({ ...item, title: v })} />
+                <FieldInput label="Text" value={item.text} onChange={v => update({ ...item, text: v })} multiline />
+                <FontPicker label="Title Font" value={item.title_font || ''} onChange={v => update({ ...item, title_font: v })} />
+              </CompactItemRow>
+            )}
           />
           <button onClick={() => set('items', [...(section.data.items || []), { icon: '⭐', title: 'New Card', text: '' }])}
-            style={{ fontSize: '0.8rem', color: '#15803d', background: 'none', border: '1px dashed #15803d', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', width: '100%' }}>
+            style={{ fontSize: '0.78rem', color: '#15803d', background: 'none', border: '1px dashed #15803d', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', width: '100%', marginTop: 2 }}>
             + Add Card
           </button>
         </div>
@@ -205,15 +339,29 @@ function SectionEditor({ section, onChange }: { section: Section; onChange: (s: 
           <DraggableItemList
             items={banners}
             onChange={items => set('banners', items)}
-            renderItem={(b, update, remove) => (<>
-              <FieldInput label="Title" value={b.title} onChange={v => update({ ...b, title: v })} />
-              <FieldInput label="Image URL" value={b.image_url} onChange={v => update({ ...b, image_url: v })} placeholder="https://..." />
-              <FieldInput label="Link URL" value={b.link_url} onChange={v => update({ ...b, link_url: v })} placeholder="/products" />
-              <button onClick={remove} style={{ fontSize: '0.75rem', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Remove</button>
-            </>)}
+            renderItem={(b, update, remove, _i, isExpanded, toggle) => (
+              <CompactItemRow
+                label={b.title || 'Banner'}
+                sub={b.image_url ? '🖼 Image set' : 'No image'}
+                isExpanded={isExpanded} toggle={toggle} remove={remove}>
+                <FieldInput label="Image URL" value={b.image_url} onChange={v => update({ ...b, image_url: v })} placeholder="https://..." />
+                {b.image_url && (
+                  <div style={{ marginBottom: 10, borderRadius: 6, overflow: 'hidden', maxHeight: 80, background: '#F3F4F6' }}>
+                    <img src={b.image_url} alt="" style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  </div>
+                )}
+                <FieldInput label="Link URL" value={b.link_url} onChange={v => update({ ...b, link_url: v })} placeholder="/products" />
+                <PlacementPicker value={b.text_position || 'mid-center'} onChange={v => update({ ...b, text_position: v })} />
+                <FieldInput label="Heading" value={b.title} onChange={v => update({ ...b, title: v })} />
+                <FontPicker label="Heading Font" value={b.title_font || ''} onChange={v => update({ ...b, title_font: v })} />
+                <FieldInput label="Subtext" value={b.subtitle || ''} onChange={v => update({ ...b, subtitle: v })} />
+                <FontPicker label="Subtext Font" value={b.subtitle_font || ''} onChange={v => update({ ...b, subtitle_font: v })} />
+                <FieldInput label="Button Label" value={b.button_label || ''} onChange={v => update({ ...b, button_label: v })} placeholder="Shop Now" />
+              </CompactItemRow>
+            )}
           />
-          <button onClick={() => set('banners', [...banners, { title: '', image_url: '', link_url: '' }])}
-            style={{ fontSize: '0.8rem', color: '#15803d', background: 'none', border: '1px dashed #15803d', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', width: '100%' }}>
+          <button onClick={() => set('banners', [...banners, { title: '', subtitle: '', image_url: '', link_url: '', text_position: 'mid-center' }])}
+            style={{ fontSize: '0.78rem', color: '#15803d', background: 'none', border: '1px dashed #15803d', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', width: '100%', marginTop: 2 }}>
             + Add Banner
           </button>
         </div>
@@ -253,15 +401,17 @@ function SectionEditor({ section, onChange }: { section: Section; onChange: (s: 
           <DraggableItemList
             items={items}
             onChange={newItems => set('items', newItems)}
-            renderItem={(f, update, remove) => (<>
-              <FieldInput label="Icon / Emoji" value={f.emoji} onChange={v => update({ ...f, emoji: v })} placeholder="🚚" />
-              <FieldInput label="Title" value={f.title} onChange={v => update({ ...f, title: v })} />
-              <FieldInput label="Description" value={f.desc} onChange={v => update({ ...f, desc: v })} />
-              <button onClick={remove} style={{ fontSize: '0.75rem', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Remove</button>
-            </>)}
+            renderItem={(f, update, remove, _i, isExpanded, toggle) => (
+              <CompactItemRow label={`${f.emoji || ''} ${f.title || 'Feature'}`.trim()} sub={f.desc?.substring(0, 40)} isExpanded={isExpanded} toggle={toggle} remove={remove}>
+                <FieldInput label="Icon / Emoji" value={f.emoji} onChange={v => update({ ...f, emoji: v })} placeholder="🚚" />
+                <FieldInput label="Title" value={f.title} onChange={v => update({ ...f, title: v })} />
+                <FieldInput label="Description" value={f.desc} onChange={v => update({ ...f, desc: v })} />
+                <FontPicker label="Title Font" value={f.title_font || ''} onChange={v => update({ ...f, title_font: v })} />
+              </CompactItemRow>
+            )}
           />
           <button onClick={() => set('items', [...items, { emoji: '⭐', title: 'Feature', desc: '' }])}
-            style={{ fontSize: '0.8rem', color: '#15803d', background: 'none', border: '1px dashed #15803d', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', width: '100%' }}>
+            style={{ fontSize: '0.78rem', color: '#15803d', background: 'none', border: '1px dashed #15803d', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', width: '100%', marginTop: 2 }}>
             + Add Feature
           </button>
         </div>
@@ -351,7 +501,9 @@ export const CustomizePage: React.FC = () => {
   const [headerLogoUrl, setHeaderLogoUrl] = useState('');
   const [headerSaveStatus, setHeaderSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const headerSaveTimer = useRef<NodeJS.Timeout | null>(null);
-  const [expandedNavIdx, setExpandedNavIdx] = useState<number | null>(null);
+  const [themeMode, setThemeMode] = useState(false);
+  const [themeSettings, setThemeSettings] = useState<typeof DEFAULT_THEME>({ ...DEFAULT_THEME });
+  const themeSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const [expandedChildIdx, setExpandedChildIdx] = useState<number | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
@@ -396,6 +548,21 @@ export const CustomizePage: React.FC = () => {
       });
       setHeaderNavItems(navItems);
       if (pageData?.content?.logo_url) setHeaderLogoUrl(pageData.content.logo_url);
+      const tc = pageData?.content;
+      if (tc) {
+        setThemeSettings({
+          font_heading: tc.font_heading || tc.global_font || '',
+          font_body: tc.font_body || tc.global_font || '',
+          color_bg: tc.color_bg || DEFAULT_THEME.color_bg,
+          color_surface: tc.color_surface || DEFAULT_THEME.color_surface,
+          color_text: tc.color_text || DEFAULT_THEME.color_text,
+          color_muted: tc.color_muted || DEFAULT_THEME.color_muted,
+          color_primary: tc.color_primary || DEFAULT_THEME.color_primary,
+          color_accent: tc.color_accent || DEFAULT_THEME.color_accent,
+          color_accent_hover: tc.color_accent_hover || DEFAULT_THEME.color_accent_hover,
+          color_border: tc.color_border || DEFAULT_THEME.color_border,
+        });
+      }
     }).catch(() => {});
   }, []);
 
@@ -421,13 +588,26 @@ export const CustomizePage: React.FC = () => {
     }, '*');
   }, []);
 
+  const sendThemePreview = useCallback((theme: typeof DEFAULT_THEME) => {
+    iframeRef.current?.contentWindow?.postMessage({ type: 'THEME_UPDATE', payload: theme }, '*');
+  }, []);
+
+  // Keep a stable ref so the event handler always reads the latest values without changing deps size
+  const latestPreviewRef = useRef({ sections: draftSections, theme: themeSettings });
+  latestPreviewRef.current = { sections: draftSections, theme: themeSettings };
+
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      if (e.data?.type === 'preview_ready') sendPreview(draftSections);
+      if (e.data?.type === 'preview_ready') {
+        sendThemePreview(latestPreviewRef.current.theme);
+        sendPreview(latestPreviewRef.current.sections);
+      }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [draftSections, sendPreview]);
+  // sendPreview and sendThemePreview are stable useCallback refs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sendPreview, sendThemePreview]);
 
   // When header mode is active, send header settings when iframe is ready
   useEffect(() => {
@@ -449,6 +629,22 @@ export const CustomizePage: React.FC = () => {
       setHeaderSaveStatus('saving');
       try {
         await merchantApi.savePageContent({ logo_url: logo, navbar_menu: JSON.stringify(items) });
+        setIsDirty(false);
+        setHeaderSaveStatus('saved');
+        setTimeout(() => setHeaderSaveStatus('idle'), 2000);
+      } catch { setHeaderSaveStatus('idle'); }
+    }, 1500);
+  };
+
+  const updateTheme = (theme: typeof DEFAULT_THEME) => {
+    setThemeSettings(theme);
+    setIsDirty(true);
+    sendThemePreview(theme);
+    if (themeSaveTimer.current) clearTimeout(themeSaveTimer.current);
+    themeSaveTimer.current = setTimeout(async () => {
+      setHeaderSaveStatus('saving');
+      try {
+        await merchantApi.savePageContent({ ...theme });
         setIsDirty(false);
         setHeaderSaveStatus('saved');
         setTimeout(() => setHeaderSaveStatus('idle'), 2000);
@@ -535,9 +731,10 @@ export const CustomizePage: React.FC = () => {
   const handleSaveAndExit = async () => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     if (headerSaveTimer.current) clearTimeout(headerSaveTimer.current);
+    if (themeSaveTimer.current) clearTimeout(themeSaveTimer.current);
     try {
       if (activePage) await merchantApi.saveDraft(activePage.id, draftSections);
-      await merchantApi.savePageContent({ logo_url: headerLogoUrl, navbar_menu: JSON.stringify(headerNavItems) });
+      await merchantApi.savePageContent({ logo_url: headerLogoUrl, navbar_menu: JSON.stringify(headerNavItems), ...themeSettings });
     } catch {}
     router.push('/pages');
   };
@@ -548,7 +745,7 @@ export const CustomizePage: React.FC = () => {
 
   // home page lives at / not /home on the storefront
   const iframeSlug = (activePage?.slug === 'home' || activePage?.slug === 'index') ? '' : (activePage?.slug ?? '');
-  const iframeUrl = headerMode
+  const iframeUrl = (headerMode || themeMode)
     ? `http://${shopSlug}.localhost:3001/?preview=1`
     : `http://${shopSlug}.localhost:3001/${iframeSlug}?preview=1`;
 
@@ -603,7 +800,7 @@ export const CustomizePage: React.FC = () => {
 
         <div style={{ width: 1, height: 24, background: '#374151' }} />
 
-        <select value={activePage?.id ?? ''} onChange={e => { setHeaderMode(false); switchPage(e.target.value); }}
+        <select value={activePage?.id ?? ''} onChange={e => { setHeaderMode(false); setThemeMode(false); switchPage(e.target.value); }}
           style={{ background: '#374151', color: '#F9FAFB', border: '1px solid #4B5563', borderRadius: 6, padding: '5px 10px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
           {pages.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
         </select>
@@ -672,7 +869,64 @@ export const CustomizePage: React.FC = () => {
 
         {/* ── Left sidebar ── */}
         <div style={{ width: 320, background: '#fff', borderRight: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
-          {headerMode ? (
+          {themeMode ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ padding: '10px 12px', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button onClick={() => setThemeMode(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  ← Sections
+                </button>
+              </div>
+              <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: 16 }}>Theme Settings</div>
+
+                {/* Presets */}
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Quick Presets</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {THEME_PRESETS.map(p => (
+                      <button key={p.label}
+                        onClick={() => updateTheme({ ...themeSettings, ...p.colors, ...p.fonts })}
+                        style={{ padding: '4px 10px', borderRadius: 20, border: '1px solid #E5E7EB', background: '#F9FAFB', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600, color: '#374151', transition: 'all 0.15s' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#15803d'; (e.currentTarget as HTMLElement).style.color = '#15803d'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E5E7EB'; (e.currentTarget as HTMLElement).style.color = '#374151'; }}>
+                        {p.label}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => updateTheme({ ...DEFAULT_THEME })}
+                      style={{ padding: '4px 10px', borderRadius: 20, border: '1px dashed #D1D5DB', background: 'transparent', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 500, color: '#9CA3AF' }}>
+                      Reset
+                    </button>
+                  </div>
+                </div>
+
+                {/* Typography */}
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Typography</div>
+                  <FontPicker label="Heading Font (h1–h6)" value={themeSettings.font_heading} onChange={v => updateTheme({ ...themeSettings, font_heading: v })} />
+                  <FontPicker label="Body Font (paragraphs)" value={themeSettings.font_body} onChange={v => updateTheme({ ...themeSettings, font_body: v })} />
+                  <div style={{ fontSize: '0.68rem', color: '#9CA3AF', marginTop: -4, marginBottom: 4 }}>Banner & card text items can override fonts individually.</div>
+                </div>
+
+                {/* Colors */}
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Colors</div>
+                  <ColorRow label="Page Background" value={themeSettings.color_bg} onChange={v => updateTheme({ ...themeSettings, color_bg: v })} />
+                  <ColorRow label="Card / Surface" value={themeSettings.color_surface} onChange={v => updateTheme({ ...themeSettings, color_surface: v })} />
+                  <ColorRow label="Main Text" value={themeSettings.color_text} onChange={v => updateTheme({ ...themeSettings, color_text: v })} />
+                  <ColorRow label="Muted Text" value={themeSettings.color_muted} onChange={v => updateTheme({ ...themeSettings, color_muted: v })} />
+                  <ColorRow label="Button / Primary" value={themeSettings.color_primary} onChange={v => updateTheme({ ...themeSettings, color_primary: v })} />
+                  <ColorRow label="Accent / Highlight" value={themeSettings.color_accent} onChange={v => updateTheme({ ...themeSettings, color_accent: v })} />
+                  <ColorRow label="Accent Hover" value={themeSettings.color_accent_hover} onChange={v => updateTheme({ ...themeSettings, color_accent_hover: v })} />
+                  <ColorRow label="Border" value={themeSettings.color_border} onChange={v => updateTheme({ ...themeSettings, color_border: v })} />
+                </div>
+              </div>
+              <div style={{ padding: '8px 12px', borderTop: '1px solid #E5E7EB', fontSize: '0.72rem', color: '#9CA3AF', textAlign: 'center' }}>
+                {headerSaveStatus === 'saving' ? 'Saving…' : headerSaveStatus === 'saved' ? '✓ Saved' : 'Changes auto-save'}
+              </div>
+            </div>
+          ) : headerMode ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div style={{ padding: '10px 12px', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <button onClick={() => setHeaderMode(false)}
@@ -695,9 +949,8 @@ export const CustomizePage: React.FC = () => {
                   <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Navigation Links</div>
                   <DraggableItemList
                     items={headerNavItems}
-                    onChange={items => { updateHeader(items, headerLogoUrl); setExpandedNavIdx(null); setExpandedChildIdx(null); }}
-                    renderItem={(item, update, remove, navIdx) => {
-                      const isExpanded = expandedNavIdx === navIdx;
+                    onChange={items => { updateHeader(items, headerLogoUrl); setExpandedChildIdx(null); }}
+                    renderItem={(item, update, remove, _navIdx, isExpanded, toggle) => {
                       const children: HeaderNavChild[] = item.children || [];
                       return (
                         <>
@@ -710,15 +963,11 @@ export const CustomizePage: React.FC = () => {
                               </div>
                               <div style={{ fontSize: '0.68rem', color: '#9CA3AF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.url}</div>
                             </div>
-                            <button
-                              onClick={() => { setExpandedNavIdx(isExpanded ? null : navIdx); setExpandedChildIdx(null); }}
-                              title="Edit"
+                            <button onClick={() => { toggle(); setExpandedChildIdx(null); }} title="Edit"
                               style={{ flexShrink: 0, background: isExpanded ? '#EFF6FF' : '#F3F4F6', border: `1px solid ${isExpanded ? '#BFDBFE' : '#E5E7EB'}`, borderRadius: 4, padding: '3px 7px', cursor: 'pointer', fontSize: '0.7rem', color: isExpanded ? '#2563EB' : '#6B7280', lineHeight: 1 }}>
                               ✏
                             </button>
-                            <button
-                              onClick={remove}
-                              title="Remove"
+                            <button onClick={remove} title="Remove"
                               style={{ flexShrink: 0, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 4, padding: '3px 7px', cursor: 'pointer', fontSize: '0.7rem', color: '#EF4444', lineHeight: 1 }}>
                               ✕
                             </button>
@@ -839,6 +1088,16 @@ export const CustomizePage: React.FC = () => {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
                 </div>
+                {/* Theme Settings row */}
+                <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #E5E7EB', background: '#FAFAFA' }}>
+                  <div style={{ padding: '10px 10px 10px 14px', fontSize: '1rem', flexShrink: 0 }}>🎨</div>
+                  <span style={{ flex: 1, fontSize: '0.82rem', fontWeight: 600, color: '#374151', padding: '10px 0' }}>Theme Settings</span>
+                  <button onClick={() => setThemeMode(true)}
+                    style={{ padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280', display: 'flex', alignItems: 'center' }}
+                    title="Edit theme">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                </div>
                 {/* Sections label */}
                 <div style={{ padding: '6px 14px', fontSize: '0.68rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', background: '#F9FAFB', borderBottom: '1px solid #F3F4F6' }}>
                   Sections
@@ -902,8 +1161,9 @@ export const CustomizePage: React.FC = () => {
           <div style={{ width: viewMode === 'mobile' ? 390 : '100%', maxWidth: viewMode === 'mobile' ? 390 : 1200, height: '100%', background: '#fff', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }}>
             <iframe ref={iframeRef} src={iframeUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Page Preview"
               onLoad={() => setTimeout(() => {
+                sendThemePreview(themeSettings);
                 if (headerMode) sendHeaderPreview(headerNavItems, headerLogoUrl);
-                else sendPreview(draftSections);
+                else if (!themeMode) sendPreview(draftSections);
               }, 300)} />
           </div>
         </div>

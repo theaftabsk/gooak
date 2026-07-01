@@ -11,6 +11,8 @@
   --sf-accent-light: #E8F5E9;
   --sf-border: #E5E7EB;
   --sf-compare-price: #9CA3AF;
+  --sf-font-heading: var(--font-serif);
+  --sf-font-body: var(--font-sans);
   
   /* Dashboards Theme (Merchant & Super Admin) - Clean & Efficient Slate */
   --db-bg: #F8FAFC;                /* Slate Light Gray */

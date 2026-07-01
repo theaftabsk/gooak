@@ -7,6 +7,7 @@ import { CustomerProvider } from '@/context/CustomerContext';
 import { Header } from '@/components/ui/Header';
 import { Footer } from '@/components/ui/Footer';
 import { CartDrawer } from '@/components/ui/CartDrawer';
+import { ThemeApplier } from '@/components/ui/ThemeApplier';
 import { Icons } from '@/components/ui/Icons';
 
 const NO_CHROME_PREFIXES = ['/checkout', '/account', '/login', '/register'];
@@ -65,6 +66,7 @@ export default function StorefrontShell({ children }: { children: React.ReactNod
 
   return (
     <ErrorBoundary>
+      <ThemeApplier />
       <CustomerProvider>
         <CartProvider>
           <div className="storefront-app-shell" style={{ background: 'var(--sf-bg, #FAF7F2)', minHeight: '100vh', paddingTop: hideChrome ? 0 : '70px', display: 'flex', flexDirection: 'column' }}>
