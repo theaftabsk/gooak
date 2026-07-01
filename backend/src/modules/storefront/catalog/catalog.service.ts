@@ -248,4 +248,34 @@ export class CatalogService {
       select: { key: true, value: true, description: true },
     });
   }
+
+  async validateCoupon(shopId: string, code: string, subtotal: number) {
+    const coupon = await this.prisma.coupon.findFirst({
+      where: { shop_id: shopId, code: { equals: code.toUpperCase().trim(), mode: 'insensitive' }, is_active: true },
+    });
+
+    if (!coupon) return { valid: false, message: 'Invalid or inactive coupon code' };
+
+    const now = new Date();
+    if (coupon.starts_at && coupon.starts_at > now) return { valid: false, message: 'Coupon is not yet active' };
+    if (coupon.ends_at && coupon.ends_at < now) return { valid: false, message: 'Coupon has expired' };
+    if (coupon.usage_limit !== null && coupon.used_count >= coupon.usage_limit) return { valid: false, message: 'Coupon usage limit reached' };
+    if (Number(coupon.min_order) > 0 && subtotal < Number(coupon.min_order)) {
+      return { valid: false, message: `Minimum order of ₹${coupon.min_order} required` };
+    }
+
+    let discount_amount = 0;
+    if (coupon.type === 'percentage') discount_amount = Math.round((subtotal * Number(coupon.value)) / 100);
+    else if (coupon.type === 'fixed') discount_amount = Math.min(Number(coupon.value), subtotal);
+
+    return {
+      valid: true,
+      code: coupon.code,
+      type: coupon.type,
+      value: Number(coupon.value),
+      discount_amount,
+      free_shipping: coupon.free_shipping,
+      min_order: Number(coupon.min_order),
+    };
+  }
 }

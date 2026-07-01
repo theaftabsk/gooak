@@ -191,6 +191,7 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
   const topLinks: [string, string, React.ReactNode][] = [
     ['/customize', 'Customize', <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>],
     ['/analytics', 'Analytics', <Icons.BarChart />],
+    ['/promos', 'Discounts', <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>],
     ['/payments', 'Payments', <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>],
     ['/settings', 'Settings', <Icons.Settings />],
     ['/team', 'Team', <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>],
@@ -219,18 +220,19 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
 
             <nav className="sidebar-nav">
               <Link href="/" className={isActive('/') ? 'active' : ''} title="Dashboard">
-                <Icons.Dashboard /><span className="sidebar-nav-item-text">Dashboard</span>
+                <Icons.Dashboard />
+                <span className="sidebar-nav-item-text">Dashboard</span>
               </Link>
 
               {navGroups.map(group => (
                 <div key={group.key} className="sidebar-group">
                   <div
-                    className={`sidebar-group-header ${isGroupActive(group.paths) ? 'parent-active' : ''}`}
+                    className={`sidebar-group-header${isGroupActive(group.paths) ? ' parent-active' : ''}`}
                     onClick={() => toggleGroup(group.key)}
                     title={group.label}
                   >
                     {group.icon}
-                    <span className="sidebar-nav-item-text" style={{ marginLeft: 10 }}>{group.label}</span>
+                    <span className="sidebar-nav-item-text">{group.label}</span>
                     <span className="sidebar-group-chevron">
                       {expandedGroups[group.key] ? <ChevronDown /> : <ChevronRight />}
                     </span>
@@ -249,7 +251,8 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
 
               {topLinks.map(([href, label, icon]) => (
                 <Link key={href} href={href} className={isActive(href) ? 'active' : ''} title={label}>
-                  {icon}<span className="sidebar-nav-item-text">{label}</span>
+                  {icon}
+                  <span className="sidebar-nav-item-text">{label}</span>
                 </Link>
               ))}
             </nav>

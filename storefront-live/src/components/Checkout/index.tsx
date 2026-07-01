@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { catalogApi, paymentApi } from '@/lib/api-client';
+import { catalogApi, paymentApi, storefrontApi } from '@/lib/api-client';
 import { usePageTheme } from '@/hooks/usePageTheme';
 import { useCart } from '@/context/CartContext';
 import { useCustomer } from '@/context/CustomerContext';
@@ -9,7 +9,7 @@ import { getCurrencySymbol } from '@/lib/utils';
 
 export const Checkout: React.FC = () => {
   const { theme, cssVariables } = usePageTheme('checkout');
-  const { cartItems, cartTotal, clearCart } = useCart();
+  const { cartItems, cartTotal, appliedCoupon, discountAmount, clearCart, setAppliedCoupon } = useCart();
   const { customer } = useCustomer();
   const router = useRouter();
 
@@ -25,6 +25,11 @@ export const Checkout: React.FC = () => {
   const [zip, setZip] = useState('');
   const [notes, setNotes] = useState('');
   
+  // Coupon
+  const [couponInput, setCouponInput] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState('');
+
   // Active payment gateways (fetched from backend)
   const [activeGateways, setActiveGateways] = useState<any[]>([]);
   const [gatewaysLoaded, setGatewaysLoaded] = useState(false);
@@ -58,9 +63,35 @@ export const Checkout: React.FC = () => {
   }, []);
 
   // Calculate pricing values
-  const shippingCharge = cartTotal > 500 ? 0 : 50;
-  const taxAmount = Math.round(cartTotal * 0.05); // 5% flat GST
-  const grandTotal = cartTotal + shippingCharge + taxAmount;
+  const subtotalAfterDiscount = Math.max(0, cartTotal - discountAmount);
+  const freeShipping = appliedCoupon?.free_shipping || subtotalAfterDiscount > 500;
+  const shippingCharge = freeShipping ? 0 : 50;
+  const taxAmount = Math.round(subtotalAfterDiscount * 0.05);
+  const grandTotal = subtotalAfterDiscount + shippingCharge + taxAmount;
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await storefrontApi.validateCoupon(couponInput.trim(), cartTotal);
+      if (res.valid) {
+        setAppliedCoupon(res);
+        setCouponInput('');
+      } else {
+        setCouponError(res.message || 'Invalid coupon');
+      }
+    } catch {
+      setCouponError('Failed to apply coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError('');
+  };
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +117,7 @@ export const Checkout: React.FC = () => {
       },
       payment_method: paymentMethod,
       notes,
+      coupon_code: appliedCoupon?.code,
       items: cartItems.map(item => ({
         variant_id: item.variantId,
         qty: item.qty
@@ -309,12 +341,50 @@ export const Checkout: React.FC = () => {
                 ))}
               </div>
 
+              {/* Coupon code input */}
+              <div className="co-coupon-section">
+                {appliedCoupon ? (
+                  <div className="co-coupon-applied">
+                    <span className="co-coupon-tag">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      {appliedCoupon.code}
+                      {appliedCoupon.type === 'percentage'
+                        ? ` (${appliedCoupon.value}% off)`
+                        : appliedCoupon.type === 'fixed'
+                        ? ` (${getCurrencySymbol()}${appliedCoupon.value} off)`
+                        : ' (Free shipping)'}
+                    </span>
+                    <button className="co-coupon-remove" onClick={handleRemoveCoupon} type="button">✕</button>
+                  </div>
+                ) : (
+                  <div className="co-coupon-row">
+                    <input
+                      className="co-coupon-input"
+                      placeholder="Coupon code"
+                      value={couponInput}
+                      onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
+                      onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                    />
+                    <button className="co-coupon-btn" onClick={handleApplyCoupon} disabled={couponLoading} type="button">
+                      {couponLoading ? '…' : 'Apply'}
+                    </button>
+                  </div>
+                )}
+                {couponError && <p className="co-coupon-error">{couponError}</p>}
+              </div>
+
               {/* Price Calculations */}
               <div className="checkout-calculations">
                 <div className="calc-row">
                   <span>Cart Subtotal</span>
-                  <span className="calc-value">{getCurrencySymbol()}{cartTotal}</span>
+                  <span className="calc-value">{getCurrencySymbol()}{cartTotal.toFixed(2)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="calc-row" style={{ color: '#059669' }}>
+                    <span>Discount {appliedCoupon ? `(${appliedCoupon.code})` : ''}</span>
+                    <span className="calc-value">−{getCurrencySymbol()}{discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="calc-row">
                   <span>Shipping & Handling</span>
                   <span className="calc-value">{shippingCharge === 0 ? 'FREE' : `${getCurrencySymbol()}${shippingCharge}`}</span>
@@ -325,7 +395,7 @@ export const Checkout: React.FC = () => {
                 </div>
                 <div className="grand-total-row">
                   <span>Order Total</span>
-                  <span className="grand-total-price">{getCurrencySymbol()}{grandTotal}</span>
+                  <span className="grand-total-price">{getCurrencySymbol()}{grandTotal.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -665,6 +735,76 @@ export const Checkout: React.FC = () => {
           .checkout-summary-card { padding: 14px 16px; }
         }
         .mt-4 { margin-top: 14px; }
+
+        /* Coupon section in checkout summary */
+        .co-coupon-section { margin-bottom: 12px; }
+        .co-coupon-row {
+          display: flex;
+          gap: 8px;
+        }
+        .co-coupon-input {
+          flex: 1;
+          padding: 7px 10px;
+          border: 1.5px solid #E5E7EB;
+          border-radius: 8px;
+          font-size: 0.78rem;
+          font-family: monospace;
+          letter-spacing: 0.05em;
+          color: #111827;
+          background: #fff;
+          outline: none;
+          text-transform: uppercase;
+        }
+        .co-coupon-input:focus { border-color: var(--sf-accent, #15803D); }
+        .co-coupon-btn {
+          padding: 7px 14px;
+          background: #111827;
+          color: #fff;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.73rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: opacity 0.15s;
+        }
+        .co-coupon-btn:hover { opacity: 0.82; }
+        .co-coupon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .co-coupon-applied {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 7px 10px;
+          background: rgba(16,185,129,0.07);
+          border: 1px solid rgba(16,185,129,0.22);
+          border-radius: 8px;
+        }
+        .co-coupon-tag {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #059669;
+          letter-spacing: 0.03em;
+        }
+        .co-coupon-remove {
+          background: none;
+          border: none;
+          color: #9CA3AF;
+          cursor: pointer;
+          font-size: 0.82rem;
+          line-height: 1;
+          padding: 0;
+        }
+        .co-coupon-remove:hover { color: #EF4444; }
+        .co-coupon-error {
+          font-size: 0.73rem;
+          color: #EF4444;
+          margin: 5px 0 0;
+          font-weight: 500;
+        }
       `}</style>
     </div>
   );

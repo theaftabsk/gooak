@@ -263,6 +263,27 @@ export class MerchantController {
     return this.merchantService.createCollection(shopId, dto);
   }
 
+  @Patch('collections/:id')
+  async updateCollection(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+    @Body() dto: { name?: string; description?: string; image_url?: string; is_active?: boolean },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.updateCollection(shopId, id, dto);
+  }
+
+  @Delete('collections/:id')
+  async deleteCollection(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.deleteCollection(shopId, id);
+  }
+
   // ─── Orders ───────────────────────────────────────────────────────────────
 
   @Get('orders')
@@ -817,4 +838,48 @@ export class MerchantController {
 
   // ─── Inventory ────────────────────────────────────────────────────────────
   // Note: InventoryController (in merchant module) serves /api/v1/merchant/inventory routes.
+
+  // ─── Coupons ──────────────────────────────────────────────────────────────
+
+  @Get('coupons')
+  async getCoupons(@Req() req: Request & { shopId?: string }) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getCoupons(shopId);
+  }
+
+  @Get('coupons/:id')
+  async getCoupon(@Req() req: Request & { shopId?: string }, @Param('id') id: string) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getCoupon(shopId, id);
+  }
+
+  @Post('coupons')
+  async createCoupon(@Req() req: Request & { shopId?: string }, @Body() dto: any) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.createCoupon(shopId, dto);
+  }
+
+  @Patch('coupons/:id')
+  async updateCoupon(@Req() req: Request & { shopId?: string }, @Param('id') id: string, @Body() dto: any) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.updateCoupon(shopId, id, dto);
+  }
+
+  @Delete('coupons/:id')
+  async deleteCoupon(@Req() req: Request & { shopId?: string }, @Param('id') id: string) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.deleteCoupon(shopId, id);
+  }
+
+  @Get('coupons/:id/usage')
+  async getCouponUsage(@Req() req: Request & { shopId?: string }, @Param('id') id: string) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getCouponUsage(shopId, id);
+  }
 }

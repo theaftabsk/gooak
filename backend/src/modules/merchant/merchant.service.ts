@@ -1398,6 +1398,23 @@ export class MerchantService {
     });
   }
 
+  async updateCollection(shopId: string, id: string, dto: { name?: string; description?: string; image_url?: string; is_active?: boolean }) {
+    return this.prisma.collection.updateMany({
+      where: { id, shop_id: shopId },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name.trim() }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.image_url !== undefined && { image_url: dto.image_url }),
+        ...(dto.is_active !== undefined && { is_active: dto.is_active }),
+      },
+    });
+  }
+
+  async deleteCollection(shopId: string, id: string) {
+    await this.prisma.collection.deleteMany({ where: { id, shop_id: shopId } });
+    return { success: true };
+  }
+
   // ─── PAGES CRUD ─────────────────────────────────────────────────────────────
   async getAdminPages(shopId: string) {
     return this.prisma.page.findMany({
@@ -1790,5 +1807,105 @@ export class MerchantService {
     );
     await Promise.all(promises);
     return { success: true, saved: Object.keys(data).length };
+  }
+
+  // ─── Coupons ──────────────────────────────────────────────────────────────
+
+  async getCoupons(shopId: string) {
+    return this.prisma.coupon.findMany({
+      where: { shop_id: shopId },
+      orderBy: { created_at: 'desc' },
+    });
+  }
+
+  async getCoupon(shopId: string, id: string) {
+    const coupon = await this.prisma.coupon.findFirst({ where: { id, shop_id: shopId } });
+    if (!coupon) throw new Error('Coupon not found');
+    return coupon;
+  }
+
+  async createCoupon(shopId: string, dto: {
+    code: string;
+    type: string;
+    value: number;
+    min_order?: number;
+    applies_to?: string;
+    target_ids?: string[];
+    usage_limit?: number;
+    per_customer_limit?: number;
+    free_shipping?: boolean;
+    starts_at?: string;
+    ends_at?: string;
+    is_active?: boolean;
+  }) {
+    return this.prisma.coupon.create({
+      data: {
+        shop_id: shopId,
+        code: dto.code.toUpperCase().trim(),
+        type: dto.type,
+        value: dto.value,
+        min_order: dto.min_order ?? 0,
+        applies_to: dto.applies_to ?? 'all',
+        target_ids: dto.target_ids ?? [],
+        usage_limit: dto.usage_limit ?? null,
+        per_customer_limit: dto.per_customer_limit ?? null,
+        free_shipping: dto.free_shipping ?? false,
+        starts_at: dto.starts_at ? new Date(dto.starts_at) : null,
+        ends_at: dto.ends_at ? new Date(dto.ends_at) : null,
+        is_active: dto.is_active ?? true,
+      },
+    });
+  }
+
+  async updateCoupon(shopId: string, id: string, dto: Partial<{
+    code: string;
+    type: string;
+    value: number;
+    min_order: number;
+    applies_to: string;
+    target_ids: string[];
+    usage_limit: number | null;
+    per_customer_limit: number | null;
+    free_shipping: boolean;
+    starts_at: string | null;
+    ends_at: string | null;
+    is_active: boolean;
+  }>) {
+    const existing = await this.prisma.coupon.findFirst({ where: { id, shop_id: shopId } });
+    if (!existing) throw new Error('Coupon not found');
+    return this.prisma.coupon.update({
+      where: { id },
+      data: {
+        ...(dto.code !== undefined && { code: dto.code.toUpperCase().trim() }),
+        ...(dto.type !== undefined && { type: dto.type }),
+        ...(dto.value !== undefined && { value: dto.value }),
+        ...(dto.min_order !== undefined && { min_order: dto.min_order }),
+        ...(dto.applies_to !== undefined && { applies_to: dto.applies_to }),
+        ...(dto.target_ids !== undefined && { target_ids: dto.target_ids }),
+        ...(dto.usage_limit !== undefined && { usage_limit: dto.usage_limit }),
+        ...(dto.per_customer_limit !== undefined && { per_customer_limit: dto.per_customer_limit }),
+        ...(dto.free_shipping !== undefined && { free_shipping: dto.free_shipping }),
+        ...(dto.starts_at !== undefined && { starts_at: dto.starts_at ? new Date(dto.starts_at) : null }),
+        ...(dto.ends_at !== undefined && { ends_at: dto.ends_at ? new Date(dto.ends_at) : null }),
+        ...(dto.is_active !== undefined && { is_active: dto.is_active }),
+      },
+    });
+  }
+
+  async deleteCoupon(shopId: string, id: string) {
+    const existing = await this.prisma.coupon.findFirst({ where: { id, shop_id: shopId } });
+    if (!existing) throw new Error('Coupon not found');
+    await this.prisma.coupon.delete({ where: { id } });
+    return { success: true };
+  }
+
+  async getCouponUsage(shopId: string, id: string) {
+    const existing = await this.prisma.coupon.findFirst({ where: { id, shop_id: shopId } });
+    if (!existing) throw new Error('Coupon not found');
+    return this.prisma.couponUsage.findMany({
+      where: { coupon_id: id },
+      orderBy: { used_at: 'desc' },
+      take: 100,
+    });
   }
 }

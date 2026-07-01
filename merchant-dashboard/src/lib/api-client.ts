@@ -210,6 +210,12 @@ export const merchantApi = {
   createCollection: (dto: any) =>
     request<any>('/merchant/collections', { method: 'POST', body: JSON.stringify(dto) }),
 
+  updateCollection: (id: string, dto: any) =>
+    request<any>(`/merchant/collections/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  deleteCollection: (id: string) =>
+    request<any>(`/merchant/collections/${id}`, { method: 'DELETE' }),
+
   // Orders
   getOrders: () => request<any>('/merchant/orders'),
 
@@ -293,6 +299,14 @@ export const merchantApi = {
   createTestimonial: (dto: any) => request<any>('/merchant/testimonials', { method: 'POST', body: JSON.stringify(dto) }),
   updateTestimonial: (id: string, dto: any) => request<any>(`/merchant/testimonials/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
   deleteTestimonial: (id: string) => request<any>(`/merchant/testimonials/${id}`, { method: 'DELETE' }),
+
+  // Coupons / Promos
+  getCoupons: () => request<any[]>('/merchant/coupons'),
+  getCoupon: (id: string) => request<any>(`/merchant/coupons/${id}`),
+  createCoupon: (dto: any) => request<any>('/merchant/coupons', { method: 'POST', body: JSON.stringify(dto) }),
+  updateCoupon: (id: string, dto: any) => request<any>(`/merchant/coupons/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  deleteCoupon: (id: string) => request<any>(`/merchant/coupons/${id}`, { method: 'DELETE' }),
+  getCouponUsage: (id: string) => request<any[]>(`/merchant/coupons/${id}/usage`),
 
   // Staff users
   getUsers: () => request<any>('/merchant/users'),
@@ -401,6 +415,8 @@ export const catalogApi = {
   updateProduct: merchantApi.updateProduct,
   getCollections: merchantApi.getCollections,
   createCollection: merchantApi.createCollection,
+  updateCollection: merchantApi.updateCollection,
+  deleteCollection: merchantApi.deleteCollection,
   deleteProduct: merchantApi.deleteProduct,
   createCategory: merchantApi.createCategory,
   updateCategory: merchantApi.updateCategory,

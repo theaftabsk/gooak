@@ -1,14 +1,42 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@oaksol/shared-ui';
 import { useRouter } from 'next/navigation';
 import { getCurrencySymbol } from '@/lib/utils';
+import { storefrontApi } from '@/lib/api-client';
 
 export const CartDrawer: React.FC = () => {
-  const { cartItems, cartTotal, isCartOpen, setCartOpen, updateQty, removeFromCart } = useCart();
+  const { cartItems, cartTotal, appliedCoupon, discountAmount, isCartOpen, setCartOpen, updateQty, removeFromCart, setAppliedCoupon } = useCart();
+  const [couponInput, setCouponInput] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState('');
   const router = useRouter();
   const navigate = (path: string) => router.push(path);
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await storefrontApi.validateCoupon(couponInput.trim(), cartTotal);
+      if (res.valid) {
+        setAppliedCoupon(res);
+        setCouponInput('');
+      } else {
+        setCouponError(res.message || 'Invalid coupon');
+      }
+    } catch {
+      setCouponError('Failed to apply coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError('');
+  };
 
   if (!isCartOpen) return null;
 
@@ -58,18 +86,57 @@ export const CartDrawer: React.FC = () => {
 
         {cartItems.length > 0 ? (
           <div className="cart-footer">
+            {/* Coupon input */}
+            {appliedCoupon ? (
+              <div className="coupon-applied-row">
+                <span className="coupon-applied-tag">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  {appliedCoupon.code}
+                  {appliedCoupon.type === 'percentage' ? ` (${appliedCoupon.value}% off)` : appliedCoupon.type === 'fixed' ? ` (₹${appliedCoupon.value} off)` : ' (Free shipping)'}
+                </span>
+                <button className="coupon-remove-btn" onClick={handleRemoveCoupon}>✕</button>
+              </div>
+            ) : (
+              <div className="coupon-input-row">
+                <input
+                  className="coupon-input"
+                  placeholder="Coupon code"
+                  value={couponInput}
+                  onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                />
+                <button className="coupon-apply-btn" onClick={handleApplyCoupon} disabled={couponLoading}>
+                  {couponLoading ? '…' : 'Apply'}
+                </button>
+              </div>
+            )}
+            {couponError && <p className="coupon-error">{couponError}</p>}
+
             <div className="subtotal-row">
               <span>Subtotal:</span>
-              <span className="total-amount">{getCurrencySymbol()}{cartTotal.toFixed(2)}</span>
+              <span>{getCurrencySymbol()}{cartTotal.toFixed(2)}</span>
             </div>
-            <p className="shipping-note">Free Shipping for orders above {getCurrencySymbol()}500</p>
+            {discountAmount > 0 && (
+              <div className="subtotal-row discount-row">
+                <span>Discount:</span>
+                <span className="discount-val">−{getCurrencySymbol()}{discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {appliedCoupon?.free_shipping && (
+              <div className="subtotal-row discount-row">
+                <span>Shipping:</span>
+                <span className="discount-val">FREE</span>
+              </div>
+            )}
+            <div className="subtotal-row total-row">
+              <span>Total:</span>
+              <span className="total-amount">{getCurrencySymbol()}{Math.max(0, cartTotal - discountAmount).toFixed(2)}</span>
+            </div>
+            {!appliedCoupon?.free_shipping && <p className="shipping-note">Free Shipping for orders above {getCurrencySymbol()}500</p>}
             <Button
               variant="storefront"
               style={{ width: '100%', marginTop: '15px' }}
-              onClick={() => {
-                setCartOpen(false);
-                navigate('/checkout');
-              }}
+              onClick={() => { setCartOpen(false); navigate('/checkout'); }}
             >
               Checkout Now
             </Button>
@@ -260,6 +327,78 @@ export const CartDrawer: React.FC = () => {
           font-size: 0.8rem;
           color: var(--sf-accent);
           font-weight: 500;
+        }
+
+        .coupon-input-row {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .coupon-input {
+          flex: 1;
+          padding: 8px 12px;
+          border: 1px solid var(--sf-border, rgba(0,0,0,0.12));
+          background: var(--sf-bg);
+          color: var(--sf-text-main);
+          font-size: 0.82rem;
+          font-family: monospace;
+          letter-spacing: 0.05em;
+          outline: none;
+        }
+        .coupon-input:focus { border-color: var(--sf-accent); }
+        .coupon-apply-btn {
+          padding: 8px 16px;
+          background: var(--sf-text-main);
+          color: var(--sf-bg);
+          border: none;
+          font-size: 0.78rem;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          cursor: pointer;
+          transition: opacity 0.15s;
+        }
+        .coupon-apply-btn:hover { opacity: 0.8; }
+        .coupon-apply-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .coupon-applied-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: rgba(16,185,129,0.07);
+          border: 1px solid rgba(16,185,129,0.2);
+          padding: 7px 10px;
+          margin-bottom: 12px;
+        }
+        .coupon-applied-tag {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #059669;
+          letter-spacing: 0.03em;
+        }
+        .coupon-remove-btn {
+          background: none;
+          border: none;
+          color: #9CA3AF;
+          cursor: pointer;
+          font-size: 0.85rem;
+          line-height: 1;
+        }
+        .coupon-remove-btn:hover { color: #EF4444; }
+        .coupon-error {
+          font-size: 0.76rem;
+          color: #EF4444;
+          margin: -8px 0 10px;
+        }
+        .discount-row { color: #059669; }
+        .discount-val { font-weight: 700; color: #059669; }
+        .total-row {
+          font-weight: 700;
+          font-size: 1rem;
+          border-top: 1px solid var(--sf-border, rgba(0,0,0,0.08));
+          padding-top: 10px;
+          margin-top: 6px;
         }
 
         @keyframes fadeIn {

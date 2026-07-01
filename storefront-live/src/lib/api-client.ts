@@ -125,6 +125,9 @@ export const storefrontApi = {
 
   getSettings: () => request<any>('/storefront/settings'),
 
+  validateCoupon: (code: string, subtotal: number) =>
+    request<any>('/storefront/coupons/validate', { method: 'POST', body: JSON.stringify({ code, subtotal }) }),
+
   placeOrder: (dto: {
     customer_name: string;
     customer_email: string;
@@ -132,6 +135,7 @@ export const storefrontApi = {
     shipping_address: any;
     payment_method: string;
     notes?: string;
+    coupon_code?: string;
     items: { variant_id: string; qty: number }[];
   }) => request<any>('/storefront/orders', { method: 'POST', body: JSON.stringify(dto) }),
 

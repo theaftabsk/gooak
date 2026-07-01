@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { CatalogService } from './catalog.service';
 
@@ -44,5 +44,13 @@ export class CatalogController {
   @Get('settings')
   getSettings() {
     return this.catalogService.getPublicSystemSettings();
+  }
+
+  @Post('coupons/validate')
+  validateCoupon(
+    @Req() req: Request & { shopId?: string },
+    @Body() body: { code: string; subtotal: number },
+  ) {
+    return this.catalogService.validateCoupon(req.shopId!, body.code, body.subtotal);
   }
 }

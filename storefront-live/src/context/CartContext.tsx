@@ -11,16 +11,27 @@ export interface CartItem {
   qty: number;
 }
 
+export interface AppliedCoupon {
+  code: string;
+  type: string;
+  value: number;
+  discount_amount: number;
+  free_shipping: boolean;
+}
+
 interface CartContextType {
   cartItems: CartItem[];
   cartCount: number;
   cartTotal: number;
+  appliedCoupon: AppliedCoupon | null;
+  discountAmount: number;
   isCartOpen: boolean;
   addToCart: (item: Omit<CartItem, 'qty'>, qty: number) => void;
   removeFromCart: (variantId: string) => void;
   updateQty: (variantId: string, qty: number) => void;
   clearCart: () => void;
   setCartOpen: (open: boolean) => void;
+  setAppliedCoupon: (coupon: AppliedCoupon | null) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -28,6 +39,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setCartOpen] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -94,10 +106,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearCart = () => {
     saveCart([]);
+    setAppliedCoupon(null);
   };
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
   const cartTotal = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
+  const discountAmount = appliedCoupon?.discount_amount ?? 0;
 
   return (
     <CartContext.Provider
@@ -105,12 +119,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cartItems,
         cartCount,
         cartTotal,
+        appliedCoupon,
+        discountAmount,
         isCartOpen,
         addToCart,
         removeFromCart,
         updateQty,
         clearCart,
         setCartOpen,
+        setAppliedCoupon,
       }}
     >
       {children}
