@@ -180,17 +180,21 @@ export class CustomerService {
         data: { shop_id: shopId, order_id: orderId, status: 'cancelled', message: reason || 'Order cancelled by customer' },
       });
 
-      // Restore stock for confirmed/shipped-not-yet orders
-      // (stock was only deducted on COD confirm — restore it)
       if (order.status === 'confirmed') {
+        // Stock was deducted at confirmation — restore physical units
         const warehouse = await tx.warehouse.findFirst({ where: { shop_id: shopId, is_active: true } });
         for (const item of order.items) {
           const variant = await tx.productVariant.findUnique({ where: { id: item.variant_id } });
           if (!variant || !variant.track_inventory) continue;
-          const restored = variant.stock_qty + item.qty;
+          const newStock = variant.stock_qty + item.qty;
+          const newAvailable = Math.max(0, newStock - variant.reserved_qty);
           await tx.productVariant.update({
             where: { id: item.variant_id },
-            data: { stock_qty: restored, total_sold: Math.max(0, variant.total_sold - item.qty) },
+            data: {
+              stock_qty: newStock,
+              available_qty: newAvailable,
+              total_sold: Math.max(0, variant.total_sold - item.qty),
+            },
           });
           if (warehouse) {
             await tx.inventoryLog.create({
@@ -198,11 +202,28 @@ export class CustomerService {
                 shop_id: shopId,
                 variant_id: item.variant_id,
                 warehouse_id: warehouse.id,
-                type: 'cancellation_return',
+                type: 'return',
                 qty_change: item.qty,
-                qty_after: restored,
+                qty_after: newStock,
                 ref_id: orderId,
                 note: `Stock restored on order cancellation: ${order.order_number}`,
+              },
+            });
+          }
+        }
+      } else if (order.status === 'pending') {
+        // Razorpay order — payment never completed so stock was never deducted.
+        // But reservation was held when the cart was checked out; release it now.
+        for (const item of order.items) {
+          const variant = await tx.productVariant.findUnique({ where: { id: item.variant_id } });
+          if (!variant || !variant.track_inventory) continue;
+          const releaseQty = Math.min(item.qty, variant.reserved_qty);
+          if (releaseQty > 0) {
+            await tx.productVariant.update({
+              where: { id: item.variant_id },
+              data: {
+                reserved_qty: { decrement: releaseQty },
+                available_qty: { increment: releaseQty },
               },
             });
           }
@@ -408,19 +429,52 @@ export class CustomerService {
       const variant = await this.prisma.productVariant.findUnique({ where: { id: gi.variant_id } });
       if (!variant || !variant.is_active) continue;
 
+      // Release guest cart reservation before re-reserving under the customer cart
+      if (variant.track_inventory) {
+        const releaseQty = Math.min(gi.qty, variant.reserved_qty);
+        if (releaseQty > 0) {
+          await this.prisma.productVariant.update({
+            where: { id: gi.variant_id },
+            data: { reserved_qty: { decrement: releaseQty }, available_qty: { increment: releaseQty } },
+          });
+        }
+      }
+
+      // Re-read available_qty after releasing guest reservation
+      const fresh = await this.prisma.productVariant.findUnique({
+        where: { id: gi.variant_id },
+        select: { available_qty: true, reserved_qty: true },
+      });
+      const cap = variant.track_inventory ? (fresh?.available_qty ?? 0) : 9999;
+
       const existing = await this.prisma.cartItem.findFirst({
         where: { cart_id: targetCart.id, variant_id: gi.variant_id },
       });
 
       if (existing) {
-        const newQty = Math.min(existing.qty + gi.qty, variant.track_inventory ? variant.stock_qty : 9999);
-        await this.prisma.cartItem.update({ where: { id: existing.id }, data: { qty: newQty } });
+        const addQty = Math.min(gi.qty, Math.max(0, cap));
+        const newQty = existing.qty + addQty;
+        if (addQty > 0) {
+          await this.prisma.cartItem.update({ where: { id: existing.id }, data: { qty: newQty } });
+          if (variant.track_inventory) {
+            await this.prisma.productVariant.update({
+              where: { id: gi.variant_id },
+              data: { reserved_qty: { increment: addQty }, available_qty: { decrement: addQty } },
+            });
+          }
+        }
       } else {
-        const qty = variant.track_inventory ? Math.min(gi.qty, variant.stock_qty) : gi.qty;
+        const qty = Math.min(gi.qty, Math.max(0, cap));
         if (qty > 0) {
           await this.prisma.cartItem.create({
             data: { shop_id: shopId, cart_id: targetCart.id, variant_id: gi.variant_id, qty, unit_price: variant.price },
           });
+          if (variant.track_inventory) {
+            await this.prisma.productVariant.update({
+              where: { id: gi.variant_id },
+              data: { reserved_qty: { increment: qty }, available_qty: { decrement: qty } },
+            });
+          }
         }
       }
       merged++;
@@ -431,7 +485,7 @@ export class CustomerService {
       await this.prisma.cart.update({ where: { id: targetCart.id }, data: { coupon_id: guestCart.coupon_id } });
     }
 
-    // Delete guest cart
+    // Delete guest cart (reservations already released above, per item)
     await this.prisma.cartItem.deleteMany({ where: { cart_id: guestCart.id } });
     await this.prisma.cart.delete({ where: { id: guestCart.id } });
 

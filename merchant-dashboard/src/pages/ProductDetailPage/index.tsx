@@ -3,6 +3,12 @@ import { catalogApi } from '@/lib/api-client';
 import { Icons } from '@/components/ui/Icons';
 import { Badge, LoadingSpinner } from '@/components/ui/Shared';
 import { VariantsStockTab } from '@/pages/VariantsStockTab';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CategoryPicker } from '@/components/ui/CategoryPicker';
+import { FLAT_TAXONOMY } from '@/lib/taxonomy';
 
 interface ProductDetailPageProps {
   productId: string;
@@ -50,6 +56,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [description, setDescription] = useState('');
   const [shortDesc, setShortDesc] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [categoryPath, setCategoryPath] = useState<string | null>(null);
   const [brandId, setBrandId] = useState('');
   const [label, setLabel] = useState(''); // Sale, New, Hot, etc.
   const [status, setStatus] = useState('draft');
@@ -151,6 +158,16 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       setComparePrice(data.compare_price ? parseFloat(data.compare_price).toString() : '');
       setCostPrice(data.cost_price ? parseFloat(data.cost_price).toString() : '');
       setCategoryId(data.category_id || '');
+      // Try to match existing category to taxonomy by name for the path label
+      if (data.category?.name) {
+        const match = FLAT_TAXONOMY.find(
+          f => f.name.toLowerCase() === data.category.name.toLowerCase() ||
+               f.label.toLowerCase().includes(data.category.name.toLowerCase()),
+        );
+        setCategoryPath(match ? match.label : data.category.name);
+      } else {
+        setCategoryPath(null);
+      }
       setBrandId(data.brand_id || '');
       setLabel(data.label || '');
       setStatus(data.status || 'draft');
@@ -536,28 +553,24 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           gap: 6px;
           margin-bottom: 20px;
         }
-        .input-label {
-          font-size: 0.78rem;
-          font-weight: 700;
-          color: var(--m-text-main, #374151);
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-        }
-        .styled-input, .styled-select, .styled-textarea {
+        /* Legacy CSS kept for any remaining native inputs */
+        .styled-input, .styled-textarea {
           width: 100%;
-          padding: 11px 15px;
-          border: 1.5px solid var(--m-border, #E5E7EB);
-          border-radius: 10px;
-          font-size: 0.9rem;
+          height: 36px;
+          padding: 4px 12px;
+          border: 1px solid #E5E7EB;
+          border-radius: 6px;
+          font-size: 0.875rem;
           outline: none;
           color: #111827;
           background: #ffffff;
           box-sizing: border-box;
-          transition: all 0.2s ease;
+          transition: border-color 0.15s, box-shadow 0.15s;
         }
-        .styled-input:focus, .styled-select:focus, .styled-textarea:focus {
-          border-color: var(--m-primary, #4F46E5);
-          box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
+        .styled-textarea { height: auto; min-height: 80px; resize: vertical; padding: 8px 12px; }
+        .styled-input:focus, .styled-textarea:focus {
+          border-color: #6366F1;
+          box-shadow: 0 0 0 1px #6366F1;
         }
         .drag-drop-box {
           border: 2px dashed var(--m-border, #E5E7EB);
@@ -705,11 +718,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Product Title *</label>
-                <input
+                <Label>Product Title *</Label>
+                <Input
                   required
                   type="text"
-                  className="styled-input"
                   value={name}
                   onChange={e => handleNameChange(e.target.value)}
                 />
@@ -717,55 +729,69 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">URL Slug Handle</label>
-                  <input
+                  <Label>URL Slug Handle</Label>
+                  <Input
                     type="text"
-                    className="styled-input"
                     value={slug}
                     onChange={e => setSlug(e.target.value)}
                   />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Product Badge/Label</label>
-                  <select className="styled-select" value={label} onChange={e => setLabel(e.target.value)}>
-                    <option value="">No Label</option>
-                    <option value="Sale">Sale</option>
-                    <option value="Hot">Hot</option>
-                    <option value="New">New</option>
-                    <option value="Limited">Limited</option>
-                    <option value="Exclusive">Exclusive</option>
-                  </select>
+                  <Label>Product Badge/Label</Label>
+                  <Select value={label || '__none'} onValueChange={v => setLabel(v === '__none' ? '' : v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">No Label</SelectItem>
+                      <SelectItem value="Sale">Sale</SelectItem>
+                      <SelectItem value="Hot">Hot</SelectItem>
+                      <SelectItem value="New">New</SelectItem>
+                      <SelectItem value="Limited">Limited</SelectItem>
+                      <SelectItem value="Exclusive">Exclusive</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="form-grid-3">
                 <div className="input-wrapper">
-                  <label className="input-label">Category</label>
-                  <select className="styled-select" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
-                    <option value="">— Select Category —</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  <Label>Category</Label>
+                  <CategoryPicker
+                    value={categoryId || null}
+                    valuePath={categoryPath}
+                    onChange={(id, path) => { setCategoryId(id || ''); setCategoryPath(path); }}
+                  />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Brand</label>
-                  <select className="styled-select" value={brandId} onChange={e => setBrandId(e.target.value)}>
-                    <option value="">— Select Brand —</option>
-                    {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
+                  <Label>Brand</Label>
+                  <Select value={brandId || '__none'} onValueChange={v => setBrandId(v === '__none' ? '' : v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">— Select Brand —</SelectItem>
+                      {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Visibility Status</label>
-                  <select className="styled-select" value={status} onChange={e => setStatus(e.target.value)}>
-                    <option value="active">Active</option>
-                    <option value="draft">Draft</option>
-                  </select>
+                  <Label>Visibility Status</Label>
+                  <Select value={status} onValueChange={setStatus}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Short Description</label>
-                <textarea
-                  className="styled-textarea"
+                <Label>Short Description</Label>
+                <Textarea
                   rows={2}
                   value={shortDesc}
                   onChange={e => setShortDesc(e.target.value)}
@@ -773,9 +799,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
 
               <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                <label className="input-label">Detailed Description</label>
-                <textarea
-                  className="styled-textarea"
+                <Label>Detailed Description</Label>
+                <Textarea
                   rows={6}
                   value={description}
                   onChange={e => setDescription(e.target.value)}
@@ -794,57 +819,38 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
               <div className="form-grid-3">
                 <div className="input-wrapper">
-                  <label className="input-label">Price (INR) *</label>
-                  <input
-                    required
-                    type="number"
-                    step="0.01"
-                    className="styled-input"
-                    value={price}
-                    onChange={e => setPrice(e.target.value)}
-                  />
+                  <Label>Price (INR) *</Label>
+                  <Input required type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Compare Price (INR)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="styled-input"
-                    value={comparePrice}
-                    onChange={e => setComparePrice(e.target.value)}
-                  />
+                  <Label>Compare Price (INR)</Label>
+                  <Input type="number" step="0.01" value={comparePrice} onChange={e => setComparePrice(e.target.value)} />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Cost Price (INR)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="styled-input"
-                    value={costPrice}
-                    onChange={e => setCostPrice(e.target.value)}
-                  />
+                  <Label>Cost Price (INR)</Label>
+                  <Input type="number" step="0.01" value={costPrice} onChange={e => setCostPrice(e.target.value)} />
                 </div>
               </div>
 
               <div className="form-grid-2">
                 <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                  <label className="input-label">HSN Code</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={hsnCode}
-                    onChange={e => setHsnCode(e.target.value)}
-                  />
+                  <Label>HSN Code</Label>
+                  <Input type="text" value={hsnCode} onChange={e => setHsnCode(e.target.value)} />
                 </div>
                 <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                  <label className="input-label">GST Tax Bracket</label>
-                  <select className="styled-select" value={taxId} onChange={e => setTaxId(e.target.value)}>
-                    <option value="">No Tax (0%)</option>
-                    <option value="gst-5">GST 5%</option>
-                    <option value="gst-12">GST 12%</option>
-                    <option value="gst-18">GST 18% (Standard Cosmetics)</option>
-                    <option value="gst-28">GST 28%</option>
-                  </select>
+                  <Label>GST Tax Bracket</Label>
+                  <Select value={taxId || '__none'} onValueChange={v => setTaxId(v === '__none' ? '' : v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">No Tax (0%)</SelectItem>
+                      <SelectItem value="gst-5">GST 5%</SelectItem>
+                      <SelectItem value="gst-12">GST 12%</SelectItem>
+                      <SelectItem value="gst-18">GST 18% (Standard Cosmetics)</SelectItem>
+                      <SelectItem value="gst-28">GST 28%</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
@@ -875,13 +881,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Product YouTube Video URL</label>
-                <input
-                  type="text"
-                  className="styled-input"
-                  value={youtubeUrl}
-                  onChange={e => setYoutubeUrl(e.target.value)}
-                />
+                <Label>Product YouTube Video URL</Label>
+                <Input type="text" value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} />
               </div>
 
               {/* Presets catalog */}
@@ -962,45 +963,35 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">Master SKU</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={sku}
-                    onChange={e => setSku(e.target.value)}
-                  />
+                  <Label>Master SKU</Label>
+                  <Input type="text" value={sku} onChange={e => setSku(e.target.value)} />
                   <button type="button" className="sku-suggest-btn" onClick={handleAutoGenerateSku}>
                     Suggest Unique SKU
                   </button>
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Inventory Tracking</label>
-                  <select className="styled-select" value={trackInventory ? 'true' : 'false'} onChange={e => setTrackInventory(e.target.value === 'true')}>
-                    <option value="true">Track stock quantities</option>
-                    <option value="false">Don't track quantities (Unlimited stock)</option>
-                  </select>
+                  <Label>Inventory Tracking</Label>
+                  <Select value={trackInventory ? 'true' : 'false'} onValueChange={v => setTrackInventory(v === 'true')}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Track stock quantities</SelectItem>
+                      <SelectItem value="false">Don't track quantities (Unlimited stock)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               {trackInventory && (
                 <div className="form-grid-2">
                   <div className="input-wrapper">
-                    <label className="input-label">Initial Stock Quantity</label>
-                    <input
-                      type="number"
-                      className="styled-input"
-                      value={stockQty}
-                      onChange={e => setStockQty(e.target.value)}
-                    />
+                    <Label>Initial Stock Quantity</Label>
+                    <Input type="number" value={stockQty} onChange={e => setStockQty(e.target.value)} />
                   </div>
                   <div className="input-wrapper">
-                    <label className="input-label">Low Stock Threshold Alert</label>
-                    <input
-                      type="number"
-                      className="styled-input"
-                      value={lowStockThreshold}
-                      onChange={e => setLowStockThreshold(e.target.value)}
-                    />
+                    <Label>Low Stock Threshold Alert</Label>
+                    <Input type="number" value={lowStockThreshold} onChange={e => setLowStockThreshold(e.target.value)} />
                   </div>
                 </div>
               )}
@@ -1037,44 +1028,23 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Product Weight (kg)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="styled-input"
-                  value={weight}
-                  onChange={e => setWeight(e.target.value)}
-                />
+                <Label>Product Weight (kg)</Label>
+                <Input type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value)} />
               </div>
 
               <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '20px 0 12px 0', textTransform: 'uppercase' }}>Package Dimensions (cm)</h4>
               <div className="form-grid-3">
                 <div className="input-wrapper">
-                  <label className="input-label">Length (cm)</label>
-                  <input
-                    type="number"
-                    className="styled-input"
-                    value={length}
-                    onChange={e => setLength(e.target.value)}
-                  />
+                  <Label>Length (cm)</Label>
+                  <Input type="number" value={length} onChange={e => setLength(e.target.value)} />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Width (cm)</label>
-                  <input
-                    type="number"
-                    className="styled-input"
-                    value={width}
-                    onChange={e => setWidth(e.target.value)}
-                  />
+                  <Label>Width (cm)</Label>
+                  <Input type="number" value={width} onChange={e => setWidth(e.target.value)} />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Height (cm)</label>
-                  <input
-                    type="number"
-                    className="styled-input"
-                    value={height}
-                    onChange={e => setHeight(e.target.value)}
-                  />
+                  <Label>Height (cm)</Label>
+                  <Input type="number" value={height} onChange={e => setHeight(e.target.value)} />
                 </div>
               </div>
             </div>
@@ -1090,75 +1060,40 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">Meta Title Tag</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={metaTitle}
-                    onChange={e => setMetaTitle(e.target.value)}
-                  />
+                  <Label>Meta Title Tag</Label>
+                  <Input type="text" value={metaTitle} onChange={e => setMetaTitle(e.target.value)} />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">SEO Keywords</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={seoKeywords}
-                    onChange={e => setSeoKeywords(e.target.value)}
-                  />
+                  <Label>SEO Keywords</Label>
+                  <Input type="text" value={seoKeywords} onChange={e => setSeoKeywords(e.target.value)} />
                 </div>
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Meta Description Tag</label>
-                <textarea
-                  className="styled-textarea"
-                  rows={3}
-                  value={metaDescription}
-                  onChange={e => setMetaDescription(e.target.value)}
-                />
+                <Label>Meta Description Tag</Label>
+                <Textarea rows={3} value={metaDescription} onChange={e => setMetaDescription(e.target.value)} />
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Canonical URL Override</label>
-                <input
-                  type="text"
-                  className="styled-input"
-                  value={canonicalUrl}
-                  onChange={e => setCanonicalUrl(e.target.value)}
-                />
+                <Label>Canonical URL Override</Label>
+                <Input type="text" value={canonicalUrl} onChange={e => setCanonicalUrl(e.target.value)} />
               </div>
 
               <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '24px 0 12px 0', textTransform: 'uppercase' }}>Social Sharing Meta (Open Graph)</h4>
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">OG Title</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={ogTitle}
-                    onChange={e => setOgTitle(e.target.value)}
-                  />
+                  <Label>OG Title</Label>
+                  <Input type="text" value={ogTitle} onChange={e => setOgTitle(e.target.value)} />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">OG Image URL</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={ogImage}
-                    onChange={e => setOgImage(e.target.value)}
-                  />
+                  <Label>OG Image URL</Label>
+                  <Input type="text" value={ogImage} onChange={e => setOgImage(e.target.value)} />
                 </div>
               </div>
               
               <div className="input-wrapper">
-                <label className="input-label">OG Description</label>
-                <textarea
-                  className="styled-textarea"
-                  rows={2}
-                  value={ogDescription}
-                  onChange={e => setOgDescription(e.target.value)}
-                />
+                <Label>OG Description</Label>
+                <Textarea rows={2} value={ogDescription} onChange={e => setOgDescription(e.target.value)} />
               </div>
 
               <div style={{ background: '#F9FAFB', border: '1px dashed #D1D5DB', padding: 18, borderRadius: 12, marginTop: 24 }}>
@@ -1244,13 +1179,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               )}
 
               <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                <label className="input-label">Product Tags (Comma Separated)</label>
-                <input
-                  type="text"
-                  className="styled-input"
-                  value={tagsInput}
-                  onChange={e => setTagsInput(e.target.value)}
-                />
+                <Label>Product Tags (Comma Separated)</Label>
+                <Input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)} />
               </div>
             </div>
           )}
@@ -1267,22 +1197,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', padding: 20, borderRadius: 12, marginBottom: 24 }}>
                 <h4 style={{ margin: '0 0 15px 0', fontSize: '0.9rem' }}>Add New FAQ Question</h4>
                 <div className="input-wrapper">
-                  <label className="input-label">Question</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={newQuestion}
-                    onChange={e => setNewQuestion(e.target.value)}
-                  />
+                  <Label>Question</Label>
+                  <Input type="text" value={newQuestion} onChange={e => setNewQuestion(e.target.value)} />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Answer</label>
-                  <textarea
-                    className="styled-textarea"
-                    rows={2}
-                    value={newAnswer}
-                    onChange={e => setNewAnswer(e.target.value)}
-                  />
+                  <Label>Answer</Label>
+                  <Textarea rows={2} value={newAnswer} onChange={e => setNewAnswer(e.target.value)} />
                 </div>
                 <button type="button" className="btn-primary" onClick={addFaq}>Add FAQ Item</button>
               </div>
@@ -1347,34 +1267,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Supplier Name</label>
-                <input
-                  type="text"
-                  className="styled-input"
-                  value={supplierName}
-                  onChange={e => setSupplierName(e.target.value)}
-                />
+                <Label>Supplier Name</Label>
+                <Input type="text" value={supplierName} onChange={e => setSupplierName(e.target.value)} />
               </div>
 
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">Procurement Cost Price (INR)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="styled-input"
-                    value={supplierCost}
-                    onChange={e => setSupplierCost(e.target.value)}
-                  />
+                  <Label>Procurement Cost Price (INR)</Label>
+                  <Input type="number" step="0.01" value={supplierCost} onChange={e => setSupplierCost(e.target.value)} />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Supplier Order Sourcing Link</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={supplierLink}
-                    onChange={e => setSupplierLink(e.target.value)}
-                  />
+                  <Label>Supplier Order Sourcing Link</Label>
+                  <Input type="text" value={supplierLink} onChange={e => setSupplierLink(e.target.value)} />
                 </div>
               </div>
             </div>
@@ -1390,22 +1294,22 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">Catalog Sort Order index</label>
-                  <input
-                    type="number"
-                    className="styled-input"
-                    value={sortOrder}
-                    onChange={e => setSortOrder(e.target.value)}
-                  />
+                  <Label>Catalog Sort Order index</Label>
+                  <Input type="number" value={sortOrder} onChange={e => setSortOrder(e.target.value)} />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Storefront Visibility</label>
-                  <select className="styled-select" value={visibility} onChange={e => setVisibility(e.target.value)}>
-                    <option value="visible">Visible in Catalog and Search</option>
-                    <option value="catalog_only">Visible in Catalog only</option>
-                    <option value="search_only">Visible in Search only</option>
-                    <option value="hidden">Hidden completely (Unlisted)</option>
-                  </select>
+                  <Label>Storefront Visibility</Label>
+                  <Select value={visibility} onValueChange={setVisibility}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="visible">Visible in Catalog and Search</SelectItem>
+                      <SelectItem value="catalog_only">Visible in Catalog only</SelectItem>
+                      <SelectItem value="search_only">Visible in Search only</SelectItem>
+                      <SelectItem value="hidden">Hidden completely (Unlisted)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -1426,33 +1330,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', color: 'var(--m-primary)' }}>📁 Digital File Sourcing Settings</h4>
                   
                   <div className="input-wrapper">
-                    <label className="input-label">Download Delivery URL</label>
-                    <input
-                      type="text"
-                      className="styled-input"
-                      value={downloadUrl}
-                      onChange={e => setDownloadUrl(e.target.value)}
-                    />
+                    <Label>Download Delivery URL</Label>
+                    <Input type="text" value={downloadUrl} onChange={e => setDownloadUrl(e.target.value)} />
                   </div>
 
                   <div className="form-grid-2">
                     <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Download Limit per purchase</label>
-                      <input
-                        type="number"
-                        className="styled-input"
-                        value={downloadLimit}
-                        onChange={e => setDownloadLimit(e.target.value)}
-                      />
+                      <Label>Download Limit per purchase</Label>
+                      <Input type="number" value={downloadLimit} onChange={e => setDownloadLimit(e.target.value)} />
                     </div>
                     <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Automated Delivery License Key</label>
-                      <input
-                        type="text"
-                        className="styled-input"
-                        value={licenseKey}
-                        onChange={e => setLicenseKey(e.target.value)}
-                      />
+                      <Label>Automated Delivery License Key</Label>
+                      <Input type="text" value={licenseKey} onChange={e => setLicenseKey(e.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -1468,24 +1357,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               {/* Add specification form */}
               <div style={{ display: 'flex', gap: 12, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: 18, borderRadius: 12, marginBottom: 20 }}>
                 <div style={{ flex: 1 }}>
-                  <label className="input-label" style={{ fontSize: '0.75rem', marginBottom: 4 }}>Attribute Name</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={newSpecName}
-                    onChange={e => setNewSpecName(e.target.value)}
-                    placeholder="e.g. Material"
-                  />
+                  <Label style={{ fontSize: '0.75rem', marginBottom: 4 }}>Attribute Name</Label>
+                  <Input type="text" value={newSpecName} onChange={e => setNewSpecName(e.target.value)} placeholder="e.g. Material" className="mt-1" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label className="input-label" style={{ fontSize: '0.75rem', marginBottom: 4 }}>Attribute Value</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={newSpecValue}
-                    onChange={e => setNewSpecValue(e.target.value)}
-                    placeholder="e.g. 100% Organic Cotton"
-                  />
+                  <Label style={{ fontSize: '0.75rem', marginBottom: 4 }}>Attribute Value</Label>
+                  <Input type="text" value={newSpecValue} onChange={e => setNewSpecValue(e.target.value)} placeholder="e.g. 100% Organic Cotton" className="mt-1" />
                 </div>
                 <button
                   type="button"

@@ -66,7 +66,9 @@ export class CartService {
           sku: i.variant.sku,
           label: i.variant.label,
           image_url: i.variant.image_url,
-          stock_qty: i.variant.stock_qty,
+          available_qty: i.variant.available_qty,
+          track_inventory: i.variant.track_inventory,
+          in_stock: !i.variant.track_inventory || i.variant.available_qty > 0,
           attributes: i.variant.attributes,
           product: i.variant.product,
         },
@@ -91,8 +93,10 @@ export class CartService {
       where: { id: variant_id, shop_id: shopId, is_active: true },
     });
     if (!variant) throw new NotFoundException('Variant not found');
-    if (variant.track_inventory && variant.stock_qty < qty) {
-      throw new BadRequestException(`Only ${variant.stock_qty} in stock`);
+    if (variant.track_inventory && variant.available_qty < qty) {
+      throw new BadRequestException(
+        variant.available_qty <= 0 ? 'This item is out of stock' : `Only ${variant.available_qty} available`,
+      );
     }
 
     let cart = await this.resolveCart(shopId, session_id, customer_id);
@@ -108,12 +112,32 @@ export class CartService {
 
     const existing = await this.prisma.cartItem.findFirst({ where: { cart_id: cart.id, variant_id } });
     if (existing) {
-      const newQty = existing.qty + qty;
-      if (variant.track_inventory && variant.stock_qty < newQty) {
-        throw new BadRequestException(`Only ${variant.stock_qty} available`);
+      const additionalQty = qty - existing.qty;  // net new qty being added
+      if (variant.track_inventory && additionalQty > 0 && variant.available_qty < additionalQty) {
+        throw new BadRequestException(`Only ${variant.available_qty} more units available`);
       }
-      await this.prisma.cartItem.update({ where: { id: existing.id }, data: { qty: newQty, unit_price: variant.price } });
+      // Adjust reservation for the delta
+      if (variant.track_inventory && additionalQty !== 0) {
+        await this.prisma.productVariant.update({
+          where: { id: variant_id },
+          data: {
+            reserved_qty: { increment: additionalQty },
+            available_qty: { decrement: additionalQty },
+          },
+        });
+      }
+      await this.prisma.cartItem.update({ where: { id: existing.id }, data: { qty, unit_price: variant.price } });
     } else {
+      // Reserve stock on first add
+      if (variant.track_inventory) {
+        await this.prisma.productVariant.update({
+          where: { id: variant_id },
+          data: {
+            reserved_qty: { increment: qty },
+            available_qty: { decrement: qty },
+          },
+        });
+      }
       await this.prisma.cartItem.create({
         data: { shop_id: shopId, cart_id: cart.id, variant_id, qty, unit_price: variant.price },
       });
@@ -134,10 +158,32 @@ export class CartService {
     if (!ownerMatch) throw new BadRequestException('Cart item does not belong to this session');
 
     if (qty <= 0) {
+      // Release the reservation held for this item
+      if (item.variant.track_inventory) {
+        await this.prisma.productVariant.update({
+          where: { id: item.variant_id },
+          data: {
+            reserved_qty: { decrement: item.qty },
+            available_qty: { increment: item.qty },
+          },
+        });
+      }
       await this.prisma.cartItem.delete({ where: { id: itemId } });
     } else {
-      if (item.variant.track_inventory && item.variant.stock_qty < qty) {
-        throw new BadRequestException(`Only ${item.variant.stock_qty} in stock`);
+      const delta = qty - item.qty;
+      if (item.variant.track_inventory) {
+        if (delta > 0 && item.variant.available_qty < delta) {
+          throw new BadRequestException(`Only ${item.variant.available_qty} more units available`);
+        }
+        if (delta !== 0) {
+          await this.prisma.productVariant.update({
+            where: { id: item.variant_id },
+            data: {
+              reserved_qty: { increment: delta },
+              available_qty: { decrement: delta },
+            },
+          });
+        }
       }
       await this.prisma.cartItem.update({ where: { id: itemId }, data: { qty } });
     }

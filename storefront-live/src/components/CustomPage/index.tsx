@@ -13,7 +13,6 @@ import { SectionCta }                 from './sections/SectionCta';
 import { SectionContactForm }         from './sections/SectionContactForm';
 import { SectionAnnouncementBar }     from './sections/SectionAnnouncementBar';
 import { SectionBannerSlider }        from './sections/SectionBannerSlider';
-import { SectionCategoriesCarousel }  from './sections/SectionCategoriesCarousel';
 import { SectionProductsGrid }        from './sections/SectionProductsGrid';
 import { SectionFeaturesStrip }       from './sections/SectionFeaturesStrip';
 import { SectionAboutSection }        from './sections/SectionAboutSection';
@@ -28,7 +27,6 @@ function renderSection(s: Section, i: number) {
     case 'contact_form':        return <SectionContactForm        key={i} data={s.data} />;
     case 'announcement_bar':    return <SectionAnnouncementBar    key={i} data={s.data} />;
     case 'banner_slider':       return <SectionBannerSlider       key={i} data={s.data} />;
-    case 'categories_carousel': return <SectionCategoriesCarousel key={i} data={s.data} />;
     case 'products_grid':       return <SectionProductsGrid       key={i} data={s.data} />;
     case 'features_strip':      return <SectionFeaturesStrip      key={i} data={s.data} />;
     case 'about_section':       return <SectionAboutSection       key={i} data={s.data} />;

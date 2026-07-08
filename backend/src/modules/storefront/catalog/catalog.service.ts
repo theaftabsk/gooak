@@ -1,6 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 
+/** Adds a computed `in_stock` boolean to a variant object. */
+const withInStock = (v: any) => ({
+  ...v,
+  in_stock: !v.track_inventory || v.available_qty > 0,
+});
+
 @Injectable()
 export class CatalogService {
   constructor(private prisma: PrismaService) {}
@@ -46,7 +52,10 @@ export class CatalogService {
           });
         }
 
-        return { id: section.id, title: section.title, type: section.type, sort_order: section.sort_order, products };
+        return {
+          id: section.id, title: section.title, type: section.type, sort_order: section.sort_order,
+          products: products.map((p) => ({ ...p, variants: p.variants.map(withInStock) })),
+        };
       }),
     );
 
@@ -130,7 +139,10 @@ export class CatalogService {
       this.prisma.product.count({ where }),
     ]);
 
-    return { products, pagination: { totalItems: total, totalPages: Math.ceil(total / limit), currentPage: page, limit } };
+    return {
+      products: products.map((p) => ({ ...p, variants: p.variants.map(withInStock) })),
+      pagination: { totalItems: total, totalPages: Math.ceil(total / limit), currentPage: page, limit },
+    };
   }
 
   async getProductBySlug(shopId: string, slug: string) {
@@ -161,7 +173,10 @@ export class CatalogService {
       });
     }
 
-    return { product, relatedProducts };
+    return {
+      product: { ...product, variants: product.variants.map(withInStock) },
+      relatedProducts: relatedProducts.map((p) => ({ ...p, variants: p.variants.map(withInStock) })),
+    };
   }
 
   async getCategories(shopId: string) {
@@ -239,7 +254,11 @@ export class CatalogService {
       this.prisma.product.count({ where }),
     ]);
 
-    return { collection, products, pagination: { totalItems: total, totalPages: Math.ceil(total / limit), currentPage: page, limit } };
+    return {
+      collection,
+      products: products.map((p) => ({ ...p, variants: p.variants.map(withInStock) })),
+      pagination: { totalItems: total, totalPages: Math.ceil(total / limit), currentPage: page, limit },
+    };
   }
 
   async getPublicSystemSettings() {

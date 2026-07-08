@@ -95,6 +95,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
         console.warn(`[api-client] Tenant mapping missing, but already on fallback host '${host}'. Preventing infinite reload loop.`);
       }
 
+      if ((response.status === 401 || response.status === 403) && typeof window !== 'undefined') {
+        localStorage.removeItem('oaksol_admin_token');
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('oaksol_merchant_logged_in_'))
+          .forEach(k => localStorage.removeItem(k));
+        window.location.reload();
+        return new Promise<T>(() => {});
+      }
+
       const err = new Error(errorJson.message || `HTTP error! Status: ${response.status}`) as any;
       err.status = response.status;
       throw err;
@@ -152,6 +161,11 @@ export const merchantApi = {
   },
 
   // Products
+  getProducts: (params: Record<string, string | number> = {}) => {
+    const query = new URLSearchParams(params as any).toString();
+    return request<any>(`/merchant/products${query ? `?${query}` : ''}`);
+  },
+
   createProduct: (dto: any) =>
     request<any>('/merchant/products', { method: 'POST', body: JSON.stringify(dto) }),
 
@@ -195,6 +209,14 @@ export const merchantApi = {
   getInventoryOverview: () => request<any>('/merchant/inventory'),
 
   // Categories
+  getCategories: () => request<any[]>('/merchant/categories'),
+
+  bulkEnsureCategories: (items: { name: string; slug: string; parent_slug?: string }[]) =>
+    request<Record<string, string>>('/merchant/categories/bulk-ensure', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    }),
+
   createCategory: (dto: any) =>
     request<any>('/merchant/categories', { method: 'POST', body: JSON.stringify(dto) }),
 
@@ -207,11 +229,16 @@ export const merchantApi = {
   // Collections
   getCollections: () => request<any[]>('/merchant/collections'),
 
+  getCollectionById: (id: string) => request<any>(`/merchant/collections/${id}`),
+
   createCollection: (dto: any) =>
     request<any>('/merchant/collections', { method: 'POST', body: JSON.stringify(dto) }),
 
   updateCollection: (id: string, dto: any) =>
     request<any>(`/merchant/collections/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  syncCollectionProducts: (id: string, productIds: string[]) =>
+    request<any>(`/merchant/collections/${id}/products`, { method: 'PUT', body: JSON.stringify({ product_ids: productIds }) }),
 
   deleteCollection: (id: string) =>
     request<any>(`/merchant/collections/${id}`, { method: 'DELETE' }),
@@ -414,10 +441,14 @@ export const catalogApi = {
   getProductById: merchantApi.getProductById,
   updateProduct: merchantApi.updateProduct,
   getCollections: merchantApi.getCollections,
+  getCollectionById: merchantApi.getCollectionById,
   createCollection: merchantApi.createCollection,
   updateCollection: merchantApi.updateCollection,
+  syncCollectionProducts: merchantApi.syncCollectionProducts,
   deleteCollection: merchantApi.deleteCollection,
   deleteProduct: merchantApi.deleteProduct,
+  getCategories: merchantApi.getCategories,
+  bulkEnsureCategories: merchantApi.bulkEnsureCategories,
   createCategory: merchantApi.createCategory,
   updateCategory: merchantApi.updateCategory,
   deleteCategory: merchantApi.deleteCategory,

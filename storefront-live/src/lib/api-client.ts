@@ -94,6 +94,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
         console.warn(`[api-client] Tenant mapping missing, already on fallback host '${host}'.`);
       }
 
+      if ((response.status === 401 || response.status === 403) && typeof window !== 'undefined') {
+        const hadToken = !!localStorage.getItem('oaksol_customer_token');
+        if (hadToken) {
+          localStorage.removeItem('oaksol_customer_token');
+          window.location.reload();
+          return new Promise<T>(() => {});
+        }
+      }
+
       const err = new Error(errorJson.message || `HTTP error! Status: ${response.status}`) as any;
       err.status = response.status;
       throw err;

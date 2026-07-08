@@ -10,7 +10,6 @@ export const Header: React.FC = () => {
   const { cartCount, setCartOpen } = useCart();
   const { customer } = useCustomer();
   const router = useRouter();
-  const [categories, setCategories] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
   const [shop, setShop] = useState<any>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -33,11 +32,7 @@ export const Header: React.FC = () => {
   useEffect(() => {
     const fetchHeaderData = async () => {
       try {
-        const [catData, collData] = await Promise.all([
-          catalogApi.getCategories(),
-          storefrontApi.getCollections().catch(() => []),
-        ]);
-        setCategories(catData || []);
+        const collData = await storefrontApi.getCollections().catch(() => []);
         setCollections(collData || []);
 
         const homeData = await catalogApi.getHomepage();
@@ -50,13 +45,15 @@ export const Header: React.FC = () => {
         if (pageSettings) {
           if (pageSettings.content?.logo_url) setCustomLogoUrl(pageSettings.content.logo_url);
           if (pageSettings.content?.navbar_menu) {
-            try { setNavItems(JSON.parse(pageSettings.content.navbar_menu)); }
+            try {
+              const parsed = JSON.parse(pageSettings.content.navbar_menu);
+              setNavItems(parsed.filter((item: any) => !item.url?.startsWith('/categories')));
+            }
             catch { setNavItems([]); }
           } else {
             setNavItems([
               { title: 'Home', url: '/' },
               { title: 'Products', url: '/products' },
-              { title: 'Categories', url: '/categories' },
               { title: 'Collections', url: '/collections' },
               { title: 'About', url: '/about' },
               { title: 'Contact', url: '/contact' },
@@ -66,7 +63,6 @@ export const Header: React.FC = () => {
           setNavItems([
             { title: 'Home', url: '/' },
             { title: 'Products', url: '/products' },
-            { title: 'Categories', url: '/categories' },
             { title: 'About', url: '/about' },
             { title: 'Contact', url: '/contact' },
           ]);
@@ -106,8 +102,6 @@ export const Header: React.FC = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const menuCategories = categories.filter((c: any) => c.show_in_menu !== false);
-
   const go = (path: string) => {
     if (path.startsWith('http://') || path.startsWith('https://')) {
       window.open(path, '_blank', 'noopener,noreferrer');
@@ -131,13 +125,6 @@ export const Header: React.FC = () => {
     if (item.children?.length > 0) return { ddKey: `c-${index}`, subs: item.children.map((c: any) => ({ title: c.title, url: c.url })) };
     if (item.url === '/collections' && collections.length > 0)
       return { ddKey: 'coll', subs: collections.map((c: any) => ({ title: c.name, url: `/collections/${c.slug}` })) };
-    if (item.url === '/categories' && menuCategories.length > 0)
-      return { ddKey: 'cats', subs: menuCategories.map((c: any) => ({ title: c.name, url: `/categories/${c.slug}` })) };
-    const matched = menuCategories.find((c: any) => `/categories/${c.slug}` === item.url);
-    if (matched) {
-      const subs = (matched.children || []).filter((s: any) => s.show_in_menu !== false).map((s: any) => ({ title: s.name, url: `/categories/${s.slug}` }));
-      if (subs.length > 0) return { ddKey: matched.id, subs };
-    }
     return { ddKey: null, subs: [] };
   };
 

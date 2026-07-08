@@ -188,22 +188,42 @@ export class CheckoutService {
 
   private async deductInventory(tx: any, shopId: string, orderId: string, orderNumber: string) {
     const orderItems = await tx.orderItem.findMany({ where: { order_id: orderId }, select: { variant_id: true, qty: true } });
-    const warehouse = await tx.warehouse.findFirst({ where: { shop_id: shopId, is_active: true }, select: { id: true } });
+
+    // Auto-create warehouse if none exists so logs are always written
+    let warehouse = await tx.warehouse.findFirst({ where: { shop_id: shopId, is_active: true }, select: { id: true } });
+    if (!warehouse) {
+      warehouse = await tx.warehouse.create({
+        data: { shop_id: shopId, name: 'Main Warehouse', is_active: true },
+        select: { id: true },
+      });
+    }
 
     for (const item of orderItems) {
-      const variant = await tx.productVariant.findUnique({ where: { id: item.variant_id }, select: { stock_qty: true, track_inventory: true } });
+      const variant = await tx.productVariant.findUnique({
+        where: { id: item.variant_id },
+        select: { stock_qty: true, reserved_qty: true, track_inventory: true },
+      });
       if (!variant?.track_inventory) continue;
       const newStock = Math.max(0, variant.stock_qty - item.qty);
-      await tx.productVariant.update({ where: { id: item.variant_id }, data: { stock_qty: newStock } });
-      if (warehouse) {
-        await tx.inventoryLog.create({
-          data: {
-            shop_id: shopId, variant_id: item.variant_id, warehouse_id: warehouse.id,
-            type: 'sale', qty_change: -item.qty, qty_after: newStock,
-            ref_id: orderId, note: `Order sale deduction: ${orderNumber}`,
-          },
-        });
-      }
+      const newReserved = Math.max(0, (variant.reserved_qty ?? 0) - item.qty);
+      const newAvailable = Math.max(0, newStock - newReserved);
+
+      await tx.productVariant.update({
+        where: { id: item.variant_id },
+        data: {
+          stock_qty: newStock,
+          reserved_qty: newReserved,
+          available_qty: newAvailable,
+          total_sold: { increment: item.qty },
+        },
+      });
+      await tx.inventoryLog.create({
+        data: {
+          shop_id: shopId, variant_id: item.variant_id, warehouse_id: warehouse.id,
+          type: 'sale', qty_change: -item.qty, qty_after: newStock,
+          ref_id: orderId, note: `Sale: ${orderNumber}`,
+        },
+      });
     }
   }
 }

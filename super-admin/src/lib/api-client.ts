@@ -53,6 +53,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       } catch {
         errorJson = { message: errorText };
       }
+      if ((response.status === 401 || response.status === 403) && typeof window !== 'undefined') {
+        localStorage.removeItem('oaksol_admin_token');
+        window.location.reload();
+        return new Promise<T>(() => {});
+      }
+
       const err = new Error(errorJson.message || `HTTP error! Status: ${response.status}`) as any;
       err.status = response.status;
       throw err;

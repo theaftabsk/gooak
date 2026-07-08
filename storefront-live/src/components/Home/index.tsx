@@ -1,18 +1,9 @@
 'use client';
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { catalogApi, customerApi } from '@/lib/api-client';
 import { getCurrencySymbol } from '@/lib/utils';
 
 interface PageSettings { [key: string]: any; }
-
-const CAT_FALLBACKS = [
-  'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=600',
-  'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600',
-  'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?q=80&w=600',
-  'https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=600',
-  'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600',
-  'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?q=80&w=600',
-];
 
 const DEFAULT_THEME = {
   primaryColor: '#15803D',
@@ -155,10 +146,8 @@ export const Home: React.FC = () => {
   const [theme, setTheme] = useState(DEFAULT_THEME);
   const [pageSettings, setPageSettings] = useState<PageSettings>({});
   const [banners, setBanners] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const catRef = useRef<HTMLDivElement>(null);
 
   const loadPage = useCallback(async () => {
     setLoading(true);
@@ -175,13 +164,9 @@ export const Home: React.FC = () => {
   useEffect(() => { loadPage(); }, [loadPage]);
 
   useEffect(() => {
-    Promise.allSettled([
-      catalogApi.getCategories(),
-      catalogApi.getProducts({ limit: 8 }),
-    ]).then(([cats, prods]) => {
-      setCategories(cats.status === 'fulfilled' ? (cats.value || []) : []);
-      setProducts(prods.status === 'fulfilled' ? (prods.value?.products || []) : []);
-    });
+    catalogApi.getProducts({ limit: 8 }).then(data => {
+      setProducts(data?.products || []);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -213,11 +198,6 @@ export const Home: React.FC = () => {
   const showAnnouncement = pageSettings.announcement_bar_active !== 'false';
   const announcementText = (pageSettings.announcement_bar || 'FREE SHIPPING ON ORDERS ABOVE ₹500').replace('₹', getCurrencySymbol());
   const actualBanners = banners.length > 0 ? banners : fallbackBanners;
-  const menuCats = categories.filter((c: any) => c.show_in_menu !== false);
-
-  const scrollCat = (dir: 'left' | 'right') => {
-    catRef.current?.scrollBy({ left: dir === 'right' ? 300 : -300, behavior: 'smooth' });
-  };
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--sf-bg, #fff)' }}>
@@ -239,38 +219,6 @@ export const Home: React.FC = () => {
 
       {/* Hero */}
       <BannerSlider banners={actualBanners} />
-
-      {/* Categories */}
-      {menuCats.length > 0 && (
-        <section className="sec">
-          <div className="con">
-            <SectionHead label="Browse" title="Categories" viewAllUrl="/categories" />
-            <div className="cat-wrap">
-              <button className="cat-arr cat-arr--l" onClick={() => scrollCat('left')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="15 18 9 12 15 6"/></svg>
-              </button>
-              <div className="cat-scroll" ref={catRef}>
-                {menuCats.map((cat: any, idx: number) => (
-                  <a key={cat.id} href={`/categories/${cat.slug}`} className="cat-card">
-                    <div className="cat-img-wrap">
-                      <img
-                        src={cat.image_url || CAT_FALLBACKS[idx % CAT_FALLBACKS.length]}
-                        alt={cat.name}
-                        className="cat-img"
-                        loading="lazy"
-                      />
-                    </div>
-                    <span className="cat-name">{cat.name}</span>
-                  </a>
-                ))}
-              </div>
-              <button className="cat-arr cat-arr--r" onClick={() => scrollCat('right')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Products grid */}
       {products.length > 0 && (

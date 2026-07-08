@@ -112,150 +112,211 @@ Ensure you have the following installed on your local machine before starting se
 
 ## Prisma Schema Layout
 
-This backend uses three Prisma schema files in `backend/prisma`:
-* `schema.prisma` — canonical primary schema used for `db push`, central database migrations, and `prisma studio`
-* `central.prisma` — central-schema client generator for platform-wide tables and shop metadata
-* `tenant.prisma` — tenant-schema client generator for shop-specific tenant databases
+This backend uses **three Prisma schema files** in `backend/prisma/`:
+
+| File | Purpose | Generated client location |
+| :--- | :--- | :--- |
+| `schema.prisma` | Canonical source of truth — used for `db push` and Prisma Studio | `@prisma/client` (default) |
+| `central.prisma` | Platform-wide tables (shops, orders, products, inventory) | `src/generated/central` — used by `PrismaService` at runtime |
+| `tenant.prisma` | Per-shop tenant tables (customers, reviews, etc.) | `src/generated/tenant` |
+
+> `schema.prisma` and `central.prisma` are pushed to the local DB. `tenant.prisma` is **type-generation only** for local dev — never push it against the shared database (it would drop all central tables). `pnpm run db:setup` handles this correctly.
+
+---
 
 ## 🚀 Local Setup & Installation
 
-Follow these steps precisely to configure your local database and initialize the Prisma clients.
+Follow these steps to configure your local database and get the backend running.
 
 ### 1. Environment Configuration
-Create a `.env` file in the root of the `backend/` directory:
+
+Create a `.env` file in `backend/`:
 ```env
 DATABASE_URL="postgresql://postgres:local_password_123@localhost:5433/oak_commerce?schema=public"
 ```
 
-> **Port conflict note:** If another local PostgreSQL instance is using port `5432`, this setup uses `5433` so Docker can run consistently across machines.
+> If another PostgreSQL is already on port `5432`, this project uses `5433` via Docker to avoid conflicts.
 
-### 2. Start the Database Engine
-Ensure Docker Desktop is open and running, then execute the following command to spin up the PostgreSQL container in the background:
+---
+
+### 2. Start the Database
+
+Make sure Docker Desktop is running, then:
 ```bash
 docker compose up -d
 ```
 
-> **Port Conflict Note:** If you experience connection access errors (e.g., Prisma Error `P1010`), ensure local system instances of PostgreSQL are stopped (`brew services stop postgresql`) so that Docker can claim port `5432`.
+> If you see Prisma error `P1010`, stop your local Postgres first: `brew services stop postgresql`
 
-### 3. Initialize Local Database Schema
-Apply the central and tenant schema models to your local PostgreSQL instance and generate Prisma clients for both databases.
+---
+
+### 3. Push Schemas to the Database
+
+Sync schemas to your local PostgreSQL and regenerate the Prisma clients:
 ```bash
 pnpm run db:setup
 ```
 
-If you only need to synchronize schema definitions without generating the clients again, run:
-```bash
-pnpm run db:sync
+This runs the following steps internally:
+```
+db:push:all  →  push schema.prisma    (canonical — all tables)
+             →  push central.prisma   (the one PrismaService reads at runtime)
+db:generate  →  regenerate src/generated/central
+             →  regenerate src/generated/tenant
 ```
 
-For a full reset and seeded development database, use:
+If you only need to push one schema at a time:
 ```bash
-pnpm run db:rebuild
+pnpm run db:push           # schema.prisma only
+pnpm run db:push:central   # central.prisma only
 ```
 
-### 4. Seed Local Developer Data
-Create a default platform admin and a sample demo shop for local development:
+> ⚠️ **Never run `db:push:tenant` against the local `oak_commerce` database.** `tenant.prisma` only defines per-shop tables (customers, reviews) and is designed for provisioning isolated shop databases in production. Pushing it against the shared DB will prompt you to **drop all central tables** (shops, products, orders, etc.). The `db:push:tenant` script exists for production use only.
+
+---
+
+### 4. Seed Developer Data
+
+Creates a default platform admin and a demo shop:
 ```bash
 pnpm run db:seed
 ```
 
-### 5. Use Prisma Studio
-Inspect the central schema:
+For a full wipe + schema push + seed in one step:
 ```bash
-pnpm run db:studio
+pnpm run db:rebuild
 ```
 
-Inspect the tenant schema:
-```bash
-pnpm run db:studio:tenant
-```
+---
 
-### 6. Development Startup
-Run the backend by itself from the repository root:
+### 5. Start the Backend
+
 ```bash
+# From repo root
 pnpm dev:backend
-```
 
-Or run directly inside the backend package:
-```bash
-cd backend
+# Or from inside /backend
 pnpm run start:dev
 ```
 
-### 7. Create a Shop in Super Admin
-Once the backend is running, open the Super Admin app at `http://localhost:3002` and create a new shop. This step ensures your shop has the proper domain mapping before you use the merchant dashboard or storefront.
+The API listens on `http://localhost:5001`.
 
-### 8. Frontend Development from Root
-If you want to run the frontend apps while the backend is running, use the root workspace commands:
+---
+
+### 6. Create a Shop
+
+Open Super Admin at `http://localhost:3002` and create a shop. This sets up the domain mapping needed by the merchant dashboard and storefront.
+
+---
+
+### 7. Run Frontend Apps
+
 ```bash
+# Frontend apps only (merchant dashboard, storefront, super admin)
 pnpm dev
-```
 
-This starts the frontend apps only:
-* `merchant-dashboard` on `http://localhost:3000`
-* `storefront-live` on `http://localhost:3001`
-* `super-admin` on `http://localhost:3002`
-
-If you want backend and frontends together, use:
-```bash
+# Backend + all frontends together
 pnpm dev:all
 ```
 
-### 9. Root Workspace Helpers
-The monorepo root also exposes the following backend database helpers:
+Apps run at:
+- Merchant Dashboard → `http://localhost:3000`
+- Storefront → `http://localhost:3001`
+- Super Admin → `http://localhost:3002`
+
+---
+
+## 🗄️ Database Workflow Reference
+
+### Daily development (schema change)
+
+When you edit a `.prisma` file, run:
 ```bash
-pnpm db:setup
-pnpm db:seed
-pnpm db:rebuild
-pnpm db:bootstrap
-pnpm db:studio
-pnpm db:studio:tenant
+pnpm run db:push:all    # sync schema.prisma + central.prisma to DB
+pnpm run db:generate    # regenerate TypeScript types
+```
+
+Or just:
+```bash
+pnpm run db:setup       # does both in one command
 ```
 
 ---
 
-## 🏃‍♂️ Running the Development Server
+### Writing a migration (for tracked changes / production)
 
-You can run the backend server in isolation or via the monorepo root workspace helper.
+The project currently uses `db:push` for local development. When you need a tracked migration (e.g., before a production deploy):
 
-**Option A: Running from the Monorepo Root (Recommended)**
+**Step 1 — Create the migration from your schema diff:**
 ```bash
-# Execute from the root directory of the workspace
-pnpm dev:backend
+# For central schema (most changes live here)
+pnpm run db:migrate:central
+# i.e.: prisma migrate dev --schema=prisma/schema.prisma
+
+# For tenant schema
+pnpm run db:migrate:tenant
+# i.e.: prisma migrate dev --schema=prisma/tenant.prisma
 ```
 
-**Option B: Running directly in the Backend Directory**
+Prisma will ask for a migration name, then auto-generate the SQL diff and apply it. The file is saved to `prisma/migrations/`.
+
+**Step 2 — Apply in production:**
 ```bash
-# Execute from inside the /backend directory
-pnpm run start:dev
+prisma migrate deploy --schema=prisma/schema.prisma
+prisma migrate deploy --schema=prisma/tenant.prisma
 ```
-Once initialized, the backend will listen on the port configured in `backend/.env` or the default port `5001`.
+
+> Note: `prisma migrate dev` and `prisma db push` are separate workflows. If you have existing manual SQL files in `prisma/migrations/`, you must apply them directly with `psql`:
+> ```bash
+> psql $DATABASE_URL -f prisma/migrations/<folder>/migration.sql
+> ```
 
 ---
 
-## 🏗 System Architecture Rules
+### Visual database explorer
 
-To maintain scalability across the multi-tenant architecture, adhere to the following layout patterns:
+```bash
+pnpm run db:studio         # browse central schema (shops, products, orders)
+pnpm run db:studio:tenant  # browse tenant schema (customers, reviews)
+```
 
-### Domain-Driven Design (DDD) Layout
-* **`src/modules/`**: Encapsulate distinct domain contexts inside isolated feature modules (e.g., `src/modules/users`, `src/modules/stores`, `src/modules/products`). Each module must strictly govern its own Controllers, Services, and data transfer layers.
-* **`src/common/`**: Place only universally shared implementations here (e.g., Global Authorization Guards, Tenant Identification Interceptors, Custom Decorators).
+---
 
-### Database Interaction
-* **No Direct Imports:** Never instantiate or import the `PrismaClient` directly inside your domain files.
-* **Dependency Injection:** Always utilize constructor injection to access the shared database instance:
+## 🛠 Full Script Reference
+
+| Script | What it does |
+| :--- | :--- |
+| `pnpm run start:dev` | Start backend in watch mode |
+| `pnpm run start:prod` | Start compiled production build |
+| `pnpm run db:push` | Push `schema.prisma` to DB |
+| `pnpm run db:push:central` | Push `central.prisma` to DB |
+| `pnpm run db:push:tenant` | Push `tenant.prisma` — **production only**, never run against local DB |
+| `pnpm run db:push:all` | Push `schema.prisma` + `central.prisma` (safe for local dev) |
+| `pnpm run db:generate` | Regenerate central + tenant Prisma clients |
+| `pnpm run db:setup` | `db:push:all` + `db:generate` (use after any schema change) |
+| `pnpm run db:sync` | Force-push `schema.prisma` (accepts data loss) |
+| `pnpm run db:sync:central` | Force-push `central.prisma` (accepts data loss) |
+| `pnpm run db:seed` | Seed admin user + demo shop |
+| `pnpm run db:rebuild` | `db:setup` + `db:seed` (full local reset) |
+| `pnpm run db:migrate:central` | Create + apply a tracked migration for central schema |
+| `pnpm run db:migrate:tenant` | Create + apply a tracked migration for tenant schema |
+| `pnpm run db:studio` | Open Prisma Studio for central schema |
+| `pnpm run db:studio:tenant` | Open Prisma Studio for tenant schema |
+| `docker compose up -d` | Start PostgreSQL container |
+| `docker compose down` | Stop PostgreSQL container |
+
+---
+
+## 🏗 Architecture Rules
+
+### Module structure
+Each NestJS module owns its own controller, service, and DTOs. Never share controllers across modules.
+
+- `src/modules/` — one folder per API namespace (`platform/`, `merchant/`, `storefront/`, `customer/`, `payment/`)
+- `src/common/` — only truly global things (guards, middleware, decorators)
+
+### Database access
+Never import `PrismaClient` directly. Always inject via constructor:
 ```typescript
 constructor(private readonly prisma: PrismaService) {}
 ```
-
----
-
-## 🛠 Command Reference Manual
-
-| Command | Operational Context |
-| :--- | :--- |
-| `docker compose up -d` | Spins up the local PostgreSQL container. |
-| `docker compose down` | Stops the running database container without deleting volume data. |
-| `pnpm exec prisma migrate dev` | Tracks schema alterations, updates raw tables, and builds a migration history file. |
-| `pnpm exec prisma generate` | Syncs local node module typings with the database model structure. |
-| `pnpm exec prisma studio` | Launches a visual GUI utility to inspect or modify operational rows at `http://localhost:5555`. |

@@ -73,13 +73,13 @@ export const Footer: React.FC = () => {
 
   const parseLinks = (json: string | undefined, fallback: { title: string; url: string }[]) => {
     if (!json) return fallback;
-    try { return JSON.parse(json); } catch { return fallback; }
+    try { return (JSON.parse(json) as { title: string; url: string }[]).filter(l => !l.url?.startsWith('/categories')); } catch { return fallback; }
   };
 
   const col1Title = content.footer_col1_title || 'Shop';
   const col1Links = parseLinks(content.footer_col1_links, [
     { title: 'Home', url: '/' }, { title: 'All Products', url: '/products' },
-    { title: 'Categories', url: '/categories' }, { title: 'Collections', url: '/collections' }, { title: 'Search', url: '/search' },
+    { title: 'Collections', url: '/collections' }, { title: 'Search', url: '/search' },
   ]);
   const col2Title = content.footer_col2_title || 'Account';
   const col2Links = parseLinks(content.footer_col2_links, [

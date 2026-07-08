@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Delete,
   Body,
@@ -126,6 +127,16 @@ export class MerchantController {
 
   // ─── Products ─────────────────────────────────────────────────────────────
 
+  @Get('products')
+  async getProducts(
+    @Req() req: Request & { shopId?: string },
+    @Query() query: { limit?: string; page?: string; search?: string; status?: string },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getMerchantProducts(shopId, query);
+  }
+
   @Post('products')
   async createProduct(
     @Req() req: Request & { shopId?: string },
@@ -213,6 +224,23 @@ export class MerchantController {
 
   // ─── Categories ───────────────────────────────────────────────────────────
 
+  @Get('categories')
+  async getCategories(@Req() req: Request & { shopId?: string }) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getCategories(shopId);
+  }
+
+  @Post('categories/bulk-ensure')
+  async bulkEnsureCategories(
+    @Req() req: Request & { shopId?: string },
+    @Body() dto: { items: { name: string; slug: string; parent_slug?: string }[] },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.bulkEnsureCategories(shopId, dto.items);
+  }
+
   @Post('categories')
   async createCategory(
     @Req() req: Request & { shopId?: string },
@@ -261,6 +289,27 @@ export class MerchantController {
     const shopId = req.shopId;
     if (!shopId) throw new BadRequestException('Shop context missing');
     return this.merchantService.createCollection(shopId, dto);
+  }
+
+  @Get('collections/:id')
+  async getCollectionById(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getCollectionById(shopId, id);
+  }
+
+  @Put('collections/:id/products')
+  async syncCollectionProducts(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+    @Body() body: { product_ids: string[] },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.syncCollectionProducts(shopId, id, body.product_ids || []);
   }
 
   @Patch('collections/:id')

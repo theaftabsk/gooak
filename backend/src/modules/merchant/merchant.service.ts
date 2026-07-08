@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { TenantPrismaService } from '../../database/tenant-prisma.service';
+import { InventoryService } from './inventory.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateBannerDto } from './dto/create-banner.dto';
 import { CreateSectionDto } from './dto/create-section.dto';
@@ -15,6 +16,7 @@ export class MerchantService {
   constructor(
     private prisma: PrismaService,
     private tenantPrisma: TenantPrismaService,
+    private inventoryService: InventoryService,
   ) {}
 
   async getSubscription(shopId: string) {
@@ -62,6 +64,25 @@ export class MerchantService {
     }
   }
 
+  async getMerchantProducts(shopId: string, query: { limit?: string; page?: string; search?: string; status?: string }) {
+    const limit = Number(query.limit) || 200;
+    const page = Number(query.page) || 1;
+    const skip = (page - 1) * limit;
+    const where: any = { shop_id: shopId };
+    if (query.status) where.status = query.status;
+    if (query.search) where.name = { contains: query.search, mode: 'insensitive' };
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where, skip, take: limit,
+        orderBy: { created_at: 'desc' },
+        include: { gallery: { where: { is_cover: true }, take: 1 } },
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+    return { products, pagination: { total, page, limit } };
+  }
+
   async createProduct(shopId: string, dto: CreateProductDto) {
     const {
       custom_sections,
@@ -85,6 +106,7 @@ export class MerchantService {
           shop_id: shopId,
           custom_sections: custom_sections || [],
           product_tags: product_tags || [],
+          published_at: rest.status === 'active' ? new Date() : null,
         },
       });
 
@@ -180,6 +202,7 @@ export class MerchantService {
       if (variants && Array.isArray(variants) && variants.length > 0) {
         for (const v of variants) {
           const varSku = await this.generateUniqueSku(shopId, product.name, v.sku);
+          const stockQty = v.stock_qty !== undefined ? parseInt(v.stock_qty) : 0;
           const variant = await tx.productVariant.create({
             data: {
               shop_id: shopId,
@@ -189,7 +212,8 @@ export class MerchantService {
               price: v.price !== undefined ? parseFloat(v.price) : product.price,
               compare_price: v.compare_price !== undefined ? parseFloat(v.compare_price) : product.compare_price,
               cost_price: v.cost_price !== undefined ? parseFloat(v.cost_price) : product.cost_price,
-              stock_qty: v.stock_qty !== undefined ? parseInt(v.stock_qty) : 100,
+              stock_qty: stockQty,
+              available_qty: stockQty,
               track_inventory: v.track_inventory !== undefined ? !!v.track_inventory : true,
               low_stock_at: v.low_stock_at !== undefined ? parseInt(v.low_stock_at) : 5,
               barcode: v.barcode || null,
@@ -224,7 +248,8 @@ export class MerchantService {
             price: product.price,
             compare_price: product.compare_price,
             cost_price: product.cost_price,
-            stock_qty: 100,
+            stock_qty: 0,
+            available_qty: 0,
             is_active: true,
           },
         });
@@ -322,10 +347,21 @@ export class MerchantService {
 
     await this.prisma.$transaction(async (tx) => {
       // 1. Update basic product fields
+      // Set published_at the first time status is flipped to active
+      let publishedAt: Date | undefined;
+      if (rest.status === 'active') {
+        const existing = await tx.product.findUnique({
+          where: { id: productId },
+          select: { published_at: true },
+        });
+        if (!existing?.published_at) publishedAt = new Date();
+      }
+
       await tx.product.update({
         where: { id: productId, shop_id: shopId },
         data: {
           ...rest,
+          published_at: publishedAt,
           custom_sections:
             custom_sections !== undefined ? custom_sections : undefined,
           product_tags:
@@ -438,6 +474,90 @@ export class MerchantService {
           await tx.productTag.create({
             data: { product_id: productId, tag_id: tag.id },
           });
+        }
+      }
+
+      // 8. Upsert variants if provided (create new, update existing by id)
+      if (variants !== undefined && Array.isArray(variants)) {
+        for (const v of variants) {
+          const stockQty = v.stock_qty !== undefined ? parseInt(v.stock_qty) : undefined;
+          const variantData: any = {
+            label: v.label ?? undefined,
+            price: v.price !== undefined ? parseFloat(v.price) : undefined,
+            compare_price: v.compare_price !== undefined ? parseFloat(v.compare_price) : undefined,
+            cost_price: v.cost_price !== undefined ? parseFloat(v.cost_price) : undefined,
+            barcode: v.barcode ?? undefined,
+            image_url: v.image_url ?? undefined,
+            weight: v.weight !== undefined ? parseFloat(v.weight) : undefined,
+            length: v.length !== undefined ? parseFloat(v.length) : undefined,
+            width: v.width !== undefined ? parseFloat(v.width) : undefined,
+            height: v.height !== undefined ? parseFloat(v.height) : undefined,
+            track_inventory: v.track_inventory !== undefined ? !!v.track_inventory : undefined,
+            low_stock_at: v.low_stock_at !== undefined ? parseInt(v.low_stock_at) : undefined,
+            is_active: v.is_active !== undefined ? !!v.is_active : undefined,
+            sort_order: v.sort_order !== undefined ? parseInt(v.sort_order) : undefined,
+          };
+
+          if (stockQty !== undefined) {
+            variantData.stock_qty = stockQty;
+            // Recalculate available_qty when stock changes (keep reserved_qty unchanged)
+            const existing = v.id
+              ? await tx.productVariant.findUnique({ where: { id: v.id }, select: { reserved_qty: true } })
+              : null;
+            const reserved = existing?.reserved_qty ?? 0;
+            variantData.available_qty = Math.max(0, stockQty - reserved);
+          }
+
+          if (v.id) {
+            // Update existing variant
+            await tx.productVariant.update({
+              where: { id: v.id, shop_id: shopId },
+              data: variantData,
+            });
+            if (v.attributes && Array.isArray(v.attributes)) {
+              await tx.variantAttribute.deleteMany({ where: { variant_id: v.id } });
+              if (v.attributes.length > 0) {
+                await tx.variantAttribute.createMany({
+                  data: v.attributes.map((attr: any, idx: number) => ({
+                    shop_id: shopId, variant_id: v.id,
+                    attr_key: attr.attr_key || attr.name || '',
+                    attr_value: attr.attr_value || attr.value || '',
+                    sort_order: attr.sort_order ?? idx,
+                  })),
+                });
+              }
+            }
+          } else {
+            // Create new variant
+            const varSku = await this.generateUniqueSku(shopId, rest.name || productId, v.sku);
+            const newVariant = await tx.productVariant.create({
+              data: {
+                shop_id: shopId, product_id: productId,
+                sku: varSku,
+                label: v.label || 'Default',
+                price: v.price !== undefined ? parseFloat(v.price) : 0,
+                compare_price: v.compare_price !== undefined ? parseFloat(v.compare_price) : null,
+                cost_price: v.cost_price !== undefined ? parseFloat(v.cost_price) : null,
+                stock_qty: stockQty ?? 0,
+                available_qty: stockQty ?? 0,
+                track_inventory: v.track_inventory !== undefined ? !!v.track_inventory : true,
+                low_stock_at: v.low_stock_at !== undefined ? parseInt(v.low_stock_at) : 5,
+                barcode: v.barcode || null,
+                image_url: v.image_url || null,
+                is_active: v.is_active !== undefined ? !!v.is_active : true,
+              },
+            });
+            if (v.attributes && Array.isArray(v.attributes) && v.attributes.length > 0) {
+              await tx.variantAttribute.createMany({
+                data: v.attributes.map((attr: any, idx: number) => ({
+                  shop_id: shopId, variant_id: newVariant.id,
+                  attr_key: attr.attr_key || attr.name || '',
+                  attr_value: attr.attr_value || attr.value || '',
+                  sort_order: attr.sort_order ?? idx,
+                })),
+              });
+            }
+          }
         }
       }
     });
@@ -567,6 +687,54 @@ export class MerchantService {
     });
   }
 
+  async getCategories(shopId: string) {
+    return this.prisma.category.findMany({
+      where: { shop_id: shopId, is_active: true },
+      select: { id: true, name: true, slug: true, parent_id: true, sort_order: true },
+      orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
+    });
+  }
+
+  async bulkEnsureCategories(
+    shopId: string,
+    items: { name: string; slug: string; parent_slug?: string }[],
+  ) {
+    const results: Record<string, string> = {};
+
+    // First pass: create/find parents (items without parent_slug)
+    for (const item of items.filter(i => !i.parent_slug)) {
+      const existing = await this.prisma.category.findUnique({
+        where: { shop_id_slug: { shop_id: shopId, slug: item.slug } },
+      });
+      if (existing) {
+        results[item.slug] = existing.id;
+      } else {
+        const created = await this.prisma.category.create({
+          data: { shop_id: shopId, name: item.name, slug: item.slug },
+        });
+        results[item.slug] = created.id;
+      }
+    }
+
+    // Second pass: create/find children
+    for (const item of items.filter(i => !!i.parent_slug)) {
+      const parentId = item.parent_slug ? results[item.parent_slug] : undefined;
+      const existing = await this.prisma.category.findUnique({
+        where: { shop_id_slug: { shop_id: shopId, slug: item.slug } },
+      });
+      if (existing) {
+        results[item.slug] = existing.id;
+      } else {
+        const created = await this.prisma.category.create({
+          data: { shop_id: shopId, name: item.name, slug: item.slug, parent_id: parentId },
+        });
+        results[item.slug] = created.id;
+      }
+    }
+
+    return results;
+  }
+
   async createCategory(shopId: string, dto: any) {
     return this.prisma.category.create({
       data: {
@@ -677,6 +845,14 @@ export class MerchantService {
     const order = await this.prisma.order.findUnique({ where: { id: orderId, shop_id: shopId } });
     if (!order) throw new NotFoundException('Order not found');
 
+    // Prevent invalid transitions
+    if (order.status === 'delivered' && status === 'cancelled') {
+      throw new BadRequestException('Cannot cancel a delivered order. Process a refund instead.');
+    }
+    if (order.status === 'cancelled') {
+      throw new BadRequestException('Order is already cancelled.');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const updateData: any = { status };
 
@@ -695,7 +871,6 @@ export class MerchantService {
         if (extra.payment_method !== undefined) updateData.payment_method = extra.payment_method || null;
       }
 
-      // When shipping: auto-set fulfillment_status and dispatched_at
       if (status === 'shipped' && !updateData.fulfillment_status) {
         updateData.fulfillment_status = 'fulfilled';
         if (!updateData.dispatched_at) updateData.dispatched_at = new Date();
@@ -703,8 +878,38 @@ export class MerchantService {
       if (status === 'delivered' && !updateData.fulfillment_status) {
         updateData.fulfillment_status = 'delivered';
       }
+      if (status === 'cancelled') {
+        updateData.cancelled_at = new Date();
+        updateData.fulfillment_status = 'unfulfilled';
+      }
 
       const updatedOrder = await tx.order.update({ where: { id: orderId }, data: updateData });
+
+      // Restore inventory when cancelling — only if stock was actually deducted.
+      // Stock is deducted at 'confirmed' (COD auto-confirms, Razorpay confirms on payment verify).
+      // Pending orders (unpaid Razorpay) never had stock deducted — restore would inflate stock.
+      // For pending orders, release any cart reservation that was held through checkout.
+      if (status === 'cancelled' && order.status !== 'cancelled') {
+        const wasShipped = ['fulfilled', 'shipped', 'delivered'].includes(order.fulfillment_status);
+        const stockWasDeducted = ['confirmed', 'processing', 'shipped', 'delivered'].includes(order.status);
+        if (!wasShipped && stockWasDeducted) {
+          await this.inventoryService.restoreStockForOrder(shopId, orderId, tx);
+        } else if (order.status === 'pending') {
+          // Release reservation held from checkout (cart was deleted but reserved_qty persisted)
+          const items = await tx.orderItem.findMany({ where: { order_id: orderId } });
+          for (const item of items) {
+            const variant = await tx.productVariant.findUnique({ where: { id: item.variant_id } });
+            if (!variant?.track_inventory) continue;
+            const releaseQty = Math.min(item.qty, variant.reserved_qty);
+            if (releaseQty > 0) {
+              await tx.productVariant.update({
+                where: { id: item.variant_id },
+                data: { reserved_qty: { decrement: releaseQty }, available_qty: { increment: releaseQty } },
+              });
+            }
+          }
+        }
+      }
 
       if (status !== order.status || note) {
         await tx.orderStatusLog.create({
@@ -1346,6 +1551,7 @@ export class MerchantService {
     let collections = await this.prisma.collection.findMany({
       where: { shop_id: shopId },
       orderBy: { name: 'asc' },
+      include: { _count: { select: { products: true } } },
     });
 
     if (collections.length === 0) {
@@ -1360,19 +1566,39 @@ export class MerchantService {
       collections = [];
       for (const d of defaults) {
         const col = await this.prisma.collection.create({
-          data: {
-            shop_id: shopId,
-            name: d.name,
-            slug: d.slug,
-            description: d.description,
-            is_active: true
-          }
+          data: { shop_id: shopId, name: d.name, slug: d.slug, description: d.description, is_active: true },
+          include: { _count: { select: { products: true } } },
         });
         collections.push(col);
       }
     }
 
     return collections;
+  }
+
+  async getCollectionById(shopId: string, id: string) {
+    const collection = await this.prisma.collection.findFirst({
+      where: { id, shop_id: shopId },
+      include: {
+        _count: { select: { products: true } },
+        products: { select: { product_id: true } },
+      },
+    });
+    if (!collection) throw new NotFoundException('Collection not found');
+    return collection;
+  }
+
+  async syncCollectionProducts(shopId: string, id: string, productIds: string[]) {
+    const collection = await this.prisma.collection.findFirst({ where: { id, shop_id: shopId } });
+    if (!collection) throw new NotFoundException('Collection not found');
+    await this.prisma.collectionProduct.deleteMany({ where: { collection_id: id } });
+    if (productIds.length > 0) {
+      await this.prisma.collectionProduct.createMany({
+        data: productIds.map(pid => ({ collection_id: id, product_id: pid })),
+        skipDuplicates: true,
+      });
+    }
+    return { success: true, count: productIds.length };
   }
 
   async createCollection(shopId: string, dto: { name: string; slug: string; description?: string; image_url?: string }) {

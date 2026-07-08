@@ -7,7 +7,6 @@ export type Section =
   | { type: 'contact_form';        data: ContactFormData }
   | { type: 'announcement_bar';    data: AnnouncementBarData }
   | { type: 'banner_slider';       data: BannerSliderData }
-  | { type: 'categories_carousel'; data: CategoriesCarouselData }
   | { type: 'products_grid';       data: ProductsGridData }
   | { type: 'features_strip';      data: FeaturesStripData }
   | { type: 'about_section';       data: AboutSectionData };
@@ -42,8 +41,6 @@ export interface BannerSlide {
   text_position?: string; title_font?: string; subtitle_font?: string; button_label?: string;
 }
 export interface BannerSliderData { banners?: BannerSlide[] }
-
-export interface CategoriesCarouselData { title?: string; badge?: string }
 
 export interface ProductsGridData {
   title?: string; badge?: string; subtitle?: string; limit?: number;

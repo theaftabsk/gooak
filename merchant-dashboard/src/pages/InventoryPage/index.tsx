@@ -255,7 +255,9 @@ export const InventoryPage: React.FC = () => {
                         No variants. Go to the product editor → Variants &amp; Stock tab to add variants.
                       </div>
                     ) : (
-                      product.variants.map((v: any, i: number) => (
+                      product.variants.map((v: any, i: number) => {
+                        const availQty = v.available_qty ?? v.stock_qty;
+                        return (
                         <div key={v.id}>
                           <div style={{
                             display: 'grid',
@@ -269,10 +271,15 @@ export const InventoryPage: React.FC = () => {
                             <div>
                               <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{v.label || <span style={{ color: 'var(--m-text-muted)', fontStyle: 'italic' }}>Unnamed</span>}</div>
                               <code style={{ fontSize: '0.72rem', color: 'var(--m-text-muted)' }}>{v.sku}</code>
+                              {v.reserved_qty > 0 && (
+                                <div style={{ fontSize: '0.7rem', color: '#9333EA', marginTop: 2 }}>
+                                  {v.stock_qty} physical · {v.reserved_qty} reserved
+                                </div>
+                              )}
                             </div>
                             <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>₹{parseFloat(v.price).toFixed(0)}</div>
-                            <StockBar qty={v.stock_qty} lowAt={v.low_stock_at} />
-                            <StockStatusBadge qty={v.stock_qty} lowAt={v.low_stock_at} />
+                            <StockBar qty={availQty} lowAt={v.low_stock_at} />
+                            <StockStatusBadge qty={availQty} lowAt={v.low_stock_at} />
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -299,7 +306,10 @@ export const InventoryPage: React.FC = () => {
                             <div style={{ padding: '14px 20px 14px 78px', background: '#F5F3FF', borderTop: '1px solid #DDD6FE', display: 'flex', gap: 14, alignItems: 'flex-end', flexWrap: 'wrap' }}>
                               <div style={{ fontSize: '0.83rem', fontWeight: 700, color: '#4F46E5', minWidth: 160 }}>
                                 Adjusting: <strong>{v.label || v.sku}</strong>
-                                <div style={{ fontWeight: 400, color: '#6B7280', marginTop: 2 }}>Current: {v.stock_qty}</div>
+                                <div style={{ fontWeight: 400, color: '#6B7280', marginTop: 2 }}>
+                                  Stock: {v.stock_qty}
+                                  {v.reserved_qty > 0 && <span style={{ color: '#9333EA' }}> · {v.reserved_qty} reserved · {availQty} available</span>}
+                                </div>
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                 <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6B7280' }}>Amount (+/-)</label>
@@ -341,7 +351,8 @@ export const InventoryPage: React.FC = () => {
                             </div>
                           )}
                         </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 )}
@@ -400,8 +411,13 @@ export const InventoryPage: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {products.flatMap(p =>
               p.variants
-                .filter((v: any) => v.stock_qty === 0 || v.stock_qty <= v.low_stock_at)
-                .map((v: any) => (
+                .filter((v: any) => {
+                  const avail = v.available_qty ?? v.stock_qty;
+                  return avail === 0 || avail <= v.low_stock_at;
+                })
+                .map((v: any) => {
+                  const avail = v.available_qty ?? v.stock_qty;
+                  return (
                   <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 14px', background: 'white', borderRadius: 8, border: '1px solid #FDE68A' }}>
                     <div style={{ fontSize: '0.85rem' }}>
                       <strong>{p.name}</strong>
@@ -409,11 +425,15 @@ export const InventoryPage: React.FC = () => {
                       <code style={{ marginLeft: 8, fontSize: '0.72rem', color: '#9CA3AF' }}>{v.sku}</code>
                     </div>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <StockStatusBadge qty={v.stock_qty} lowAt={v.low_stock_at} />
-                      <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{v.stock_qty} left</span>
+                      <StockStatusBadge qty={avail} lowAt={v.low_stock_at} />
+                      <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{avail} available</span>
+                      {v.reserved_qty > 0 && (
+                        <span style={{ fontSize: '0.75rem', color: '#9333EA' }}>{v.reserved_qty} reserved</span>
+                      )}
                     </div>
                   </div>
-                ))
+                  );
+                })
             )}
           </div>
         </div>

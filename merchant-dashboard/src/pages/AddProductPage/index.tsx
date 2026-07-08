@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Icons } from '@/components/ui/Icons';
 import { catalogApi } from '@/lib/api-client';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CategoryPicker } from '@/components/ui/CategoryPicker';
 
 interface AddProductPageProps {
   categories: any[];
@@ -50,6 +55,7 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
   const [description, setDescription] = useState('');
   const [shortDesc, setShortDesc] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [categoryPath, setCategoryPath] = useState<string | null>(null);
   const [brandId, setBrandId] = useState('');
   const [label, setLabel] = useState(''); // Sale, New, Hot, etc.
 
@@ -578,14 +584,7 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
           gap: 6px;
           margin-bottom: 20px;
         }
-        .input-label {
-          font-size: 0.78rem;
-          font-weight: 700;
-          color: var(--m-text-main, #374151);
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-        }
-        .styled-input, .styled-select, .styled-textarea {
+        .styled-select {
           width: 100%;
           padding: 11px 15px;
           border: 1.5px solid var(--m-border, #E5E7EB);
@@ -597,7 +596,7 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
           box-sizing: border-box;
           transition: all 0.2s ease;
         }
-        .styled-input:focus, .styled-select:focus, .styled-textarea:focus {
+        .styled-select:focus {
           border-color: var(--m-primary, #4F46E5);
           box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
         }
@@ -739,78 +738,60 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Product Title *</label>
-                <input
-                  required
-                  type="text"
-                  className="styled-input"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="e.g. Lavender Hydrating Cleanser"
-                />
+                <Label>Product Title *</Label>
+                <Input required type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Lavender Hydrating Cleanser" />
               </div>
 
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">URL Slug Handle</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={slug}
-                    onChange={e => setSlug(e.target.value)}
-                    placeholder="e.g. lavender-hydrating-cleanser"
+                  <Label>URL Slug Handle</Label>
+                  <Input type="text" value={slug} onChange={e => setSlug(e.target.value)} placeholder="e.g. lavender-hydrating-cleanser" />
+                </div>
+                <div className="input-wrapper">
+                  <Label>Product Badge/Label</Label>
+                  <Select value={label || '__none'} onValueChange={v => setLabel(v === '__none' ? '' : v)}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">No Label</SelectItem>
+                      <SelectItem value="Sale">Sale</SelectItem>
+                      <SelectItem value="Hot">Hot</SelectItem>
+                      <SelectItem value="New">New</SelectItem>
+                      <SelectItem value="Limited">Limited</SelectItem>
+                      <SelectItem value="Exclusive">Exclusive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="form-grid-2">
+                <div className="input-wrapper">
+                  <Label>Category</Label>
+                  <CategoryPicker
+                    value={categoryId || null}
+                    valuePath={categoryPath}
+                    onChange={(id, path) => { setCategoryId(id || ''); setCategoryPath(path); }}
                   />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Product Badge/Label</label>
-                  <select className="styled-select" value={label} onChange={e => setLabel(e.target.value)}>
-                    <option value="">No Label</option>
-                    <option value="Sale">Sale</option>
-                    <option value="Hot">Hot</option>
-                    <option value="New">New</option>
-                    <option value="Limited">Limited</option>
-                    <option value="Exclusive">Exclusive</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-grid-2">
-                <div className="input-wrapper">
-                  <label className="input-label">Category</label>
-                  <select className="styled-select" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
-                    <option value="">— Select Category —</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div className="input-wrapper">
-                  <label className="input-label">Brand</label>
-                  <select className="styled-select" value={brandId} onChange={e => setBrandId(e.target.value)}>
-                    <option value="">— Select Brand —</option>
-                    {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
+                  <Label>Brand</Label>
+                  <Select value={brandId || '__none'} onValueChange={v => setBrandId(v === '__none' ? '' : v)}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">— Select Brand —</SelectItem>
+                      {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Short Description (renders on catalog layout cards)</label>
-                <textarea
-                  className="styled-textarea"
-                  rows={2}
-                  value={shortDesc}
-                  onChange={e => setShortDesc(e.target.value)}
-                  placeholder="Summarize key features in 1-2 lines..."
-                />
+                <Label>Short Description (renders on catalog layout cards)</Label>
+                <Textarea rows={2} value={shortDesc} onChange={e => setShortDesc(e.target.value)} placeholder="Summarize key features in 1-2 lines..." />
               </div>
 
               <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                <label className="input-label">Detailed Description</label>
-                <textarea
-                  className="styled-textarea"
-                  rows={6}
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="Explain benefits, ingredients, and application instructions in detail..."
-                />
+                <Label>Detailed Description</Label>
+                <Textarea rows={6} value={description} onChange={e => setDescription(e.target.value)} placeholder="Explain benefits, ingredients, and application instructions in detail..." />
               </div>
             </div>
           )}
@@ -825,61 +806,36 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
 
               <div className="form-grid-3">
                 <div className="input-wrapper">
-                  <label className="input-label">Price (INR) *</label>
-                  <input
-                    required
-                    type="number"
-                    step="0.01"
-                    className="styled-input"
-                    value={price}
-                    onChange={e => setPrice(e.target.value)}
-                    placeholder="e.g. 399.00"
-                  />
+                  <Label>Price (INR) *</Label>
+                  <Input required type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 399.00" />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Compare Price (INR)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="styled-input"
-                    value={comparePrice}
-                    onChange={e => setComparePrice(e.target.value)}
-                    placeholder="e.g. 599.00"
-                  />
+                  <Label>Compare Price (INR)</Label>
+                  <Input type="number" step="0.01" value={comparePrice} onChange={e => setComparePrice(e.target.value)} placeholder="e.g. 599.00" />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Cost Price (INR)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="styled-input"
-                    value={costPrice}
-                    onChange={e => setCostPrice(e.target.value)}
-                    placeholder="e.g. 150.00"
-                  />
+                  <Label>Cost Price (INR)</Label>
+                  <Input type="number" step="0.01" value={costPrice} onChange={e => setCostPrice(e.target.value)} placeholder="e.g. 150.00" />
                 </div>
               </div>
 
               <div className="form-grid-2">
                 <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                  <label className="input-label">HSN Code (India GST Sourcing)</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={hsnCode}
-                    onChange={e => setHsnCode(e.target.value)}
-                    placeholder="e.g. 33049910"
-                  />
+                  <Label>HSN Code (India GST Sourcing)</Label>
+                  <Input type="text" value={hsnCode} onChange={e => setHsnCode(e.target.value)} placeholder="e.g. 33049910" />
                 </div>
                 <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                  <label className="input-label">GST Tax Bracket</label>
-                  <select className="styled-select" value={taxId} onChange={e => setTaxId(e.target.value)}>
-                    <option value="">No Tax (0%)</option>
-                    <option value="gst-5">GST 5%</option>
-                    <option value="gst-12">GST 12%</option>
-                    <option value="gst-18">GST 18% (Standard Cosmetics)</option>
-                    <option value="gst-28">GST 28%</option>
-                  </select>
+                  <Label>GST Tax Bracket</Label>
+                  <Select value={taxId || '__none'} onValueChange={v => setTaxId(v === '__none' ? '' : v)}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">No Tax (0%)</SelectItem>
+                      <SelectItem value="gst-5">GST 5%</SelectItem>
+                      <SelectItem value="gst-12">GST 12%</SelectItem>
+                      <SelectItem value="gst-18">GST 18% (Standard Cosmetics)</SelectItem>
+                      <SelectItem value="gst-28">GST 28%</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
@@ -912,14 +868,8 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
 
               {/* YouTube integration */}
               <div className="input-wrapper">
-                <label className="input-label">Product YouTube Video URL</label>
-                <input
-                  type="text"
-                  className="styled-input"
-                  value={youtubeUrl}
-                  onChange={e => setYoutubeUrl(e.target.value)}
-                  placeholder="e.g. https://www.youtube.com/watch?v=..."
-                />
+                <Label>Product YouTube Video URL</Label>
+                <Input type="text" value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} placeholder="e.g. https://www.youtube.com/watch?v=..." />
               </div>
 
               {/* Curated Botanical skincare mock presets library */}
@@ -1001,48 +951,33 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
 
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">Master SKU</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={sku}
-                    onChange={e => setSku(e.target.value)}
-                    placeholder="e.g. LAV-HYD-100"
-                  />
+                  <Label>Master SKU</Label>
+                  <Input type="text" value={sku} onChange={e => setSku(e.target.value)} placeholder="e.g. LAV-HYD-100" />
                   <button type="button" className="sku-suggest-btn" onClick={handleAutoGenerateSku}>
                     Suggest Unique SKU
                   </button>
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Inventory Tracking</label>
-                  <select className="styled-select" value={trackInventory ? 'true' : 'false'} onChange={e => setTrackInventory(e.target.value === 'true')}>
-                    <option value="true">Track stock quantities</option>
-                    <option value="false">Don't track quantities (Unlimited stock)</option>
-                  </select>
+                  <Label>Inventory Tracking</Label>
+                  <Select value={trackInventory ? 'true' : 'false'} onValueChange={v => setTrackInventory(v === 'true')}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Track stock quantities</SelectItem>
+                      <SelectItem value="false">Don't track quantities (Unlimited stock)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               {trackInventory && (
                 <div className="form-grid-2">
                   <div className="input-wrapper">
-                    <label className="input-label">Initial Stock Quantity</label>
-                    <input
-                      type="number"
-                      className="styled-input"
-                      value={stockQty}
-                      onChange={e => setStockQty(e.target.value)}
-                      placeholder="e.g. 100"
-                    />
+                    <Label>Initial Stock Quantity</Label>
+                    <Input type="number" value={stockQty} onChange={e => setStockQty(e.target.value)} placeholder="e.g. 100" />
                   </div>
                   <div className="input-wrapper">
-                    <label className="input-label">Low Stock Threshold Alert</label>
-                    <input
-                      type="number"
-                      className="styled-input"
-                      value={lowStockThreshold}
-                      onChange={e => setLowStockThreshold(e.target.value)}
-                      placeholder="e.g. 5"
-                    />
+                    <Label>Low Stock Threshold Alert</Label>
+                    <Input type="number" value={lowStockThreshold} onChange={e => setLowStockThreshold(e.target.value)} placeholder="e.g. 5" />
                   </div>
                 </div>
               )}
@@ -1093,23 +1028,12 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
                       
                       <div className="form-grid-2">
                         <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                          <label className="input-label">Option Name</label>
-                          <input
-                            type="text"
-                            className="styled-input"
-                            value={opt.name}
-                            onChange={e => updateOptionName(optIdx, e.target.value)}
-                            placeholder="e.g. Size, Color, Weight"
-                          />
+                          <Label>Option Name</Label>
+                          <Input type="text" value={opt.name} onChange={e => updateOptionName(optIdx, e.target.value)} placeholder="e.g. Size, Color, Weight" />
                         </div>
                         <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                          <label className="input-label">Option Values (Type value and press Enter)</label>
-                          <input
-                            type="text"
-                            className="styled-input"
-                            onKeyDown={e => handleValuesKeyPress(optIdx, e)}
-                            placeholder="e.g. Small, Medium, Large"
-                          />
+                          <Label>Option Values (Type value and press Enter)</Label>
+                          <Input type="text" onKeyDown={e => handleValuesKeyPress(optIdx, e)} placeholder="e.g. Small, Medium, Large" />
                         </div>
                       </div>
 
@@ -1153,37 +1077,33 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
                               <tr key={v.id || idx} style={{ borderBottom: '1px solid #F3F4F6' }}>
                                 <td style={{ padding: 10, fontWeight: 700 }}>{v.label}</td>
                                 <td style={{ padding: 10 }}>
-                                  <input 
-                                    type="text" 
-                                    className="styled-input" 
-                                    style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                                  <Input
+                                    type="text"
+                                    className="text-xs py-1 px-2 h-7"
                                     value={v.sku}
                                     onChange={e => updateVariantField(v.id, 'sku', e.target.value)}
                                   />
                                 </td>
                                 <td style={{ padding: 10 }}>
-                                  <input 
-                                    type="number" 
-                                    className="styled-input"
-                                    style={{ padding: '6px 10px', fontSize: '0.8rem', width: 90 }}
+                                  <Input
+                                    type="number"
+                                    className="text-xs py-1 px-2 h-7 w-[90px]"
                                     value={v.price}
                                     onChange={e => updateVariantField(v.id, 'price', e.target.value)}
                                   />
                                 </td>
                                 <td style={{ padding: 10 }}>
-                                  <input 
-                                    type="number" 
-                                    className="styled-input"
-                                    style={{ padding: '6px 10px', fontSize: '0.8rem', width: 70 }}
+                                  <Input
+                                    type="number"
+                                    className="text-xs py-1 px-2 h-7 w-[70px]"
                                     value={v.stock_qty}
                                     onChange={e => updateVariantField(v.id, 'stock_qty', e.target.value)}
                                   />
                                 </td>
                                 <td style={{ padding: 10 }}>
-                                  <input 
-                                    type="text" 
-                                    className="styled-input"
-                                    style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                                  <Input
+                                    type="text"
+                                    className="text-xs py-1 px-2 h-7"
                                     value={v.barcode}
                                     onChange={e => updateVariantField(v.id, 'barcode', e.target.value)}
                                     placeholder="UPC / EAN"
@@ -1210,11 +1130,10 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Product Weight (kg)</label>
-                <input
+                <Label>Product Weight (kg)</Label>
+                <Input
                   type="number"
                   step="0.01"
-                  className="styled-input"
                   value={weight}
                   onChange={e => setWeight(e.target.value)}
                   placeholder="e.g. 0.25 (for 250 grams)"
@@ -1224,30 +1143,27 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
               <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '20px 0 12px 0', textTransform: 'uppercase' }}>Package Dimensions (cm)</h4>
               <div className="form-grid-3">
                 <div className="input-wrapper">
-                  <label className="input-label">Length (cm)</label>
-                  <input
+                  <Label>Length (cm)</Label>
+                  <Input
                     type="number"
-                    className="styled-input"
                     value={length}
                     onChange={e => setLength(e.target.value)}
                     placeholder="Length"
                   />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Width (cm)</label>
-                  <input
+                  <Label>Width (cm)</Label>
+                  <Input
                     type="number"
-                    className="styled-input"
                     value={width}
                     onChange={e => setWidth(e.target.value)}
                     placeholder="Width"
                   />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Height (cm)</label>
-                  <input
+                  <Label>Height (cm)</Label>
+                  <Input
                     type="number"
-                    className="styled-input"
                     value={height}
                     onChange={e => setHeight(e.target.value)}
                     placeholder="Height"
@@ -1267,20 +1183,18 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
 
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">Meta Title Tag</label>
-                  <input
+                  <Label>Meta Title Tag</Label>
+                  <Input
                     type="text"
-                    className="styled-input"
                     value={metaTitle}
                     onChange={e => setMetaTitle(e.target.value)}
                     placeholder="e.g. Lavender Face Wash | Nature Glow Store"
                   />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">SEO Keywords (Comma Separated)</label>
-                  <input
+                  <Label>SEO Keywords (Comma Separated)</Label>
+                  <Input
                     type="text"
-                    className="styled-input"
                     value={seoKeywords}
                     onChange={e => setSeoKeywords(e.target.value)}
                     placeholder="e.g. face wash, organic skincare, organic cleanser"
@@ -1289,9 +1203,8 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Meta Description Tag</label>
-                <textarea
-                  className="styled-textarea"
+                <Label>Meta Description Tag</Label>
+                <Textarea
                   rows={3}
                   value={metaDescription}
                   onChange={e => setMetaDescription(e.target.value)}
@@ -1300,10 +1213,9 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Canonical URL Override</label>
-                <input
+                <Label>Canonical URL Override</Label>
+                <Input
                   type="text"
-                  className="styled-input"
                   value={canonicalUrl}
                   onChange={e => setCanonicalUrl(e.target.value)}
                   placeholder="https://natureglow.com/products/lavender-wash"
@@ -1313,31 +1225,28 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
               <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '24px 0 12px 0', textTransform: 'uppercase' }}>Social Sharing Meta (Open Graph)</h4>
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">OG Title</label>
-                  <input
+                  <Label>OG Title</Label>
+                  <Input
                     type="text"
-                    className="styled-input"
                     value={ogTitle}
                     onChange={e => setOgTitle(e.target.value)}
                     placeholder="Social share title"
                   />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">OG Image URL</label>
-                  <input
+                  <Label>OG Image URL</Label>
+                  <Input
                     type="text"
-                    className="styled-input"
                     value={ogImage}
                     onChange={e => setOgImage(e.target.value)}
                     placeholder="Leave empty to use main product cover image"
                   />
                 </div>
               </div>
-              
+
               <div className="input-wrapper">
-                <label className="input-label">OG Description</label>
-                <textarea
-                  className="styled-textarea"
+                <Label>OG Description</Label>
+                <Textarea
                   rows={2}
                   value={ogDescription}
                   onChange={e => setOgDescription(e.target.value)}
@@ -1429,10 +1338,9 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
               )}
 
               <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                <label className="input-label">Product Tags (Comma Separated)</label>
-                <input
+                <Label>Product Tags (Comma Separated)</Label>
+                <Input
                   type="text"
-                  className="styled-input"
                   value={tagsInput}
                   onChange={e => setTagsInput(e.target.value)}
                   placeholder="e.g. natural, skincare, toner, summer-sale"
@@ -1454,19 +1362,17 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
               <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', padding: 20, borderRadius: 12, marginBottom: 24 }}>
                 <h4 style={{ margin: '0 0 15px 0', fontSize: '0.9rem' }}>Add New FAQ Question</h4>
                 <div className="input-wrapper">
-                  <label className="input-label">Question</label>
-                  <input
+                  <Label>Question</Label>
+                  <Input
                     type="text"
-                    className="styled-input"
                     value={newQuestion}
                     onChange={e => setNewQuestion(e.target.value)}
                     placeholder="e.g. How long does one bottle last?"
                   />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Answer</label>
-                  <textarea
-                    className="styled-textarea"
+                  <Label>Answer</Label>
+                  <Textarea
                     rows={2}
                     value={newAnswer}
                     onChange={e => setNewAnswer(e.target.value)}
@@ -1538,10 +1444,9 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
               </div>
 
               <div className="input-wrapper">
-                <label className="input-label">Supplier/Vendor Name</label>
-                <input
+                <Label>Supplier/Vendor Name</Label>
+                <Input
                   type="text"
-                  className="styled-input"
                   value={supplierName}
                   onChange={e => setSupplierName(e.target.value)}
                   placeholder="e.g. Organic Labs Ltd."
@@ -1550,21 +1455,19 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
 
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">Procurement Cost Price (INR)</label>
-                  <input
+                  <Label>Procurement Cost Price (INR)</Label>
+                  <Input
                     type="number"
                     step="0.01"
-                    className="styled-input"
                     value={supplierCost}
                     onChange={e => setSupplierCost(e.target.value)}
                     placeholder="Sourcing price per unit"
                   />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Supplier Order Sourcing Link</label>
-                  <input
+                  <Label>Supplier Order Sourcing Link</Label>
+                  <Input
                     type="text"
-                    className="styled-input"
                     value={supplierLink}
                     onChange={e => setSupplierLink(e.target.value)}
                     placeholder="https://supplier.com/orders/..."
@@ -1584,23 +1487,20 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
 
               <div className="form-grid-2">
                 <div className="input-wrapper">
-                  <label className="input-label">Catalog Sort Order index</label>
-                  <input
-                    type="number"
-                    className="styled-input"
-                    value={sortOrder}
-                    onChange={e => setSortOrder(e.target.value)}
-                    placeholder="e.g. 0 (lower index sorts first)"
-                  />
+                  <Label>Catalog Sort Order index</Label>
+                  <Input type="number" value={sortOrder} onChange={e => setSortOrder(e.target.value)} placeholder="e.g. 0 (lower index sorts first)" />
                 </div>
                 <div className="input-wrapper">
-                  <label className="input-label">Storefront Visibility</label>
-                  <select className="styled-select" value={visibility} onChange={e => setVisibility(e.target.value)}>
-                    <option value="visible">Visible in Catalog and Search</option>
-                    <option value="catalog_only">Visible in Catalog only (Hide from search)</option>
-                    <option value="search_only">Visible in Search only (Hide from catalog listing)</option>
-                    <option value="hidden">Hidden completely (Unlisted)</option>
-                  </select>
+                  <Label>Storefront Visibility</Label>
+                  <Select value={visibility} onValueChange={setVisibility}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="visible">Visible in Catalog and Search</SelectItem>
+                      <SelectItem value="catalog_only">Visible in Catalog only (Hide from search)</SelectItem>
+                      <SelectItem value="search_only">Visible in Search only (Hide from catalog listing)</SelectItem>
+                      <SelectItem value="hidden">Hidden completely (Unlisted)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -1622,36 +1522,18 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
                   <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', color: 'var(--m-primary)' }}>📁 Digital File Sourcing Settings</h4>
                   
                   <div className="input-wrapper">
-                    <label className="input-label">Download Delivery URL</label>
-                    <input
-                      type="text"
-                      className="styled-input"
-                      value={downloadUrl}
-                      onChange={e => setDownloadUrl(e.target.value)}
-                      placeholder="https://storage.yoursite.com/downloads/ebook.pdf"
-                    />
+                    <Label>Download Delivery URL</Label>
+                    <Input type="text" value={downloadUrl} onChange={e => setDownloadUrl(e.target.value)} placeholder="https://storage.yoursite.com/downloads/ebook.pdf" />
                   </div>
 
                   <div className="form-grid-2">
                     <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Download Limit per purchase</label>
-                      <input
-                        type="number"
-                        className="styled-input"
-                        value={downloadLimit}
-                        onChange={e => setDownloadLimit(e.target.value)}
-                        placeholder="e.g. 3 (leave empty for unlimited)"
-                      />
+                      <Label>Download Limit per purchase</Label>
+                      <Input type="number" value={downloadLimit} onChange={e => setDownloadLimit(e.target.value)} placeholder="e.g. 3 (leave empty for unlimited)" />
                     </div>
                     <div className="input-wrapper" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Automated Delivery License Key</label>
-                      <input
-                        type="text"
-                        className="styled-input"
-                        value={licenseKey}
-                        onChange={e => setLicenseKey(e.target.value)}
-                        placeholder="e.g. KEY-XXXXX-XXXXX"
-                      />
+                      <Label>Automated Delivery License Key</Label>
+                      <Input type="text" value={licenseKey} onChange={e => setLicenseKey(e.target.value)} placeholder="e.g. KEY-XXXXX-XXXXX" />
                     </div>
                   </div>
                 </div>
@@ -1667,24 +1549,12 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
               {/* Add specification form */}
               <div style={{ display: 'flex', gap: 12, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: 18, borderRadius: 12, marginBottom: 20 }}>
                 <div style={{ flex: 1 }}>
-                  <label className="input-label" style={{ fontSize: '0.75rem', marginBottom: 4 }}>Attribute Name</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={newSpecName}
-                    onChange={e => setNewSpecName(e.target.value)}
-                    placeholder="e.g. Material"
-                  />
+                  <Label style={{ fontSize: '0.75rem', marginBottom: 4 }}>Attribute Name</Label>
+                  <Input type="text" value={newSpecName} onChange={e => setNewSpecName(e.target.value)} placeholder="e.g. Material" className="mt-1" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label className="input-label" style={{ fontSize: '0.75rem', marginBottom: 4 }}>Attribute Value</label>
-                  <input
-                    type="text"
-                    className="styled-input"
-                    value={newSpecValue}
-                    onChange={e => setNewSpecValue(e.target.value)}
-                    placeholder="e.g. 100% Organic Cotton"
-                  />
+                  <Label style={{ fontSize: '0.75rem', marginBottom: 4 }}>Attribute Value</Label>
+                  <Input type="text" value={newSpecValue} onChange={e => setNewSpecValue(e.target.value)} placeholder="e.g. 100% Organic Cotton" className="mt-1" />
                 </div>
                 <button
                   type="button"

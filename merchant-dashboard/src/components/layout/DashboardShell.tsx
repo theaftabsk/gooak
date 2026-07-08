@@ -53,7 +53,7 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
   }, [tenantSlug]);
 
   useEffect(() => {
-    if (['/products', '/categories', '/brands', '/collections', '/inventory'].some(p => pathname.startsWith(p)))
+    if (['/products', '/brands', '/collections', '/inventory'].some(p => pathname.startsWith(p)))
       setExpandedGroups(g => ({ ...g, catalog: true }));
     if (['/orders', '/returns', '/invoices'].some(p => pathname.startsWith(p)))
       setExpandedGroups(g => ({ ...g, orders: true }));
@@ -162,8 +162,8 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
       key: 'catalog',
       label: 'Catalog',
       icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
-      paths: ['/products', '/categories', '/brands', '/collections', '/inventory'],
-      items: [['products','Products'],['categories','Categories'],['brands','Brands'],['collections','Collections'],['inventory','Inventory']],
+      paths: ['/products', '/brands', '/collections', '/inventory'],
+      items: [['products','Products'],['brands','Brands'],['collections','Collections'],['inventory','Inventory']],
     },
     {
       key: 'orders',

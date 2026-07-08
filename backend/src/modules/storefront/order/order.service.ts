@@ -75,8 +75,18 @@ export class OrderService {
 
     for (const item of resolvedItems) {
       const v = variantMap.get(item.variant_id)!;
-      if (v.track_inventory && v.stock_qty < item.qty) {
-        throw new BadRequestException(`Insufficient stock for ${v.label || v.sku}. Available: ${v.stock_qty}`);
+      if (v.track_inventory) {
+        if (cartId) {
+          // Cart order: reservation was held at cart-add time; verify physical stock covers it
+          if (v.stock_qty < item.qty) {
+            throw new BadRequestException(`Insufficient stock for ${v.label || v.sku}`);
+          }
+        } else {
+          // Direct order: no reservation held; check what's actually available
+          if (v.available_qty < item.qty) {
+            throw new BadRequestException(`Insufficient stock for ${v.label || v.sku}. Available: ${v.available_qty}`);
+          }
+        }
       }
     }
 
@@ -180,7 +190,7 @@ export class OrderService {
         await tx.orderTracking.create({
           data: { shop_id: shopId, order_id: order.id, status: 'confirmed', message: 'Order confirmed. Preparing for dispatch.' },
         });
-        await this.deductInventory(tx, shopId, resolvedItems, variantMap, order.id, orderNumber);
+        await this.deductInventory(tx, shopId, resolvedItems, order.id, orderNumber, !!cartId);
       }
 
       if (appliedCoupon) {
@@ -297,29 +307,50 @@ export class OrderService {
     tx: any,
     shopId: string,
     items: { variant_id: string; qty: number }[],
-    variantMap: Map<string, any>,
     orderId: string,
     orderNumber: string,
+    fromCart: boolean,  // true = reservation was held at cart-add; false = direct order, no reservation
   ) {
-    const warehouse = await tx.warehouse.findFirst({ where: { shop_id: shopId, is_active: true } });
+    let warehouse = await tx.warehouse.findFirst({ where: { shop_id: shopId, is_active: true }, select: { id: true } });
+    if (!warehouse) {
+      warehouse = await tx.warehouse.create({
+        data: { shop_id: shopId, name: 'Main Warehouse', is_active: true },
+        select: { id: true },
+      });
+    }
 
     for (const item of items) {
-      const v = variantMap.get(item.variant_id);
+      // Re-fetch inside tx to avoid stale reads from before transaction started
+      const v = await tx.productVariant.findUnique({
+        where: { id: item.variant_id },
+        select: { stock_qty: true, reserved_qty: true, track_inventory: true },
+      });
       if (!v || !v.track_inventory) continue;
-      const newQty = Math.max(0, v.stock_qty - item.qty);
+
+      const newStock = Math.max(0, v.stock_qty - item.qty);
+      // Only release reservation if items came from cart (reservation was held at cart-add time).
+      // Direct orders never held a reservation, so reserved_qty stays unchanged.
+      const newReserved = fromCart
+        ? Math.max(0, v.reserved_qty - item.qty)
+        : v.reserved_qty;
+      const newAvailable = Math.max(0, newStock - newReserved);
+
       await tx.productVariant.update({
         where: { id: item.variant_id },
-        data: { stock_qty: newQty, total_sold: { increment: item.qty } },
+        data: {
+          stock_qty: newStock,
+          reserved_qty: newReserved,
+          available_qty: newAvailable,
+          total_sold: { increment: item.qty },
+        },
       });
-      if (warehouse) {
-        await tx.inventoryLog.create({
-          data: {
-            shop_id: shopId, variant_id: item.variant_id, warehouse_id: warehouse.id,
-            type: 'sale', qty_change: -item.qty, qty_after: newQty,
-            ref_id: orderId, note: `Sale deduction: ${orderNumber}`,
-          },
-        });
-      }
+      await tx.inventoryLog.create({
+        data: {
+          shop_id: shopId, variant_id: item.variant_id, warehouse_id: warehouse.id,
+          type: 'sale', qty_change: -item.qty, qty_after: newStock,
+          ref_id: orderId, note: `Sale: ${orderNumber}`,
+        },
+      });
     }
   }
 
@@ -347,18 +378,14 @@ export class OrderService {
       }
 
       if (productId) {
-        let defaultVariant = await this.prisma.productVariant.findFirst({ where: { product_id: productId, shop_id: shopId } });
+        const defaultVariant = await this.prisma.productVariant.findFirst({
+          where: { product_id: productId, shop_id: shopId, is_active: true },
+          orderBy: { sort_order: 'asc' },
+        });
         if (!defaultVariant) {
-          const product = await this.prisma.product.findFirst({ where: { id: productId, shop_id: shopId } });
-          if (!product) throw new BadRequestException(`Product ${productId} not found`);
-          const sku = product.master_sku?.trim() || `${productId.slice(0, 6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
-          defaultVariant = await this.prisma.productVariant.create({
-            data: {
-              shop_id: shopId, product_id: productId, label: 'Standard', sku,
-              price: product.price, compare_price: product.compare_price, cost_price: product.cost_price,
-              stock_qty: 100, is_active: true,
-            },
-          });
+          throw new BadRequestException(
+            `Product ${productId} has no active variants and cannot be ordered. Please configure inventory first.`,
+          );
         }
         varId = defaultVariant.id;
       }

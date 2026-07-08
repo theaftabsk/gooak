@@ -1,12 +1,12 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { merchantApi, storefrontApi } from '@/lib/api-client';
+import { merchantApi } from '@/lib/api-client';
 import { Select } from '@/components/ui/Shared';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SectionType = 'hero' | 'rich_text' | 'image_text' | 'cards' | 'cta' | 'contact_form' | 'announcement_bar' | 'banner_slider' | 'categories_carousel' | 'products_grid' | 'features_strip' | 'about_section';
+type SectionType = 'hero' | 'rich_text' | 'image_text' | 'cards' | 'cta' | 'contact_form' | 'announcement_bar' | 'banner_slider' | 'products_grid' | 'features_strip' | 'about_section';
 
 interface Section {
   type: SectionType;
@@ -33,7 +33,6 @@ const SECTION_META: Record<SectionType, { label: string; icon: React.ReactNode; 
   contact_form:       { label: 'Contact Form',        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>, desc: 'Customer inquiry form' },
   announcement_bar:   { label: 'Announcement',        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>, desc: 'Top-of-page notice strip' },
   banner_slider:      { label: 'Banner Slider',       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="1" y="5" width="22" height="14" rx="2"/><polyline points="8 5 1 12 8 19"/><polyline points="16 5 23 12 16 19"/></svg>, desc: 'Auto-playing image carousel' },
-  categories_carousel:{ label: 'Categories',          icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>, desc: 'Scrollable category chips' },
   products_grid:      { label: 'Products Grid',       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="2" y="2" width="9" height="9"/><rect x="13" y="2" width="9" height="9"/><rect x="2" y="13" width="9" height="9"/><rect x="13" y="13" width="9" height="9"/></svg>, desc: 'Showcase your top products' },
   features_strip:     { label: 'Features Strip',      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, desc: 'Trust badges & USP highlights' },
   about_section:      { label: 'About Section',       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>, desc: 'Brand story & values' },
@@ -48,7 +47,6 @@ const DEFAULT_SECTION_DATA: Record<SectionType, Record<string, any>> = {
   contact_form:       { title: 'Contact Us', subtitle: '' },
   announcement_bar:   { text: '🌿 FREE SHIPPING FOR ORDERS ABOVE ₹500', active: true },
   banner_slider:      { banners: [] },
-  categories_carousel:{ badge: 'Collections', title: 'Product Categories' },
   products_grid:      { badge: '', title: 'Products', subtitle: '', limit: 8, view_all_url: '/products', view_all_label: 'VIEW ALL →', columns: 4 },
   features_strip:     { items: [] },
   about_section:      { title: 'About Us', content: '', tagline: '', title_font: '', button_label: 'Learn More', button_url: '/about', values: [] },
@@ -462,13 +460,6 @@ function SectionEditor({ section, onChange }: { section: Section; onChange: (s: 
       );
     }
 
-    case 'categories_carousel': return (
-      <FieldGroup>
-        <EdInput label="Badge" value={section.data.badge} onChange={v => set('badge', v)} placeholder="Collections" />
-        <EdInput label="Section Title" value={section.data.title} onChange={v => set('title', v)} placeholder="Product Categories" />
-      </FieldGroup>
-    );
-
     case 'products_grid': return (
       <>
         <FieldGroup label="Labels">
@@ -603,7 +594,6 @@ interface HeaderNavItem { title: string; url: string; children?: HeaderNavChild[
 const DEFAULT_NAV_ITEMS: HeaderNavItem[] = [
   { title: 'Home', url: '/' },
   { title: 'Products', url: '/products' },
-  { title: 'Categories', url: '/categories' },
   { title: 'Collections', url: '/collections' },
   { title: 'About Us', url: '/about' },
   { title: 'Contact Us', url: '/contact' },
@@ -649,7 +639,7 @@ export const CustomizePage: React.FC = () => {
     footer_newsletter_heading: 'Stay in the loop',
     footer_newsletter_placeholder: 'Enter your email',
     footer_col1_title: 'Shop',
-    footer_col1_links: JSON.stringify([{ title: 'Home', url: '/' }, { title: 'All Products', url: '/products' }, { title: 'Categories', url: '/categories' }, { title: 'Collections', url: '/collections' }, { title: 'Search', url: '/search' }]),
+    footer_col1_links: JSON.stringify([{ title: 'Home', url: '/' }, { title: 'All Products', url: '/products' }, { title: 'Collections', url: '/collections' }, { title: 'Search', url: '/search' }]),
     footer_col2_title: 'Account',
     footer_col2_links: JSON.stringify([{ title: 'Sign In', url: '/login' }, { title: 'Create Account', url: '/register' }, { title: 'My Orders', url: '/account/orders' }, { title: 'Wishlist', url: '/wishlist' }, { title: 'Track Order', url: '/track-order' }]),
     footer_col3_title: 'Information',
@@ -681,16 +671,17 @@ export const CustomizePage: React.FC = () => {
     Promise.all([
       merchantApi.getPageContent(),
       merchantApi.getCollections().catch(() => [] as any[]),
-      storefrontApi.getCategories().catch(() => [] as any[]),
-    ]).then(([pageData, collections, categories]: [any, any[], any[]]) => {
+    ]).then(([pageData, collections]: [any, any[]]) => {
       let navItems: HeaderNavItem[] = DEFAULT_NAV_ITEMS;
       if (pageData?.content?.navbar_menu) {
-        try { navItems = JSON.parse(pageData.content.navbar_menu); } catch {}
+        try {
+          const parsed: HeaderNavItem[] = JSON.parse(pageData.content.navbar_menu);
+          navItems = parsed.filter(item => !item.url?.startsWith('/categories'));
+        } catch {}
       }
       navItems = navItems.map((item: HeaderNavItem) => {
         if (item.children !== undefined) return item;
         if (item.url === '/collections' && collections.length > 0) return { ...item, children: collections.map((c: any) => ({ title: c.name, url: `/collections/${c.slug}` })) };
-        if (item.url === '/categories' && categories.length > 0) return { ...item, children: categories.map((c: any) => ({ title: c.name, url: `/categories/${c.slug}` })) };
         return item;
       });
       setHeaderNavItems(navItems);
@@ -714,6 +705,12 @@ export const CustomizePage: React.FC = () => {
           const n = { ...prev };
           const keys = Object.keys(prev) as (keyof typeof prev)[];
           keys.forEach(k => { if (tc[k] !== undefined && tc[k] !== null) (n as any)[k] = tc[k]; });
+          if (n.footer_col1_links) {
+            try {
+              const links = JSON.parse(n.footer_col1_links).filter((l: any) => !l.url?.startsWith('/categories'));
+              n.footer_col1_links = JSON.stringify(links);
+            } catch {}
+          }
           return n;
         });
       }
