@@ -2,8 +2,6 @@ export type MerchantTab =
   | 'overview' 
   | 'products' 
   | 'categories' 
-  | 'brands' 
-  | 'collections' 
   | 'inventory' 
   | 'orders' 
   | 'returns' 

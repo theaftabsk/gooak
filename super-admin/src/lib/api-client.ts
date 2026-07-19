@@ -8,7 +8,7 @@
  * All requests carry a super_admin JWT in the Authorization header.
  */
 
-const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'posix.digital';
+const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'gooak.shop';
 
 const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {

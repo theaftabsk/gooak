@@ -20,6 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@/pages/*": ["./src/views/*"],
       "@oaksol/api-client": ["./src/lib/api-client.ts"],
       "@oaksol/shared-ui": ["./src/shared-ui/index.ts"]
     }

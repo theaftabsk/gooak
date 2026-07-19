@@ -121,21 +121,21 @@ PORT=5005
 JWT_SECRET="oaksol-commerce-jwt-secret-key-replace-in-production"
 
 # SaaS platform root domain
-PLATFORM_DOMAIN="posix.digital"
+PLATFORM_DOMAIN="gooak.shop"
   `);
 
   ensureEnv('merchant-dashboard/.env', `
-NEXT_PUBLIC_PLATFORM_DOMAIN=posix.digital
+NEXT_PUBLIC_PLATFORM_DOMAIN=gooak.shop
 NEXT_PUBLIC_API_URL=http://localhost:5005/api/v1
   `);
 
   ensureEnv('storefront-live/.env', `
-NEXT_PUBLIC_PLATFORM_DOMAIN=posix.digital
+NEXT_PUBLIC_PLATFORM_DOMAIN=gooak.shop
 NEXT_PUBLIC_API_URL=http://localhost:5005/api/v1
   `);
 
   ensureEnv('super-admin/.env', `
-NEXT_PUBLIC_PLATFORM_DOMAIN=posix.digital
+NEXT_PUBLIC_PLATFORM_DOMAIN=gooak.shop
 NEXT_PUBLIC_API_URL=http://localhost:5005/api/v1
   `);
 

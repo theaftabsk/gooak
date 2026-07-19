@@ -32,7 +32,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       <div className="auth-card">
         <div className="auth-brand">
           <div className="auth-logo"><Icons.Logo /></div>
-          <h2>OakSol Platform</h2>
+          <h2>GoOak Platform</h2>
           <p>Super Admin — Platform Registry</p>
         </div>
         <form onSubmit={handleSubmit} className="auth-form">

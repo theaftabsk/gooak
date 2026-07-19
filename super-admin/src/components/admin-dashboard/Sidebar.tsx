@@ -24,7 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingRequestsCount, onLogout
       <div className="sidebar-brand">
         <div className="brand-icon super"><Icons.Logo /></div>
         <div>
-          <strong>OakSol Console</strong>
+          <strong>GoOak Console</strong>
           <span>Platform Admin</span>
         </div>
       </div>

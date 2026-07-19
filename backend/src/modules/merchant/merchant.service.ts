@@ -2134,4 +2134,346 @@ export class MerchantService {
       take: 100,
     });
   }
+
+  // ─── RETURNS SYSTEM CRUD ────────────────────────────────────────────────────
+  async getReturns(shopId: string) {
+    return this.prisma.orderReturn.findMany({
+      where: { shop_id: shopId },
+      include: {
+        order: {
+          select: {
+            order_number: true,
+            shipping_address: true,
+          }
+        },
+        items: {
+          include: {
+            variant: true
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  async getReturnById(shopId: string, id: string) {
+    const orderReturn = await this.prisma.orderReturn.findFirst({
+      where: { id, shop_id: shopId },
+      include: {
+        order: {
+          select: {
+            order_number: true,
+            shipping_address: true,
+          }
+        },
+        items: {
+          include: {
+            variant: true
+          }
+        },
+        logs: {
+          orderBy: { created_at: 'asc' }
+        }
+      }
+    });
+    if (!orderReturn) throw new NotFoundException('Return request not found');
+    return orderReturn;
+  }
+
+  async createReturn(shopId: string, dto: {
+    order_id: string;
+    reason: string;
+    images?: string[];
+    customer_note?: string;
+    items: Array<{ variant_id: string; qty: number; price: number }>;
+  }) {
+    const orderReturn = await this.prisma.orderReturn.create({
+      data: {
+        shop_id: shopId,
+        order_id: dto.order_id,
+        reason: dto.reason,
+        images: dto.images || [],
+        customer_note: dto.customer_note || null,
+        status: 'requested',
+        items: {
+          create: dto.items.map(item => ({
+            shop_id: shopId,
+            variant_id: item.variant_id,
+            qty: item.qty,
+            price: item.price
+          }))
+        },
+        logs: {
+          create: {
+            shop_id: shopId,
+            status: 'requested',
+            note: 'Return request submitted by customer',
+            changed_by: 'customer'
+          }
+        }
+      },
+      include: { items: true, logs: true }
+    });
+
+    return orderReturn;
+  }
+
+  async updateReturnStatus(shopId: string, id: string, dto: {
+    status: string;
+    staff_note?: string;
+    refund_amount?: number;
+    refund_method?: string;
+  }) {
+    const existing = await this.getReturnById(shopId, id);
+
+    const updateData: any = {
+      status: dto.status,
+      staff_note: dto.staff_note !== undefined ? dto.staff_note : undefined,
+    };
+
+    if (dto.status === 'refunded') {
+      updateData.refund_amount = dto.refund_amount !== undefined ? dto.refund_amount : undefined;
+      updateData.refund_method = dto.refund_method !== undefined ? dto.refund_method : undefined;
+      updateData.refund_date = new Date();
+    }
+
+    const updated = await this.prisma.orderReturn.update({
+      where: { id },
+      data: {
+        ...updateData,
+        logs: {
+          create: {
+            shop_id: shopId,
+            status: dto.status,
+            note: dto.staff_note || `Status updated to ${dto.status}`,
+            changed_by: 'admin'
+          }
+        }
+      }
+    });
+
+    await this.prisma.order.update({
+      where: { id: existing.order_id },
+      data: { 
+        return_status: dto.status,
+        ...(dto.status === 'refunded' ? { status: 'refunded' } : {}) 
+      }
+    });
+
+    return updated;
+  }
+
+  // ─── INVOICES SYSTEM CRUD & AUTOMATIC GENERATION ────────────────────────────
+  async getInvoices(shopId: string) {
+    return this.prisma.orderInvoice.findMany({
+      where: { shop_id: shopId },
+      include: {
+        items: true,
+        logs: { orderBy: { created_at: 'asc' } }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  async getInvoiceById(shopId: string, id: string) {
+    const invoice = await this.prisma.orderInvoice.findFirst({
+      where: { id, shop_id: shopId },
+      include: {
+        items: true,
+        logs: { orderBy: { created_at: 'asc' } }
+      }
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+    return invoice;
+  }
+
+  async createInvoiceFromOrder(shopId: string, orderId: string, txClient?: any) {
+    const prisma = txClient || this.prisma;
+
+    // Check if invoice already exists
+    const existing = await prisma.orderInvoice.findFirst({
+      where: { shop_id: shopId, order_id: orderId },
+      include: { items: true, logs: true }
+    });
+    if (existing) {
+      return existing;
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId, shop_id: shopId },
+      include: { items: true }
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    // Retrieve shop settings for GSTIN, PAN, and company_name snapshots
+    const settings = await prisma.setting.findMany({
+      where: { shop_id: shopId }
+    });
+    const settingsMap = new Map(settings.map((s: any) => [s.key, s.value]));
+    
+    const shop = await prisma.shop.findUnique({
+      where: { id: shopId }
+    });
+
+    const companyName = String(settingsMap.get('company_name') || shop?.name || 'GoOak Merchant');
+    const gstNumber = settingsMap.get('gst_number') ? String(settingsMap.get('gst_number')) : null;
+    const pan = settingsMap.get('pan') ? String(settingsMap.get('pan')) : null;
+    const storeState = String(settingsMap.get('store_state') || 'West Bengal').toLowerCase().trim();
+
+    // Parse billing and shipping address states
+    const shippingAddr: any = order.shipping_address || {};
+    const billingAddr: any = order.billing_address || shippingAddr;
+    const billingState = (billingAddr.state || billingAddr.city || '').toLowerCase().trim();
+
+    // Determine GST division (CGST/SGST vs IGST)
+    const isIntraState = billingState === '' || billingState === storeState;
+    const taxAmount = Number(order.tax_amount || 0);
+
+    let cgst = 0;
+    let sgst = 0;
+    let igst = 0;
+
+    if (isIntraState) {
+      cgst = taxAmount / 2;
+      sgst = taxAmount / 2;
+    } else {
+      igst = taxAmount;
+    }
+
+    // Resolve sequential invoice number
+    const count = await prisma.orderInvoice.count({
+      where: { shop_id: shopId }
+    });
+    const seq = String(count + 1).padStart(6, '0');
+    const invoiceNumber = `INV-2026-${seq}`;
+
+    // Create invoice, items, and log transactionally
+    const invoice = await prisma.orderInvoice.create({
+      data: {
+        shop_id: shopId,
+        order_id: orderId,
+        invoice_number: invoiceNumber,
+        status: order.status === 'delivered' ? 'paid' : 'issued',
+        issue_date: new Date(),
+        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // due in 7 days
+        paid_at: order.status === 'delivered' ? new Date() : null,
+        subtotal: order.subtotal,
+        discount_amount: order.discount_amount,
+        shipping_amount: order.shipping_amount,
+        tax_amount: order.tax_amount,
+        total: order.total,
+        cgst,
+        sgst,
+        igst,
+        tax_breakdown: {
+          cgst_rate: isIntraState ? '9%' : '0%',
+          sgst_rate: isIntraState ? '9%' : '0%',
+          igst_rate: isIntraState ? '0%' : '18%'
+        },
+        currency: shop?.currency || 'INR',
+        currency_symbol: shop?.currency === 'BDT' ? '৳' : shop?.currency === 'USD' ? '$' : '₹',
+        customer_name: shippingAddr.full_name || 'Customer',
+        customer_email: shippingAddr.email || 'customer@gmail.com',
+        billing_address: billingAddr,
+        shipping_address: shippingAddr,
+        merchant_company_name: companyName,
+        merchant_gst_number: gstNumber,
+        merchant_pan: pan,
+        payment_method: order.payment_method || 'Razorpay',
+        transaction_id: order.order_number, // default reference
+        items: {
+          create: order.items.map((item: any) => {
+            const itemTaxVal = Number(item.line_total || 0) * 0.18; // default 18% calculation snapshot
+            let itemCgst = 0;
+            let itemSgst = 0;
+            let itemIgst = 0;
+            if (isIntraState) {
+              itemCgst = itemTaxVal / 2;
+              itemSgst = itemTaxVal / 2;
+            } else {
+              itemIgst = itemTaxVal;
+            }
+
+            const snap: any = item.product_snap || {};
+            return {
+              shop_id: shopId,
+              product_name: snap.name || 'Product Item',
+              sku: snap.sku || null,
+              qty: item.qty,
+              unit_price: item.unit_price,
+              tax_rate: 18,
+              cgst: itemCgst,
+              sgst: itemSgst,
+              igst: itemIgst,
+              total: item.line_total
+            };
+          })
+        },
+        logs: {
+          create: {
+            shop_id: shopId,
+            action: 'created',
+            note: `Invoice automatically generated from order #${order.order_number}`,
+            changed_by: 'system'
+          }
+        }
+      },
+      include: { items: true, logs: true }
+    });
+
+    return invoice;
+  }
+
+  async updateInvoiceStatus(shopId: string, id: string, status: string) {
+    const invoice = await this.getInvoiceById(shopId, id);
+    return this.prisma.orderInvoice.update({
+      where: { id },
+      data: {
+        status,
+        paid_at: status === 'paid' ? new Date() : undefined,
+        logs: {
+          create: {
+            shop_id: shopId,
+            action: status === 'paid' ? 'paid' : 'cancelled',
+            note: `Invoice status updated to ${status}`,
+            changed_by: 'admin'
+          }
+        }
+      }
+    });
+  }
+
+  async logInvoicePrint(shopId: string, id: string) {
+    const invoice = await this.getInvoiceById(shopId, id);
+    return this.prisma.orderInvoice.update({
+      where: { id },
+      data: {
+        logs: {
+          create: {
+            shop_id: shopId,
+            action: 'printed',
+            note: `Invoice document printed/previewed`,
+            changed_by: 'admin'
+          }
+        }
+      }
+    });
+  }
+
+  async emailInvoice(shopId: string, id: string) {
+    const invoice = await this.getInvoiceById(shopId, id);
+    return this.prisma.orderInvoice.update({
+      where: { id },
+      data: {
+        logs: {
+          create: {
+            shop_id: shopId,
+            action: 'emailed',
+            note: `Simulated email transmission of PDF copy to ${invoice.customer_email}`,
+            changed_by: 'admin'
+          }
+        }
+      }
+    });
+  }
 }

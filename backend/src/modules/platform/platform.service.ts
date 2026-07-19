@@ -121,7 +121,7 @@ export class PlatformService {
       },
     });
 
-    const platformDomain = process.env.PLATFORM_DOMAIN || 'posix.digital';
+    const platformDomain = process.env.PLATFORM_DOMAIN || 'gooak.shop';
     const isLocal =
       platformDomain === 'localhost' || platformDomain.includes('localhost');
     const storeDomain = isLocal
@@ -578,7 +578,7 @@ export class PlatformService {
       data: { status: 'approved' },
     });
 
-    const platformDomain = process.env.PLATFORM_DOMAIN || 'posix.digital';
+    const platformDomain = process.env.PLATFORM_DOMAIN || 'gooak.shop';
     const isLocal =
       platformDomain === 'localhost' || platformDomain.includes('localhost');
     const scheme = isLocal ? 'http' : 'https';
@@ -749,7 +749,7 @@ export class PlatformService {
   }
 
   private formatShopDomains(domains: any[], slug: string) {
-    const platformDomain = process.env.PLATFORM_DOMAIN || 'posix.digital';
+    const platformDomain = process.env.PLATFORM_DOMAIN || 'gooak.shop';
     const isLocal =
       platformDomain === 'localhost' || platformDomain.includes('localhost');
     const storeSuffix = isLocal ? 'localhost' : platformDomain;
