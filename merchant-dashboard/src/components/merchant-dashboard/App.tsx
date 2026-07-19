@@ -15,6 +15,7 @@ import { CategoriesPage } from './pages/CategoriesPage/index';
 import { OrdersPage } from './pages/OrdersPage/index';
 import { OrderDetailPage } from './pages/OrderDetailPage/index';
 import { InventoryPage } from './pages/InventoryPage/index';
+import { ReturnsPage } from './pages/ReturnsPage/index';
 import { SettingsPage } from './pages/SettingsPage/index';
 import { PagesPage } from './pages/PagesPage/index';
 import { BannerPage } from './pages/BannerPage/index';
@@ -142,8 +143,6 @@ function MerchantDashboardInner() {
     if (path.endsWith('/settings')) return 'settings';
     if (path.endsWith('/pages')) return 'pages';
 
-    if (path.endsWith('/brands')) return 'brands';
-    if (path.endsWith('/collections')) return 'collections';
     if (path.endsWith('/returns')) return 'returns';
     if (path.endsWith('/invoices')) return 'invoices';
     if (path.endsWith('/customers')) return 'customers';
@@ -201,7 +200,7 @@ function MerchantDashboardInner() {
   });
 
   useEffect(() => {
-    if (['products', 'categories', 'brands', 'collections', 'inventory'].includes(currentTab)) {
+    if (['products', 'categories', 'inventory'].includes(currentTab)) {
       setExpandedGroups(prev => ({ ...prev, catalog: true }));
     }
     if (['orders', 'returns', 'invoices'].includes(currentTab)) {
@@ -222,6 +221,8 @@ function MerchantDashboardInner() {
     } else if (location.pathname.startsWith('/admin')) {
       const rest = location.pathname.substring(6); // remove '/admin'
       navigate('/dashboard' + rest, { replace: true });
+    } else if (location.pathname.endsWith('/brands') || location.pathname.endsWith('/collections')) {
+      navigate('/dashboard', { replace: true });
     }
   }, [location.pathname, navigate]);
 
@@ -538,14 +539,6 @@ function MerchantDashboardInner() {
                       <span className="sidebar-tree-indent">├</span>
                       <span className="sidebar-nav-item-text">Categories</span>
                     </span>
-                    <span className={currentTab === 'brands' ? 'active' : ''} onClick={() => setCurrentTab('brands')} title="Brands">
-                      <span className="sidebar-tree-indent">├</span>
-                      <span className="sidebar-nav-item-text">Brands</span>
-                    </span>
-                    <span className={currentTab === 'collections' ? 'active' : ''} onClick={() => setCurrentTab('collections')} title="Collections">
-                      <span className="sidebar-tree-indent">├</span>
-                      <span className="sidebar-nav-item-text">Collections</span>
-                    </span>
                     <span className={currentTab === 'inventory' ? 'active' : ''} onClick={() => setCurrentTab('inventory')} title="Inventory">
                       <span className="sidebar-tree-indent">└</span>
                       <span className="sidebar-nav-item-text">Inventory</span>
@@ -817,31 +810,9 @@ function MerchantDashboardInner() {
                 )
               )}
 
-              {currentTab === 'brands' && (
-                <PlaceholderPage 
-                  tabName="Brands" 
-                  parentName="Catalog" 
-                  description="Manage and catalog product brands, establish relationships, and design custom brand filters for customer navigation." 
-                />
-              )}
-
-              {currentTab === 'collections' && (
-                <PlaceholderPage 
-                  tabName="Collections" 
-                  parentName="Catalog" 
-                  description="Group products into custom, curated collections (e.g. Summer Collection, Organic Formulations) to showcase on the storefront." 
-                />
-              )}
-
               {currentTab === 'inventory' && <InventoryPage />}
 
-              {currentTab === 'returns' && (
-                <PlaceholderPage 
-                  tabName="Returns" 
-                  parentName="Orders" 
-                  description="Manage and authorize customer returns, track package return shipments, and issue refunds directly to payment methods." 
-                />
-              )}
+              {currentTab === 'returns' && <ReturnsPage />}
 
               {currentTab === 'invoices' && (
                 <PlaceholderPage 

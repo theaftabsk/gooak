@@ -36,7 +36,7 @@ function ensureEnvFile() {
       'JWT_SECRET="oaksol-commerce-jwt-secret-key-replace-in-production"',
       '',
       '# SaaS platform root domain',
-      'PLATFORM_DOMAIN="posix.digital"',
+      'PLATFORM_DOMAIN="gooak.shop"',
       '',
     ].join('\n');
     fs.writeFileSync(ENV_PATH, defaultEnv, 'utf-8');
@@ -158,8 +158,28 @@ function startDevelopmentServer() {
 async function main() {
   console.log('\n🚀 Starting Oak Commerce Backend Bootstrap...\n');
   ensureEnvFile();
-  startDockerDatabase();
-  await waitForDatabase();
+
+  const dbUrl = process.env.DATABASE_URL || '';
+  const portMatch = dbUrl.match(/:(\d+)\//);
+  const dbPort = portMatch ? parseInt(portMatch[1], 10) : 5432;
+  const hostMatch = dbUrl.match(/@([^:/]+)/);
+  const dbHost = hostMatch ? hostMatch[1] : 'localhost';
+
+  // Check if database is already running (e.g. local PostgreSQL via pgAdmin)
+  const isOnline = await checkDbPort(dbPort, dbHost);
+  if (isOnline) {
+    log(`Database port ${dbPort} is already active. Skipping Docker Compose.`, 'success');
+  } else {
+    // Only try starting docker if it is the default docker port 5433
+    if (dbPort === 5433) {
+      startDockerDatabase();
+      await waitForDatabase(dbPort, dbHost);
+    } else {
+      log(`Database port ${dbPort} is offline. Please make sure your database is running.`, 'error');
+      process.exit(1);
+    }
+  }
+
   setupAndSeedDatabase();
   console.log(
     '\n🎉 Bootstrap process finished! Starting NestJS application server.\n',

@@ -38,7 +38,7 @@ export class TenantMiddleware implements NestMiddleware {
       return;
     }
 
-    const platformDomain = process.env.PLATFORM_DOMAIN || 'posix.digital';
+    const platformDomain = process.env.PLATFORM_DOMAIN || 'gooak.shop';
 
     // Bypass for the SaaS platform landing page domain only
     if (hostname === platformDomain || hostname === `www.${platformDomain}`) {
@@ -63,7 +63,7 @@ export class TenantMiddleware implements NestMiddleware {
       });
       if (shop) shopSlug = shop.slug;
     } else {
-      // 2. Subdomain slug lookup (e.g. "nature-glow.localhost" or "nature-glow.posix.digital")
+      // 2. Subdomain slug lookup (e.g. "nature-glow.localhost" or "nature-glow.gooak.shop")
       const isSubdomain =
         hostname.endsWith(`.${platformDomain}`) || hostname.endsWith('.localhost');
 

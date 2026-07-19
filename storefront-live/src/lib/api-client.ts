@@ -9,11 +9,11 @@
  * Tenant is resolved by the backend via the X-Tenant-Domain header or subdomain.
  */
 
-const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'posix.digital';
+const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'gooak.shop';
 
 // Returns the value to send as X-Tenant-Domain header.
 // - plain localhost:  slug comes from the first URL path segment → "amir.localhost"
-// - subdomain:        use the hostname as-is → "amir.posix.digital"
+// - subdomain:        use the hostname as-is → "amir.gooak.shop"
 // - custom domain:    use the hostname as-is → "www.mystore.com"
 function getTenantDomain(): string {
   if (typeof window === 'undefined') return '';

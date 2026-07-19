@@ -24,7 +24,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       <header className="page-header">
         <div>
           <h2>Platform Dashboard</h2>
-          <p className="header-sub">OakSol SaaS Commerce — Platform Overview</p>
+          <p className="header-sub">GoOak SaaS Commerce — Platform Overview</p>
         </div>
         <button className="btn-primary" onClick={() => navigate('/onboard')}>
           <Icons.Plus /> New Store

@@ -301,6 +301,57 @@ export class MerchantController {
     }
   }
 
+  // ─── Returns ──────────────────────────────────────────────────────────────
+
+  @Get('returns')
+  async getReturns(@Req() req: Request & { shopId?: string }) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getReturns(shopId);
+  }
+
+  @Get('returns/:id')
+  async getReturnById(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getReturnById(shopId, id);
+  }
+
+  @Post('returns')
+  async createReturn(
+    @Req() req: Request & { shopId?: string },
+    @Body() dto: {
+      order_id: string;
+      reason: string;
+      images?: string[];
+      customer_note?: string;
+      items: Array<{ variant_id: string; qty: number; price: number }>;
+    },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.createReturn(shopId, dto);
+  }
+
+  @Patch('returns/:id/status')
+  async updateReturnStatus(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+    @Body() dto: {
+      status: string;
+      staff_note?: string;
+      refund_amount?: number;
+      refund_method?: string;
+    },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.updateReturnStatus(shopId, id, dto);
+  }
+
   // ─── Banners ──────────────────────────────────────────────────────────────
 
   @Get('banners')
@@ -740,4 +791,64 @@ export class MerchantController {
 
   // ─── Inventory ────────────────────────────────────────────────────────────
   // Note: InventoryController (in merchant module) serves /api/v1/merchant/inventory routes.
+
+  // ─── Invoices ─────────────────────────────────────────────────────────────
+
+  @Get('invoices')
+  async getInvoices(@Req() req: Request & { shopId?: string }) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getInvoices(shopId);
+  }
+
+  @Get('invoices/:id')
+  async getInvoiceById(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getInvoiceById(shopId, id);
+  }
+
+  @Post('orders/:orderId/invoice')
+  async createInvoice(
+    @Req() req: Request & { shopId?: string },
+    @Param('orderId') orderId: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.createInvoiceFromOrder(shopId, orderId);
+  }
+
+  @Patch('invoices/:id/status')
+  async updateInvoiceStatus(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+    @Body() dto: { status: string },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.updateInvoiceStatus(shopId, id, dto.status);
+  }
+
+  @Post('invoices/:id/print')
+  async logInvoicePrint(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.logInvoicePrint(shopId, id);
+  }
+
+  @Post('invoices/:id/email')
+  async emailInvoice(
+    @Req() req: Request & { shopId?: string },
+    @Param('id') id: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.emailInvoice(shopId, id);
+  }
 }

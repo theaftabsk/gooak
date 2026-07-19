@@ -21,7 +21,7 @@ const FIXED_SECTIONS = [
   { key: 'brand_showcase', name: 'Brand Showcase', defaultOrder: 8, defaultSettings: { title: 'Official Brands', style: 'logos_slider' } },
   { key: 'testimonials', name: 'Testimonials', defaultOrder: 9, defaultSettings: { title: 'What Our Customers Say', limit: 3 } },
   { key: 'newsletter', name: 'Newsletter', defaultOrder: 10, defaultSettings: { title: 'Subscribe to our newsletter', subtitle: 'Get 10% off your next purchase', button_text: 'Subscribe' } },
-  { key: 'footer', name: 'Footer', defaultOrder: 11, defaultSettings: { copyright_text: '© 2026 Oak Solutions. All rights reserved.', support_email: 'support@oaksol.in', support_phone: '1234567890' } }
+  { key: 'footer', name: 'Footer', defaultOrder: 11, defaultSettings: { copyright_text: '© 2026 GoOak Shop. All rights reserved.', support_email: 'support@gooak.shop', support_phone: '1234567890' } }
 ];
 
 export const HomeSectionsPage: React.FC = () => {

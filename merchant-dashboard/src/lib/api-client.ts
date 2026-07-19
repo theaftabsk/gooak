@@ -8,7 +8,7 @@
  *   /api/v1/payments/*    — payment gateways
  */
 
-const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'posix.digital';
+const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'gooak.shop';
 
 const getApiBaseUrl = (tenantDomain?: string): string => {
   if (typeof window !== 'undefined') {
@@ -317,6 +317,34 @@ export const merchantApi = {
   // Backups
   getJsonBackup: () => request<any>('/merchant/backup/json'),
   getSqlBackup: () => request<any>('/merchant/backup/sql'),
+
+  // Returns Management
+  getReturns: () => request<any[]>('/merchant/returns'),
+  getReturnById: (id: string) => request<any>(`/merchant/returns/${id}`),
+  createReturn: (dto: {
+    order_id: string;
+    reason: string;
+    images?: string[];
+    customer_note?: string;
+    items: Array<{ variant_id: string; qty: number; price: number }>;
+  }) =>
+    request<any>('/merchant/returns', { method: 'POST', body: JSON.stringify(dto) }),
+  updateReturnStatus: (id: string, dto: {
+    status: string;
+    staff_note?: string;
+    refund_amount?: number;
+    refund_method?: string;
+  }) =>
+    request<any>(`/merchant/returns/${id}/status`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  // Invoices Management
+  getInvoices: () => request<any[]>('/merchant/invoices'),
+  getInvoiceById: (id: string) => request<any>(`/merchant/invoices/${id}`),
+  createInvoice: (orderId: string) => request<any>(`/merchant/orders/${orderId}/invoice`, { method: 'POST' }),
+  updateInvoiceStatus: (id: string, status: string) =>
+    request<any>(`/merchant/invoices/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  logInvoicePrint: (id: string) => request<any>(`/merchant/invoices/${id}/print`, { method: 'POST' }),
+  emailInvoice: (id: string) => request<any>(`/merchant/invoices/${id}/email`, { method: 'POST' }),
 };
 
 // ─── Platform APIs (super-admin only, no tenant context) ──────────────────────

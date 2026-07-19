@@ -69,7 +69,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
             const port = host.split(':')[1] ? `:${host.split(':')[1]}` : '';
             window.location.href = `${protocol}//localhost${port}`;
           } else {
-            const platformDomain = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || 'posix.digital';
+            const platformDomain = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || 'gooak.shop';
             window.location.href = `${protocol}//${platformDomain}`;
           }
         }

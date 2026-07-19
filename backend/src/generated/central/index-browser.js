@@ -788,6 +788,100 @@ exports.Prisma.HomeSectionScalarFieldEnum = {
   created_at: 'created_at'
 };
 
+exports.Prisma.OrderReturnScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  order_id: 'order_id',
+  status: 'status',
+  reason: 'reason',
+  images: 'images',
+  customer_note: 'customer_note',
+  staff_note: 'staff_note',
+  refund_amount: 'refund_amount',
+  refund_method: 'refund_method',
+  refund_date: 'refund_date',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.OrderReturnItemScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  order_return_id: 'order_return_id',
+  variant_id: 'variant_id',
+  qty: 'qty',
+  price: 'price'
+};
+
+exports.Prisma.OrderReturnLogScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  order_return_id: 'order_return_id',
+  status: 'status',
+  note: 'note',
+  changed_by: 'changed_by',
+  created_at: 'created_at'
+};
+
+exports.Prisma.OrderInvoiceScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  order_id: 'order_id',
+  invoice_number: 'invoice_number',
+  status: 'status',
+  issue_date: 'issue_date',
+  due_date: 'due_date',
+  paid_at: 'paid_at',
+  subtotal: 'subtotal',
+  discount_amount: 'discount_amount',
+  shipping_amount: 'shipping_amount',
+  tax_amount: 'tax_amount',
+  total: 'total',
+  cgst: 'cgst',
+  sgst: 'sgst',
+  igst: 'igst',
+  tax_breakdown: 'tax_breakdown',
+  currency: 'currency',
+  currency_symbol: 'currency_symbol',
+  customer_name: 'customer_name',
+  customer_email: 'customer_email',
+  billing_address: 'billing_address',
+  shipping_address: 'shipping_address',
+  merchant_company_name: 'merchant_company_name',
+  merchant_gst_number: 'merchant_gst_number',
+  merchant_pan: 'merchant_pan',
+  payment_method: 'payment_method',
+  transaction_id: 'transaction_id',
+  pdf_url: 'pdf_url',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.OrderInvoiceItemScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  order_invoice_id: 'order_invoice_id',
+  product_name: 'product_name',
+  sku: 'sku',
+  qty: 'qty',
+  unit_price: 'unit_price',
+  tax_rate: 'tax_rate',
+  cgst: 'cgst',
+  sgst: 'sgst',
+  igst: 'igst',
+  total: 'total'
+};
+
+exports.Prisma.OrderInvoiceLogScalarFieldEnum = {
+  id: 'id',
+  shop_id: 'shop_id',
+  order_invoice_id: 'order_invoice_id',
+  action: 'action',
+  note: 'note',
+  changed_by: 'changed_by',
+  created_at: 'created_at'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -869,7 +963,13 @@ exports.Prisma.ModelName = {
   MediaLibrary: 'MediaLibrary',
   Faq: 'Faq',
   Testimonial: 'Testimonial',
-  HomeSection: 'HomeSection'
+  HomeSection: 'HomeSection',
+  OrderReturn: 'OrderReturn',
+  OrderReturnItem: 'OrderReturnItem',
+  OrderReturnLog: 'OrderReturnLog',
+  OrderInvoice: 'OrderInvoice',
+  OrderInvoiceItem: 'OrderInvoiceItem',
+  OrderInvoiceLog: 'OrderInvoiceLog'
 };
 
 /**

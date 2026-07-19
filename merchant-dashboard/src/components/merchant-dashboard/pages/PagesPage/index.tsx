@@ -33,7 +33,7 @@ export const PagesPage: React.FC = () => {
       if (!data || data.length === 0) {
         const defaults = [
           { title: 'About Us', slug: 'about', content: 'Welcome to our store. We provide high-quality formulations.', status: 'published' },
-          { title: 'Contact Us', slug: 'contact', content: 'Get in touch with us at contact@oaksol.in', status: 'published' },
+          { title: 'Contact Us', slug: 'contact', content: 'Get in touch with us at contact@gooak.shop', status: 'published' },
           { title: 'Privacy Policy', slug: 'privacy', content: 'Your data safety is our highest priority.', status: 'published' },
           { title: 'Terms & Conditions', slug: 'terms', content: 'Standard terms of service apply to all users.', status: 'published' }
         ];

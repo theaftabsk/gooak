@@ -50,23 +50,23 @@ NODE_ENV=development
 PORT=5001
 DATABASE_URL="postgresql://postgres:local_password_123@localhost:5433/oak_commerce?schema=public"
 JWT_SECRET="oaksol-commerce-jwt-secret-key-replace-in-production"
-PLATFORM_DOMAIN="posix.digital"
+PLATFORM_DOMAIN="gooak.shop"
 PLATFORM_ADMIN_EMAIL="admin@oaksol.in"
 PLATFORM_ADMIN_PASSWORD="admin1234"
 `);
 
   ensureEnv('merchant-dashboard/.env.local', `
-NEXT_PUBLIC_PLATFORM_DOMAIN=posix.digital
+NEXT_PUBLIC_PLATFORM_DOMAIN=gooak.shop
 NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 `);
 
   ensureEnv('storefront-live/.env.local', `
-NEXT_PUBLIC_PLATFORM_DOMAIN=posix.digital
+NEXT_PUBLIC_PLATFORM_DOMAIN=gooak.shop
 NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 `);
 
   ensureEnv('super-admin/.env.local', `
-NEXT_PUBLIC_PLATFORM_DOMAIN=posix.digital
+NEXT_PUBLIC_PLATFORM_DOMAIN=gooak.shop
 NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 `);
 

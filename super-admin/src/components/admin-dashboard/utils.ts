@@ -13,12 +13,12 @@ export function copyText(text: string, label = 'Copied!') {
 }
 
 export function genPassword(slug: string) {
-  return `${slug}@OakSol${new Date().getFullYear()}`;
+  return `${slug}@GoOak${new Date().getFullYear()}`;
 }
 
 // ─── Platform URL helpers (reads NEXT_PUBLIC_PLATFORM_DOMAIN) ─────────────────
 const _platformDomain = () =>
-  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'posix.digital';
+  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_PLATFORM_DOMAIN) || 'gooak.shop';
 
 export function storeUrl(slug: string): string {
   return `http://${slug.toLowerCase()}.localhost:3001`;
