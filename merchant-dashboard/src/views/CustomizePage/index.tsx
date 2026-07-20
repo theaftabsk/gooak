@@ -316,6 +316,9 @@ const AddItemBtn: React.FC<{ onClick: () => void; label: string }> = ({ onClick,
 // ─── Section editor ────────────────────────────────────────────────────────────
 
 function SectionEditor({ section, onChange }: { section: Section; onChange: (s: Section) => void }) {
+  if (section && !section.data) {
+    section.data = {};
+  }
   const set = (key: string, val: any) => onChange({ ...section, data: { ...section.data, [key]: val } });
 
   switch (section.type) {
@@ -1100,14 +1103,14 @@ export const CustomizePage: React.FC = () => {
                               <EdInput label="URL" value={item.url} onChange={v => update({ ...item, url: v })} placeholder="/products" />
                               <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                  <Label>Dropdown {children.length > 0 && `(${children.length})`}</Label>
+                                  <Label>Dropdown {children.filter(Boolean).length > 0 && `(${children.filter(Boolean).length})`}</Label>
                                   <button onClick={() => { update({ ...item, children: [...children, { title: '', url: '' }] }); setExpandedChildIdx(children.length); }}
                                     style={{ fontSize: '0.68rem', color: T.accent, background: T.accentDim, border: `1px solid ${T.accent}`, borderRadius: 5, padding: '2px 7px', cursor: 'pointer', fontWeight: 600 }}>
                                     + Add
-                                  </button>
+                                    </button>
                                 </div>
-                                {children.length === 0 && <div style={{ fontSize: '0.68rem', color: T.dim, fontStyle: 'italic', marginBottom: 6 }}>No sub-items — opens as direct link</div>}
-                                {children.map((child, ci) => {
+                                {children.filter(Boolean).length === 0 && <div style={{ fontSize: '0.68rem', color: T.dim, fontStyle: 'italic', marginBottom: 6 }}>No sub-items — opens as direct link</div>}
+                                {children.filter(Boolean).map((child, ci) => {
                                   const isChildOpen = expandedChildIdx === ci;
                                   return (
                                     <div key={ci} style={{ border: `1px solid ${isChildOpen ? T.blue : T.border}`, borderRadius: 8, marginBottom: 4, background: isChildOpen ? T.blueDim : T.inputBg, overflow: 'hidden' }}>
@@ -1405,7 +1408,7 @@ export const CustomizePage: React.FC = () => {
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: '0.8rem', fontWeight: 600, color: isSelected ? T.accent : T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.15s' }}>
-                            {s.data.title || meta?.label}
+                            {s.data?.title || (s as any).title || (s as any).content || meta?.label || 'Text Section'}
                           </div>
                           <div style={{ fontSize: '0.65rem', color: T.dim, marginTop: 1 }}>{meta?.label}</div>
                         </div>
