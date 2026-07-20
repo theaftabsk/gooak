@@ -53,11 +53,11 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
   }, [tenantSlug]);
 
   useEffect(() => {
-    if (['/products', '/brands', '/collections', '/inventory'].some(p => pathname.startsWith(p)))
+    if (['/products', '/collections', '/inventory'].some(p => pathname.startsWith(p)))
       setExpandedGroups(g => ({ ...g, catalog: true }));
     if (['/orders', '/returns', '/invoices'].some(p => pathname.startsWith(p)))
       setExpandedGroups(g => ({ ...g, orders: true }));
-    if (['/customers', '/groups', '/reviews'].some(p => pathname.startsWith(p)))
+    if (['/customers', '/reviews'].some(p => pathname.startsWith(p)))
       setExpandedGroups(g => ({ ...g, customers: true }));
     if (['/pages', '/blog', '/media', '/faq', '/testimonials'].some(p => pathname.startsWith(p)))
       setExpandedGroups(g => ({ ...g, content: true }));
@@ -162,8 +162,8 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
       key: 'catalog',
       label: 'Catalog',
       icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
-      paths: ['/products', '/brands', '/collections', '/inventory'],
-      items: [['products','Products'],['brands','Brands'],['collections','Collections'],['inventory','Inventory']],
+      paths: ['/products', '/collections', '/inventory'],
+      items: [['products','Products'],['collections','Collections'],['inventory','Inventory']],
     },
     {
       key: 'orders',
@@ -176,8 +176,8 @@ function DashboardShell({ children, tenantSlug }: { children: React.ReactNode; t
       key: 'customers',
       label: 'Customers',
       icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-      paths: ['/customers', '/groups', '/reviews'],
-      items: [['customers','Customers'],['groups','Groups'],['reviews','Reviews']],
+      paths: ['/customers', '/reviews'],
+      items: [['customers','Customers'],['reviews','Reviews']],
     },
     {
       key: 'content',

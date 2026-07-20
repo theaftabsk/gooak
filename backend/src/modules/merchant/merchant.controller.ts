@@ -1029,4 +1029,14 @@ export class MerchantController {
     if (!shopId) throw new BadRequestException('Shop context missing');
     return this.merchantService.emailInvoice(shopId, id);
   }
+
+  @Get('customers')
+  async getCustomers(
+    @Req() req: Request & { shopId?: string },
+    @Query('search') search?: string,
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.merchantService.getCustomers(shopId, search);
+  }
 }

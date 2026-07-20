@@ -1,3 +1,8 @@
 'use client';
-import { PlaceholderPage } from '@/components/ui/Placeholder';
-export default function Page() { return <PlaceholderPage tabName="Customers" parentName="Customers" description="View your store's customer registry, analyze purchase behaviors, and manage accounts." />; }
+import { CustomersPage } from '@/pages/CustomersPage';
+import { useDashboardData } from '@/context/DashboardData';
+
+export default function Page() {
+  const { shopInfo } = useDashboardData();
+  return <CustomersPage shopInfo={shopInfo} />;
+}

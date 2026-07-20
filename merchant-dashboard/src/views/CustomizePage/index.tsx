@@ -926,7 +926,7 @@ export const CustomizePage: React.FC = () => {
           <Select
             value={activePage?.id ?? ''}
             onChange={v => { setHeaderMode(false); setThemeMode(false); switchPage(v); }}
-            options={pages.map(p => ({ value: p.id, label: p.title }))}
+            options={(pages || []).filter(Boolean).map(p => ({ value: p.id, label: p.title || 'Untitled Page' }))}
             style={{ minWidth: 120, maxWidth: 200, width: 'auto' }}
           />
           {activePage && (

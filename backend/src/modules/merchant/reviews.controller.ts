@@ -64,4 +64,13 @@ export class ReviewsController {
     if (!shopId) throw new BadRequestException('Shop context missing');
     return this.reviewsService.deleteReview(shopId, id);
   }
+
+  @Get('reviews')
+  async getAllReviews(
+    @Req() req: Request & { shopId?: string },
+  ) {
+    const shopId = req.shopId;
+    if (!shopId) throw new BadRequestException('Shop context missing');
+    return this.reviewsService.getAllReviews(shopId);
+  }
 }

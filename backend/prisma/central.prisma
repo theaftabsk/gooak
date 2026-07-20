@@ -75,8 +75,6 @@ model Shop {
   invoices          OrderInvoice[]
   invoice_items     OrderInvoiceItem[]
   invoice_logs      OrderInvoiceLog[]
-  order_trackings   OrderTracking[]
-  coupon_usages     CouponUsage[]
 
   @@map("shops")
 }
@@ -321,6 +319,7 @@ model ProductVariant {
   cart_items     CartItem[]
   order_items    OrderItem[]
   wishlist_items WishlistItem[]
+  return_items   OrderReturnItem[]
 
   @@index([product_id], name: "idx_variants_product")
   @@index([sku], name: "idx_variants_sku")
@@ -484,6 +483,7 @@ model Order {
   cancel_reason        String?      @db.Text
   // Refund: none | requested | partial | refunded
   refund_status        String       @default("none") @db.VarChar(30)
+  return_status        String       @default("none") @db.VarChar(30)
   // Staff notes (internal only)
   staff_notes          String?      @db.Text
   // Payment snapshot

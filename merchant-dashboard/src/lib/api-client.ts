@@ -258,6 +258,7 @@ export const merchantApi = {
     }),
 
   // Reviews
+  getReviews: () => request<any[]>('/merchant/reviews'),
   getProductReviews: (productId: string) =>
     request<any>(`/merchant/products/${productId}/reviews`),
 
@@ -343,7 +344,7 @@ export const merchantApi = {
 
   // Custom domains
   getDomains: () => request<any>('/merchant/domains'),
-  addDomain: (dto: { domain: string }) =>
+  addDomain: (dto: { domain: string; type?: string }) =>
     request<any>('/merchant/domains', { method: 'POST', body: JSON.stringify(dto) }),
   verifyDomain: (id: string) =>
     request<any>(`/merchant/domains/${id}/verify`, { method: 'POST' }),
@@ -389,6 +390,10 @@ export const merchantApi = {
     request<any>(`/merchant/invoices/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   logInvoicePrint: (id: string) => request<any>(`/merchant/invoices/${id}/print`, { method: 'POST' }),
   emailInvoice: (id: string) => request<any>(`/merchant/invoices/${id}/email`, { method: 'POST' }),
+  getCustomers: (search?: string) => {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    return request<any[]>(`/merchant/customers${query}`);
+  },
 };
 
 // ─── Platform APIs (super-admin only, no tenant context) ──────────────────────
@@ -460,7 +465,6 @@ export const catalogApi = {
   getHomepage: storefrontApi.getHomepage,
   getProducts: storefrontApi.getProducts,
   getProduct: storefrontApi.getProduct,
-  getCategories: storefrontApi.getCategories,
   getBrands: storefrontApi.getBrands,
   merchantLogin: merchantApi.login,
   uploadFile: merchantApi.uploadFile,

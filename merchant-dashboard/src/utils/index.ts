@@ -7,7 +7,6 @@ export type MerchantTab =
   | 'returns' 
   | 'invoices' 
   | 'customers' 
-  | 'groups' 
   | 'reviews' 
   | 'discounts' 
   | 'email' 

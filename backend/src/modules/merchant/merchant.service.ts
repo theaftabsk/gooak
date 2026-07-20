@@ -2476,4 +2476,19 @@ export class MerchantService {
       }
     });
   }
+
+  async getCustomers(shopId: string, search?: string) {
+    const where: any = { shop_id: shopId };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    return this.tenantPrisma.customer.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+    });
+  }
 }

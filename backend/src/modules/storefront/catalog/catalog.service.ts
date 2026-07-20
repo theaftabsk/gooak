@@ -35,18 +35,18 @@ export class CatalogService {
 
         if (config.product_ids?.length > 0) {
           products = await this.prisma.product.findMany({
-            where: { id: { in: config.product_ids }, shop_id: shopId, status: 'published' },
+            where: { id: { in: config.product_ids }, shop_id: shopId, status: 'active' },
             include: productInclude,
           });
         } else if (config.category_id) {
           products = await this.prisma.product.findMany({
-            where: { category_id: config.category_id, shop_id: shopId, status: 'published' },
+            where: { category_id: config.category_id, shop_id: shopId, status: 'active' },
             take: config.limit || 8,
             include: productInclude,
           });
         } else {
           products = await this.prisma.product.findMany({
-            where: { is_featured: true, shop_id: shopId, status: 'published' },
+            where: { is_featured: true, shop_id: shopId, status: 'active' },
             take: config.limit || 8,
             include: productInclude,
           });
@@ -90,7 +90,7 @@ export class CatalogService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * limit;
 
-    const where: any = { shop_id: shopId, status: 'published' };
+    const where: any = { shop_id: shopId, status: 'active' };
 
     if (query.category_slug) {
       const category = await this.prisma.category.findFirst({
@@ -167,7 +167,7 @@ export class CatalogService {
     let relatedProducts: any[] = [];
     if (product.category_id) {
       relatedProducts = await this.prisma.product.findMany({
-        where: { category_id: product.category_id, shop_id: shopId, status: 'published', id: { not: product.id } },
+        where: { category_id: product.category_id, shop_id: shopId, status: 'active', id: { not: product.id } },
         take: 4,
         include: { gallery: { where: { is_cover: true } }, variants: { where: { is_active: true } } },
       });
@@ -238,7 +238,7 @@ export class CatalogService {
 
     const where = {
       shop_id: shopId,
-      status: 'published',
+      status: 'active',
       collections: { some: { collection_id: collection.id } },
     };
 

@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '../src/generated/central';
+import { PrismaClient as TenantPrismaClient } from '../src/generated/tenant';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
@@ -16,9 +17,11 @@ if (!connectionString) {
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
+const tenantPrisma = new TenantPrismaClient({ adapter });
 
 async function main() {
   await prisma.$connect();
+  await tenantPrisma.$connect();
 
   const defaultAdminEmail = process.env.PLATFORM_ADMIN_EMAIL ?? 'admin@oaksol.in';
   const defaultAdminPassword = process.env.PLATFORM_ADMIN_PASSWORD ?? '1234';
@@ -188,15 +191,15 @@ async function main() {
 
     // Seed default pages with theme palettes
     const pagesToSeed = [
-      { title: 'Home Page', slug: 'index', content: 'Welcome to our store. We provide high-quality formulations.' },
-      { title: 'About Us', slug: 'about', content: 'Welcome to our store. We provide high-quality formulations.' },
-      { title: 'Contact Us', slug: 'contact', content: 'Get in touch with us at contact@oaksol.in' },
-      { title: 'FAQ', slug: 'faq', content: 'Frequently Asked Questions about our store.' },
-      { title: 'Blog', slug: 'blog', content: 'Read our latest insights and articles.' },
-      { title: 'Privacy Policy', slug: 'privacy', content: 'Your data safety is our highest priority.' },
-      { title: 'Terms & Conditions', slug: 'terms', content: 'Standard terms of service apply to all users.' },
-      { title: 'Refund Policy', slug: 'refund', content: 'Check our return and refund policies.' },
-      { title: 'Shipping Policy', slug: 'shipping', content: 'Fast and reliable shipping across India.' }
+      { title: 'Home Page', slug: 'index', sections: [{ type: 'text', content: 'Welcome to our store. We provide high-quality formulations.' }] },
+      { title: 'About Us', slug: 'about', sections: [{ type: 'text', content: 'Welcome to our store. We provide high-quality formulations.' }] },
+      { title: 'Contact Us', slug: 'contact', sections: [{ type: 'text', content: 'Get in touch with us at contact@oaksol.in' }] },
+      { title: 'FAQ', slug: 'faq', sections: [{ type: 'text', content: 'Frequently Asked Questions about our store.' }] },
+      { title: 'Blog', slug: 'blog', sections: [{ type: 'text', content: 'Read our latest insights and articles.' }] },
+      { title: 'Privacy Policy', slug: 'privacy', sections: [{ type: 'text', content: 'Your data safety is our highest priority.' }] },
+      { title: 'Terms & Conditions', slug: 'terms', sections: [{ type: 'text', content: 'Standard terms of service apply to all users.' }] },
+      { title: 'Refund Policy', slug: 'refund', sections: [{ type: 'text', content: 'Check our return and refund policies.' }] },
+      { title: 'Shipping Policy', slug: 'shipping', sections: [{ type: 'text', content: 'Fast and reliable shipping across India.' }] }
     ];
 
     for (const pageInfo of pagesToSeed) {
@@ -205,7 +208,7 @@ async function main() {
           shop_id: sampleShop.id,
           title: pageInfo.title,
           slug: pageInfo.slug,
-          content: pageInfo.content,
+          sections: pageInfo.sections,
           status: 'published',
         },
       });
@@ -220,6 +223,52 @@ async function main() {
         payment_status: 'not_required',
         current_period_start: new Date(),
       },
+    });
+
+    // Seed sample customers
+    await tenantPrisma.customer.createMany({
+      data: [
+        {
+          shop_id: sampleShop.id,
+          name: 'Aftab Ahmed',
+          email: 'aftab@gmail.com',
+          phone: '+919876543210',
+          is_verified: true,
+          total_orders: 5,
+          total_spent: 495.00,
+        },
+        {
+          shop_id: sampleShop.id,
+          name: 'Sarah Connor',
+          email: 'sarah@skynet.com',
+          phone: '+15550199',
+          is_verified: false,
+          total_orders: 1,
+          total_spent: 99.00,
+        }
+      ]
+    });
+
+    // Seed sample reviews
+    await prisma.review.createMany({
+      data: [
+        {
+          shop_id: sampleShop.id,
+          product_id: prod.id,
+          rating: 5,
+          title: 'Amazing quality!',
+          body: 'This formulation has been extremely helpful for our requirements. High quality packaging and fast dispatch.',
+          status: 'approved',
+        },
+        {
+          shop_id: sampleShop.id,
+          product_id: prod.id,
+          rating: 4,
+          title: 'Good customer service',
+          body: 'Product arrived on time, works as expected. Highly recommend.',
+          status: 'pending',
+        }
+      ]
     });
 
     console.log(`Created sample shop: ${sampleShop.slug}`);
@@ -277,5 +326,6 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await tenantPrisma.$disconnect();
     await pool.end();
   });

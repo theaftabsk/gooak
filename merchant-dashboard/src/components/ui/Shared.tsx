@@ -183,10 +183,23 @@ export const FullScreenSpinner: React.FC = () => (
   </div>
 );
 
-export const EmptyState: React.FC<{ message?: string }> = ({ message = 'No data available.' }) => (
-  <div className="empty-state">
+export const EmptyState: React.FC<{
+  title?: string;
+  description?: string;
+  message?: string;
+}> = ({ title, description, message = 'No data available.' }) => (
+  <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
     <Icons.Clipboard />
-    <p>{message}</p>
+    {title ? (
+      <>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--m-text-normal, #1e293b)', marginTop: '12px', marginBottom: '4px' }}>
+          {title}
+        </h3>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--m-text-muted, #64748b)' }}>{description}</p>
+      </>
+    ) : (
+      <p>{message}</p>
+    )}
   </div>
 );
 

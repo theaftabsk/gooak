@@ -47,4 +47,14 @@ export class ReviewsService {
       data: { status },
     });
   }
+
+  async getAllReviews(shopId: string) {
+    return this.prisma.review.findMany({
+      where: { shop_id: shopId },
+      include: {
+        product: { select: { name: true, slug: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+  }
 }
