@@ -52,7 +52,14 @@ export const BlogPage: React.FC = () => {
           }
         ];
         for (const item of defaults) {
-          await catalogApi.createAdminBlog(item);
+          try {
+            await catalogApi.createAdminBlog(item);
+          } catch (e: any) {
+            // Ignore if already created by a concurrent request
+            if (!e.message?.includes('already exists')) {
+              throw e;
+            }
+          }
         }
         const updated = await catalogApi.getAdminBlogs();
         setPosts(updated || []);

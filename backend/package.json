@@ -24,7 +24,7 @@
     "db:push": "prisma db push --schema=prisma/schema.prisma",
     "db:push:central": "prisma db push --schema=prisma/central.prisma",
     "db:push:tenant": "prisma db push --schema=prisma/tenant.prisma",
-    "db:push:all": "pnpm run db:push && pnpm run db:push:central",
+    "db:push:all": "pnpm run db:push",
     "db:sync": "prisma db push --schema=prisma/schema.prisma --accept-data-loss",
     "db:sync:central": "prisma db push --schema=prisma/central.prisma --accept-data-loss",
     "db:setup": "pnpm run db:push:all && pnpm run db:generate",

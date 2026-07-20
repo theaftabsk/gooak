@@ -271,6 +271,30 @@ async function main() {
       ]
     });
 
+    // Seed sample blog posts
+    await prisma.blogPost.createMany({
+      data: [
+        {
+          shop_id: sampleShop.id,
+          title: 'Unlocking Organic Glow',
+          slug: 'unlocking-organic-glow',
+          content: '<p>Discover the ancient botanicals behind our best-selling Neem Tulsi Cleanser.</p>',
+          author: 'Jane Doe',
+          status: 'published',
+          cover_image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80',
+        },
+        {
+          shop_id: sampleShop.id,
+          title: 'Modern Skincare Science',
+          slug: 'modern-skincare-science',
+          content: '<p>A deep dive into pH balance and lipid barriers for clean formulations.</p>',
+          author: 'Dr. Sarah Patel',
+          status: 'draft',
+          cover_image: 'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=800&q=80',
+        }
+      ]
+    });
+
     console.log(`Created sample shop: ${sampleShop.slug}`);
     console.log(`Sample owner: ${sampleShopEmail}`);
     console.log(`Sample owner password: ${sampleShopPassword}`);
