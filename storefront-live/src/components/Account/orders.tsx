@@ -33,7 +33,7 @@ export const MyOrders: React.FC = () => {
   useEffect(() => {
     if (!token) return;
     customerApi.getMyOrders(token)
-      .then(data => setOrders(data || []))
+      .then(data => setOrders(Array.isArray(data) ? data : (data?.orders || [])))
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, [token]);
