@@ -8,7 +8,6 @@ interface DashboardDataContextValue {
   shopInfo: any;
   products: any[];
   categories: any[];
-  brands: any[];
   orders: any[];
   loading: boolean;
   creatingProduct: boolean;
@@ -33,7 +32,6 @@ export function DashboardDataProvider({ children, tenantSlug }: { children: Reac
   const [shopInfo, setShopInfo] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
-  const [brands, setBrands] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [creatingProduct, setCreatingProduct] = useState(false);
@@ -53,8 +51,6 @@ export function DashboardDataProvider({ children, tenantSlug }: { children: Reac
       setProducts(prods?.products || prods || []);
 
       setCategories(await catalogApi.getCategories() || []);
-
-      try { setBrands(await catalogApi.getBrands() || []); } catch { setBrands([]); }
 
       try {
         const ords = await catalogApi.getOrders();
@@ -118,7 +114,7 @@ export function DashboardDataProvider({ children, tenantSlug }: { children: Reac
 
   return (
     <DashboardDataContext.Provider value={{
-      tenantSlug, shopInfo, products, categories, brands, orders, loading,
+      tenantSlug, shopInfo, products, categories, orders, loading,
       creatingProduct, deletingProduct, creatingCategory, deletingCategory,
       updatingOrderStatus, savingSettings,
       refetch: fetchAll,

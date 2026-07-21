@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { use } from 'react';
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { products, categories, brands } = useDashboardData();
+  const { products, categories } = useDashboardData();
   const router = useRouter();
-  return <ProductDetailPage productId={id} products={products} categories={categories} brands={brands} onBack={() => router.push('/products')} />;
+  return <ProductDetailPage productId={id} products={products} categories={categories} onBack={() => router.push('/products')} />;
 }

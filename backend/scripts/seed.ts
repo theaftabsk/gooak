@@ -127,6 +127,7 @@ async function main() {
       data: [
         { shop_id: sampleShop.id, name: 'Cash on Delivery', slug: 'cod', is_active: true, sort_order: 1 },
         { shop_id: sampleShop.id, name: 'Razorpay', slug: 'razorpay', is_active: false, sort_order: 2, config: { key_id: '', key_secret: '' } },
+        { shop_id: sampleShop.id, name: 'PhonePe', slug: 'phonepe', is_active: false, sort_order: 3, config: { merchant_id: '', salt_key: '', salt_index: '1' } },
       ],
     });
 
@@ -225,51 +226,8 @@ async function main() {
       },
     });
 
-    // Seed sample customers
-    await tenantPrisma.customer.createMany({
-      data: [
-        {
-          shop_id: sampleShop.id,
-          name: 'Aftab Ahmed',
-          email: 'aftab@gmail.com',
-          phone: '+919876543210',
-          is_verified: true,
-          total_orders: 5,
-          total_spent: 495.00,
-        },
-        {
-          shop_id: sampleShop.id,
-          name: 'Sarah Connor',
-          email: 'sarah@skynet.com',
-          phone: '+15550199',
-          is_verified: false,
-          total_orders: 1,
-          total_spent: 99.00,
-        }
-      ]
-    });
+    // Sample customers and reviews removed — data is created by real user interactions
 
-    // Seed sample reviews
-    await prisma.review.createMany({
-      data: [
-        {
-          shop_id: sampleShop.id,
-          product_id: prod.id,
-          rating: 5,
-          title: 'Amazing quality!',
-          body: 'This formulation has been extremely helpful for our requirements. High quality packaging and fast dispatch.',
-          status: 'approved',
-        },
-        {
-          shop_id: sampleShop.id,
-          product_id: prod.id,
-          rating: 4,
-          title: 'Good customer service',
-          body: 'Product arrived on time, works as expected. Highly recommend.',
-          status: 'pending',
-        }
-      ]
-    });
 
     // Seed sample blog posts
     await prisma.blogPost.createMany({

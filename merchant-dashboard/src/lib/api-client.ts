@@ -33,14 +33,16 @@ const getApiBaseUrl = (tenantDomain?: string): string => {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let tenantDomain = '';
+  let shopSlug = '';
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     const parts = hostname.split('.');
     if (parts[0] === 'app' || hostname === 'localhost' || hostname === '127.0.0.1' || parts.length < 2) {
-      const activeShop = localStorage.getItem('oaksol_active_shop_slug') || 'testShop';
-      tenantDomain = `${activeShop}.localhost`;
+      shopSlug = localStorage.getItem('oaksol_active_shop_slug') || localStorage.getItem('oaksol_shop_slug') || 'testShop';
+      tenantDomain = `${shopSlug}.localhost`;
     } else {
       tenantDomain = window.location.host;
+      shopSlug = parts[0];
     }
   }
 
@@ -55,6 +57,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = {
     ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
     ...(!isPlatformRoute && tenantDomain ? { 'X-Tenant-Domain': tenantDomain } : {}),
+    ...(!isPlatformRoute && shopSlug ? { 'X-Shop-Slug': shopSlug } : {}),
     ...(adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}),
     ...options.headers,
   };

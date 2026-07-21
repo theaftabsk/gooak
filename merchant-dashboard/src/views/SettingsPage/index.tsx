@@ -153,7 +153,7 @@ const SettingsStyles = () => (
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ shopInfo, onSaveSettings, saving }) => {
   // Navigation active tab
-  const [activeTab, setActiveTab] = useState<'general' | 'advanced' | 'domains' | 'staff' | 'overrides' | 'backup'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'advanced' | 'domains' | 'overrides' | 'backup'>('general');
 
   // Stats State
   const [stats, setStats] = useState<any>(null);
@@ -268,9 +268,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ shopInfo, onSaveSett
   useEffect(() => {
     fetchStats();
     if (activeTab === 'domains') fetchDomains();
-    if (activeTab === 'staff') fetchUsers();
     if (activeTab === 'overrides') fetchConfigs();
-  }, [activeTab, fetchStats, fetchDomains, fetchUsers, fetchConfigs]);
+  }, [activeTab, fetchStats, fetchDomains, fetchConfigs]);
 
   const triggerSuccess = (msg: string) => {
     setSuccessFlash(msg);
@@ -492,9 +491,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ shopInfo, onSaveSett
             </button>
             <button className={`set-tab-btn ${activeTab === 'domains' ? 'active' : ''}`} onClick={() => setActiveTab('domains')}>
               <IconGlobe /> Domain Mappings
-            </button>
-            <button className={`set-tab-btn ${activeTab === 'staff' ? 'active' : ''}`} onClick={() => setActiveTab('staff')}>
-              <IconUsers /> Users &amp; Staff
             </button>
             <button className={`set-tab-btn ${activeTab === 'overrides' ? 'active' : ''}`} onClick={() => setActiveTab('overrides')}>
               <IconSliders /> Config Overrides
@@ -764,124 +760,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ shopInfo, onSaveSett
                               onClick={() => handleDeleteDomain(dom.id)}
                               disabled={dom.is_primary}
                               title={dom.is_primary ? 'Cannot delete primary domain' : 'Delete mapping'}
-                            >
-                              <IconTrash />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 4: USERS & STAFF MANAGER */}
-          {activeTab === 'staff' && (
-            <div className="set-form-section">
-              <div className="set-section-header">
-                <h3>Store Users &amp; Staff</h3>
-                <p>Register and manage administrator accounts and staff members that have access to this store dashboard</p>
-              </div>
-
-              {/* Add User form */}
-              <form onSubmit={handleAddUser} style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr) auto',
-                gap: '12px',
-                alignItems: 'flex-end',
-                marginBottom: '24px',
-                padding: '16px',
-                background: 'rgba(255,255,255,0.01)',
-                border: '1px solid var(--m-border)',
-                borderRadius: '8px',
-              }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--m-text-muted)', marginBottom: '6px' }}>Name</label>
-                  <input
-                    required
-                    value={newUserName}
-                    onChange={e => setNewUserName(e.target.value)}
-                    placeholder="Full name"
-                    style={{ width: '100%', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--m-text-muted)', marginBottom: '6px' }}>Email</label>
-                  <input
-                    required
-                    type="email"
-                    value={newUserEmail}
-                    onChange={e => setNewUserEmail(e.target.value)}
-                    placeholder="email@domain.com"
-                    style={{ width: '100%', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--m-text-muted)', marginBottom: '6px' }}>Password</label>
-                  <input
-                    required
-                    type="password"
-                    value={newUserPassword}
-                    onChange={e => setNewUserPassword(e.target.value)}
-                    placeholder="Password"
-                    style={{ width: '100%', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--m-text-muted)', marginBottom: '6px' }}>Role</label>
-                  <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} style={{ width: '100%' }}>
-                    <option value="staff">Staff Member</option>
-                    <option value="admin">Administrator</option>
-                  </select>
-                </div>
-                <button type="submit" className="btn-primary" style={{ padding: '10px 16px' }} disabled={addingUser}>
-                  <IconPlus /> {addingUser ? 'Registering…' : 'Register User'}
-                </button>
-              </form>
-
-              {/* Users list */}
-              {loadingUsers ? (
-                <div style={{ padding: '30px', textAlign: 'center', color: 'var(--m-text-muted)' }}>Loading store staff members...</div>
-              ) : (
-                <div style={{ border: '1px solid var(--m-border)', borderRadius: '8px', overflow: 'hidden' }}>
-                  <table className="set-table">
-                    <thead>
-                      <tr>
-                        <th>User Name</th>
-                        <th>Email Address</th>
-                        <th>Role</th>
-                        <th>Registered Date</th>
-                        <th style={{ textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map((u) => (
-                        <tr key={u.id}>
-                          <td style={{ fontWeight: 600 }}>{u.name}</td>
-                          <td><code>{u.email}</code></td>
-                          <td>
-                            <span style={{
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              background: u.role === 'admin' ? '#FEE2E2' : '#F1F5F9',
-                              color: u.role === 'admin' ? '#DC2626' : '#475569',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                            }}>
-                              {u.role.toUpperCase()}
-                            </span>
-                          </td>
-                          <td style={{ color: 'var(--m-text-muted)' }}>
-                            {u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <button
-                              className="btn-ghost-sm"
-                              style={{ color: '#EF4444', padding: '6px' }}
-                              onClick={() => handleDeleteUser(u.id)}
-                              title="Delete user account"
                             >
                               <IconTrash />
                             </button>

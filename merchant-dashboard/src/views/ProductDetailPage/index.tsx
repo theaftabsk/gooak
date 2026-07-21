@@ -14,7 +14,6 @@ interface ProductDetailPageProps {
   productId: string;
   products: any[];
   categories: any[];
-  brands: any[];
   onBack: () => void;
 }
 
@@ -43,7 +42,7 @@ const PRESET_IMAGES = [
 ];
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
-  productId, categories, brands, onBack
+  productId, categories, onBack
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('general');
   const [product, setProduct] = useState<any>(null);
@@ -57,7 +56,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [shortDesc, setShortDesc] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [categoryPath, setCategoryPath] = useState<string | null>(null);
-  const [brandId, setBrandId] = useState('');
   const [label, setLabel] = useState(''); // Sale, New, Hot, etc.
   const [status, setStatus] = useState('draft');
 
@@ -168,7 +166,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       } else {
         setCategoryPath(null);
       }
-      setBrandId(data.brand_id || '');
       setLabel(data.label || '');
       setStatus(data.status || 'draft');
       setDescription(data.description || '');
@@ -373,7 +370,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         description: description.trim() || null,
         short_desc: shortDesc.trim() || null,
         category_id: categoryId || null,
-        brand_id: brandId || null,
         label: label || null,
         status,
 
@@ -762,18 +758,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     valuePath={categoryPath}
                     onChange={(id, path) => { setCategoryId(id || ''); setCategoryPath(path); }}
                   />
-                </div>
-                <div className="input-wrapper">
-                  <Label>Brand</Label>
-                  <Select value={brandId || '__none'} onValueChange={v => setBrandId(v === '__none' ? '' : v)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none">— Select Brand —</SelectItem>
-                      {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
                 </div>
                 <div className="input-wrapper">
                   <Label>Visibility Status</Label>

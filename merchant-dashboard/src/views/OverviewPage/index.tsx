@@ -62,13 +62,78 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ shopInfo, products, 
 
   return (
     <>
-      <header className="page-header">
-        <div>
-          <h2>Store Overview</h2>
-          <p className="header-sub">Manage your brand storefront and track analytics</p>
+      {/* ── Compact Slim Dashboard Header ───────────────────────────── */}
+      <header style={{
+        background: '#FFFFFF',
+        border: '1.5px solid #E2E8F0',
+        borderLeft: '4px solid #10B981',
+        borderRadius: '12px',
+        padding: '14px 24px',
+        marginBottom: '24px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '16px',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
+      }}>
+        {/* Left — inline compact identity */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Small avatar */}
+          <div style={{
+            width: 36, height: 36, borderRadius: '9px',
+            background: 'linear-gradient(135deg, #10B981, #059669)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1rem', fontWeight: 800, color: '#fff',
+            flexShrink: 0,
+          }}>
+            {(shopInfo?.name || 'S').charAt(0).toUpperCase()}
+          </div>
+
+          {/* Title + subtitle inline */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>
+                Store Overview
+              </h2>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                background: '#DCFCE7', border: '1px solid #A7F3D0', color: '#059669',
+                fontSize: '0.63rem', fontWeight: 700, padding: '2px 8px',
+                borderRadius: '20px', letterSpacing: '0.05em', textTransform: 'uppercase',
+              }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 4px #10B981' }} />
+                Live
+              </span>
+            </div>
+            <p style={{ margin: '1px 0 0 0', fontSize: '0.76rem', color: '#94A3B8', fontWeight: 400 }}>
+              {shopInfo?.name || 'Your Store'}&nbsp;·&nbsp;{domain}&nbsp;·&nbsp;
+              {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
+          </div>
         </div>
-        <a href={`http://${domain}`} target="_blank" rel="noreferrer" className="btn-primary">
-          <Icons.Globe /> View Storefront
+
+        {/* Right — slim CTA */}
+        <a
+          href={`http://${domain}`}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            padding: '7px 16px',
+            background: 'linear-gradient(135deg, #10B981, #059669)',
+            color: '#fff', fontWeight: 700, fontSize: '0.78rem',
+            borderRadius: '8px', textDecoration: 'none',
+            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+            transition: 'transform 0.15s, box-shadow 0.15s',
+            whiteSpace: 'nowrap', flexShrink: 0,
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 14px rgba(16, 185, 129, 0.45)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.3)'; }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          View Storefront
         </a>
       </header>
 

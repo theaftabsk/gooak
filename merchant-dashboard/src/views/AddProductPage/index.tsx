@@ -9,7 +9,6 @@ import { CategoryPicker } from '@/components/ui/CategoryPicker';
 
 interface AddProductPageProps {
   categories: any[];
-  brands: any[];
   onCreateProduct: (data: any) => Promise<void>;
   creating: boolean;
   onBack: () => void;
@@ -41,7 +40,6 @@ const PRESET_IMAGES = [
 
 export const AddProductPage: React.FC<AddProductPageProps> = ({
   categories,
-  brands,
   onCreateProduct,
   creating,
   onBack,
@@ -56,7 +54,6 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
   const [shortDesc, setShortDesc] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [categoryPath, setCategoryPath] = useState<string | null>(null);
-  const [brandId, setBrandId] = useState('');
   const [label, setLabel] = useState(''); // Sale, New, Hot, etc.
 
   // Form states - Pricing
@@ -404,7 +401,6 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
       description: description.trim() || null,
       short_desc: shortDesc.trim() || null,
       category_id: categoryId || null,
-      brand_id: brandId || null,
       label: label || null,
       
       // Pricing
@@ -771,16 +767,6 @@ export const AddProductPage: React.FC<AddProductPageProps> = ({
                     valuePath={categoryPath}
                     onChange={(id, path) => { setCategoryId(id || ''); setCategoryPath(path); }}
                   />
-                </div>
-                <div className="input-wrapper">
-                  <Label>Brand</Label>
-                  <Select value={brandId || '__none'} onValueChange={v => setBrandId(v === '__none' ? '' : v)}>
-                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none">— Select Brand —</SelectItem>
-                      {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
 

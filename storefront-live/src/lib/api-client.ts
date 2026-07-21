@@ -15,12 +15,23 @@ const PLATFORM_DOMAIN = (typeof process !== 'undefined' && process.env?.NEXT_PUB
 // - subdomain dev:    "testShop.localhost:3001/products" → hostname "testShop.localhost" → use as-is
 // - plain localhost:  read shop slug from localStorage (key: oaksol_shop_slug), default "testShop"
 // - production:       use the full hostname → "amir.posix.digital" or "www.mystore.com"
+function getShopSlug(): string {
+  if (typeof window === 'undefined') return 'testShop';
+  const hostname = window.location.hostname;
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return localStorage.getItem('oaksol_shop_slug') || localStorage.getItem('oaksol_active_shop_slug') || 'testShop';
+  }
+
+  return hostname.split('.')[0];
+}
+
 function getTenantDomain(): string {
   if (typeof window === 'undefined') return '';
   const hostname = window.location.hostname;
 
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    const slug = localStorage.getItem('oaksol_shop_slug') || 'testShop';
+    const slug = getShopSlug();
     return `${slug}.localhost`;
   }
 
@@ -47,6 +58,7 @@ const getApiBaseUrl = (): string => {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const tenantDomain = getTenantDomain();
+  const shopSlug = getShopSlug();
   const url = `${getApiBaseUrl()}${path}`;
 
   const customerToken = typeof window !== 'undefined' ? localStorage.getItem('oaksol_customer_token') : null;
@@ -54,6 +66,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = {
     'Content-Type': 'application/json',
     ...(tenantDomain ? { 'X-Tenant-Domain': tenantDomain } : {}),
+    ...(shopSlug ? { 'X-Shop-Slug': shopSlug } : {}),
     ...(customerToken ? { 'Authorization': `Bearer ${customerToken}` } : {}),
     ...options.headers,
   };

@@ -8,7 +8,6 @@ interface ProductsPageProps {
   shopInfo: any;
   products: any[];
   categories: any[];
-  brands: any[];
   loading: boolean;
   onCreateProduct: (data: any) => Promise<void>;
   onDeleteProduct: (id: string) => Promise<void>;
@@ -17,7 +16,7 @@ interface ProductsPageProps {
 }
 
 export const ProductsPage: React.FC<ProductsPageProps> = ({
-  shopInfo, products, categories, brands, loading,
+  shopInfo, products, categories, loading,
   onCreateProduct, onDeleteProduct,
   creating, deleting
 }) => {
@@ -35,7 +34,6 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
   const [price, setPrice] = useState('');
   const [comparePrice, setComparePrice] = useState('');
   const [catId, setCatId] = useState('');
-  const [brandId, setBrandId] = useState('');
   const [status, setStatus] = useState('active');
   const [desc, setDesc] = useState('');
 
@@ -45,7 +43,6 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
     setPrice('');
     setComparePrice('');
     setCatId('');
-    setBrandId('');
     setStatus('active');
     setDesc('');
   };
@@ -62,7 +59,6 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
       price: parseFloat(price),
       compare_price: comparePrice ? parseFloat(comparePrice) : null,
       category_id: catId || null,
-      brand_id: brandId || null,
       status,
       description: desc || null,
     });

@@ -19,9 +19,17 @@ export class GatewayService {
             shop_id: shopId,
             name: 'Razorpay Online Payment',
             slug: 'razorpay',
-            is_active: true,
+            is_active: false,
             sort_order: 2,
-            config: { key_id: 'rzp_test_placeholder_key_id', key_secret: 'placeholder_secret' },
+            config: { key_id: '', key_secret: '' },
+          },
+          {
+            shop_id: shopId,
+            name: 'PhonePe Online Payment',
+            slug: 'phonepe',
+            is_active: false,
+            sort_order: 3,
+            config: { merchant_id: '', salt_key: '', salt_index: '1', environment: 'PRODUCTION' },
           },
         ],
       });
@@ -35,6 +43,7 @@ export class GatewayService {
       return gateways.map((g) => {
         const conf = { ...(g.config as any) };
         delete conf.key_secret;
+        delete conf.salt_key;
         return { ...g, config: conf };
       });
     }
@@ -51,6 +60,24 @@ export class GatewayService {
     if (!gateway) throw new BadRequestException('Payment gateway not found');
 
     const mergedConfig = dto.config ? { ...(gateway.config as any), ...dto.config } : gateway.config;
+    const finalActive = dto.is_active !== undefined ? dto.is_active : gateway.is_active;
+
+    if (finalActive) {
+      if (gateway.slug === 'razorpay') {
+        const keyId = mergedConfig?.key_id || '';
+        const secret = mergedConfig?.key_secret || '';
+        if (!keyId || !secret || keyId.includes('placeholder') || secret.includes('placeholder')) {
+          throw new BadRequestException('Cannot activate Razorpay: key_id and key_secret are required.');
+        }
+      } else if (gateway.slug === 'phonepe') {
+        const merchantId = mergedConfig?.merchant_id || '';
+        const saltKey = mergedConfig?.salt_key || '';
+        const saltIndex = mergedConfig?.salt_index || '';
+        if (!merchantId || !saltKey || !saltIndex) {
+          throw new BadRequestException('Cannot activate PhonePe: merchant_id, salt_key, and salt_index are required.');
+        }
+      }
+    }
 
     return this.prisma.paymentGateway.update({
       where: { id },

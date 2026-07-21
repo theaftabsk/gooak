@@ -21,6 +21,14 @@ function log(
   console.log(`${colors[type]} ${message}`);
 }
 
+// Detect package manager
+let pnpmCmd = 'pnpm';
+try {
+  execSync('pnpm --version', { stdio: 'ignore' });
+} catch {
+  pnpmCmd = 'npx pnpm';
+}
+
 // 1. Environment configuration (.env) Setup
 function ensureEnvFile() {
   if (!fs.existsSync(ENV_PATH)) {
@@ -118,7 +126,7 @@ async function waitForDatabase(
 function setupAndSeedDatabase() {
   log('Running Prisma schema setup & generating clients...', 'info');
   try {
-    execSync('pnpm run db:setup', { cwd: BACKEND_ROOT, stdio: 'inherit' });
+    execSync(`${pnpmCmd} run db:setup`, { cwd: BACKEND_ROOT, stdio: 'inherit' });
     log('Database schema setup and client generation complete.', 'success');
   } catch {
     log(
@@ -130,7 +138,7 @@ function setupAndSeedDatabase() {
 
   log('Running default database seeds...', 'info');
   try {
-    execSync('pnpm run db:seed', { cwd: BACKEND_ROOT, stdio: 'inherit' });
+    execSync(`${pnpmCmd} run db:seed`, { cwd: BACKEND_ROOT, stdio: 'inherit' });
     log('Database seeding complete.', 'success');
   } catch {
     log('Seeding failed. See output above for details.', 'warning');
@@ -141,8 +149,15 @@ function setupAndSeedDatabase() {
 function startDevelopmentServer() {
   log('Launching NestJS development server in watch mode...', 'info');
 
+  const runArgs = ['run', 'start:dev'];
+  let runCmd = 'pnpm';
+  if (pnpmCmd.startsWith('npx')) {
+    runCmd = 'npx';
+    runArgs.unshift('pnpm');
+  }
+
   // Use spawn to allow active stream inheritance and clean process handling
-  const serverProcess = spawn('pnpm', ['run', 'start:dev'], {
+  const serverProcess = spawn(runCmd, runArgs, {
     cwd: BACKEND_ROOT,
     stdio: 'inherit',
     shell: true,

@@ -18,12 +18,13 @@ export class TenantMiddleware implements NestMiddleware {
       return;
     }
 
-    const tenantDomain =
-      (req.headers['x-tenant-domain'] as string) || req.headers.host;
+    const explicitSlug =
+      (req.headers['x-shop-slug'] as string) ||
+      (req.query.shop_slug as string) ||
+      (req.query.shop as string);
 
-    if (!tenantDomain) {
-      throw new NotFoundException('Host header or X-Tenant-Domain header missing');
-    }
+    const tenantDomain =
+      (req.headers['x-tenant-domain'] as string) || req.headers.host || '';
 
     const hostname = tenantDomain.split(':')[0];
 
@@ -49,28 +50,45 @@ export class TenantMiddleware implements NestMiddleware {
     let shopId: string | undefined;
     let shopSlug: string | undefined;
 
-    // 1. Exact domain match in shop_domains registry (only verified/active domains)
-    const domainRecord = await this.prisma.shopDomain.findFirst({
-      where: { domain: { equals: hostname, mode: 'insensitive' }, status: 'active' },
-      select: { shop_id: true },
-    });
-
-    if (domainRecord) {
-      shopId = domainRecord.shop_id;
-      const shop = await this.prisma.shop.findUnique({
-        where: { id: shopId },
-        select: { slug: true },
+    // 1. First, check if explicit X-Shop-Slug or query parameter is provided
+    if (explicitSlug) {
+      const shop = await this.prisma.shop.findFirst({
+        where: { slug: { equals: explicitSlug.trim(), mode: 'insensitive' } },
+        select: { id: true, slug: true },
       });
-      if (shop) shopSlug = shop.slug;
-    } else {
-      // 2. Subdomain slug lookup (e.g. "nature-glow.localhost" or "nature-glow.gooak.shop")
+      if (shop) {
+        shopId = shop.id;
+        shopSlug = shop.slug;
+      }
+    }
+
+    // 2. Exact domain match in shop_domains registry (only verified/active domains)
+    if (!shopId && hostname) {
+      const domainRecord = await this.prisma.shopDomain.findFirst({
+        where: { domain: { equals: hostname, mode: 'insensitive' }, status: 'active' },
+        select: { shop_id: true },
+      });
+
+      if (domainRecord) {
+        shopId = domainRecord.shop_id;
+        const shop = await this.prisma.shop.findUnique({
+          where: { id: shopId },
+          select: { slug: true },
+        });
+        if (shop) shopSlug = shop.slug;
+      }
+    }
+
+    // 3. Subdomain slug lookup or raw slug lookup (e.g. "nature-glow.localhost" or "nature-glow")
+    if (!shopId && hostname) {
       const isSubdomain =
         hostname.endsWith(`.${platformDomain}`) || hostname.endsWith('.localhost');
 
-      if (isSubdomain) {
-        const slug = hostname.split('.')[0];
+      const potentialSlug = isSubdomain ? hostname.split('.')[0] : hostname;
+
+      if (potentialSlug && potentialSlug !== 'localhost' && potentialSlug !== '127.0.0.1') {
         const shop = await this.prisma.shop.findFirst({
-          where: { slug: { equals: slug, mode: 'insensitive' } },
+          where: { slug: { equals: potentialSlug, mode: 'insensitive' } },
           select: { id: true, slug: true },
         });
         if (shop) {
@@ -80,8 +98,8 @@ export class TenantMiddleware implements NestMiddleware {
       }
     }
 
-    // 3. Local dev fallback: resolve to testShop or first active shop
-    if (!shopId && (hostname === 'localhost' || hostname === '127.0.0.1')) {
+    // 4. Local dev fallback: resolve to testShop or first active shop
+    if (!shopId && (hostname === 'localhost' || hostname === '127.0.0.1' || !hostname)) {
       let fallbackShop = await this.prisma.shop.findFirst({
         where: { slug: { equals: 'testShop', mode: 'insensitive' } },
         select: { id: true, slug: true },
@@ -99,7 +117,7 @@ export class TenantMiddleware implements NestMiddleware {
     }
 
     if (!shopId) {
-      throw new NotFoundException(`Store domain mapping for '${hostname}' not found`);
+      throw new NotFoundException(`Store domain mapping for '${explicitSlug || hostname}' not found`);
     }
 
     req.shopId = shopId;

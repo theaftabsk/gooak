@@ -50,20 +50,14 @@ function ensureEnv(envPath, defaultContent) {
 
 // 3. Check Docker
 function verifyDocker() {
-  log('Checking Docker installation...', 'info');
+  log('Checking Docker availability...', 'info');
   try {
     execSync('docker --version', { stdio: 'ignore' });
-  } catch (e) {
-    log('Docker is not installed or not in PATH. Please install Docker first.', 'error');
-    process.exit(1);
-  }
-
-  log('Checking if Docker daemon is running...', 'info');
-  try {
     execSync('docker info', { stdio: 'ignore' });
+    return true;
   } catch (e) {
-    log('Docker daemon is not running! Please open/start Docker Desktop and try again.', 'error');
-    process.exit(1);
+    log('Docker is not running or not installed. Will use local PostgreSQL.', 'warning');
+    return false;
   }
 }
 
@@ -87,32 +81,30 @@ function checkDbPort(port, host) {
   });
 }
 
-async function waitForDatabase(port = 5433, host = 'localhost', maxAttempts = 30) {
-  log(`Waiting for PostgreSQL database on ${host}:${port} to accept connections...`, 'info');
+async function waitForDatabase(port = 5432, host = 'localhost', maxAttempts = 15) {
+  log(`Checking PostgreSQL database connection on ${host}:${port}...`, 'info');
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const isOnline = await checkDbPort(port, host);
     if (isOnline) {
       log('PostgreSQL database is online and accepting connections!', 'success');
-      return;
+      return true;
     }
-    log(`Database port not active yet (attempt ${attempt}/${maxAttempts})...`, 'info');
+    log(`Database port ${port} not active yet (attempt ${attempt}/${maxAttempts})...`, 'info');
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-  log('Database connection timed out. Please check if Docker is running properly.', 'error');
-  process.exit(1);
+  return false;
 }
 
 // Main sequence
 async function main() {
   console.log('\n🚀 Starting Oak Commerce Project Setup & Dev Runner...\n');
 
-  // Verify Docker is running
-  verifyDocker();
+  const dockerAvailable = verifyDocker();
 
   // Create default environment files if missing
   ensureEnv('backend/.env', `
-# Database configuration (Local PostgreSQL Docker Container)
-DATABASE_URL="postgresql://postgres:local_password_123@localhost:5433/oak_commerce?schema=public"
+# Database configuration (Local PostgreSQL pgAdmin)
+DATABASE_URL="postgresql://postgres:123456@localhost:5432/gooak?schema=public"
 
 # Application configurations
 PORT=5005
@@ -139,25 +131,36 @@ NEXT_PUBLIC_PLATFORM_DOMAIN=gooak.shop
 NEXT_PUBLIC_API_URL=http://localhost:5005/api/v1
   `);
 
-  // Start PostgreSQL container
+  // Parse DB URL from backend/.env
+  let dbPort = 5432;
+  let dbHost = 'localhost';
   try {
-    runCommand('docker compose up -d');
-  } catch (error) {
-    log('Failed to start docker containers.', 'error');
-    process.exit(1);
-  }
+    const envContent = fs.readFileSync(path.join(ROOT_DIR, 'backend/.env'), 'utf-8');
+    const dbUrlLine = envContent.split('\n').find(l => l.startsWith('DATABASE_URL='));
+    if (dbUrlLine) {
+      const portMatch = dbUrlLine.match(/:(\d+)\//);
+      if (portMatch) dbPort = parseInt(portMatch[1], 10);
+      const hostMatch = dbUrlLine.match(/@([^:/]+)/);
+      if (hostMatch) dbHost = hostMatch[1];
+    }
+  } catch (e) {}
 
-  // Install workspace dependencies
-  log('Installing monorepo dependencies...', 'info');
-  try {
-    runCommand('pnpm install');
-  } catch (error) {
-    log('Dependency installation failed.', 'error');
-    process.exit(1);
-  }
+  // Check if database port is already active
+  let isDbReady = await checkDbPort(dbPort, dbHost);
 
-  // Wait for the PostgreSQL port to be ready
-  await waitForDatabase();
+  if (!isDbReady && dockerAvailable && dbPort === 5433) {
+    try {
+      log('Starting PostgreSQL container via Docker...', 'info');
+      runCommand('docker compose up -d');
+      isDbReady = await waitForDatabase(dbPort, dbHost);
+    } catch (error) {
+      log('Failed to start docker containers.', 'warning');
+    }
+  } else if (isDbReady) {
+    log(`Using active local PostgreSQL server on ${dbHost}:${dbPort}`, 'success');
+  } else {
+    log(`Local PostgreSQL on ${dbHost}:${dbPort} is offline. Please make sure PostgreSQL service is running!`, 'warning');
+  }
 
   // Setup Database (run migrations & seeds)
   log('Bootstrapping database (schema setup and seeding)...', 'info');
