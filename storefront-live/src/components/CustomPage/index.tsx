@@ -16,6 +16,7 @@ import { SectionBannerSlider }        from './sections/SectionBannerSlider';
 import { SectionProductsGrid }        from './sections/SectionProductsGrid';
 import { SectionFeaturesStrip }       from './sections/SectionFeaturesStrip';
 import { SectionAboutSection }        from './sections/SectionAboutSection';
+import { SectionCategoriesCarousel }  from './sections/SectionCategoriesCarousel';
 
 function renderSection(s: Section, i: number) {
   switch (s.type) {
@@ -30,6 +31,7 @@ function renderSection(s: Section, i: number) {
     case 'products_grid':       return <SectionProductsGrid       key={i} data={s.data} />;
     case 'features_strip':      return <SectionFeaturesStrip      key={i} data={s.data} />;
     case 'about_section':       return <SectionAboutSection       key={i} data={s.data} />;
+    case 'categories_carousel': return <SectionCategoriesCarousel key={i} data={s.data} />;
     default:                    return null;
   }
 }

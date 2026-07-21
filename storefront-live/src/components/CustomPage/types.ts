@@ -9,7 +9,13 @@ export type Section =
   | { type: 'banner_slider';       data: BannerSliderData }
   | { type: 'products_grid';       data: ProductsGridData }
   | { type: 'features_strip';      data: FeaturesStripData }
-  | { type: 'about_section';       data: AboutSectionData };
+  | { type: 'about_section';       data: AboutSectionData }
+  | { type: 'categories_carousel'; data: CategoriesCarouselData };
+
+export interface CategoriesCarouselData {
+  title?: string;
+  badge?: string;
+}
 
 export interface HeroData {
   title: string; subtitle?: string; bg_image?: string; bg_color?: string;
