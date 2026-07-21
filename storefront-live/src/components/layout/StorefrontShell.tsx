@@ -39,7 +39,11 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
           window.location.href = `${protocol}//localhost${port}`;
         } else {
           const platformDomain = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || 'posix.digital';
-          window.location.href = `${protocol}//${platformDomain}`;
+          if (host === platformDomain || host === `www.${platformDomain}`) {
+            window.location.href = `${protocol}//app.${platformDomain}`;
+          } else {
+            window.location.href = `${protocol}//${platformDomain}`;
+          }
         }
         return <div style={{ minHeight: '100vh', background: '#FAF7F2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', color: '#6B7280' }}>Redirecting...</div>;
       }
