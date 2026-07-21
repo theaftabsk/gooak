@@ -215,7 +215,7 @@ export const customerApi = {
     }),
 
   getMyOrders: (token: string) =>
-    request<any[]>('/customer/orders', {
+    request<any>('/customer/orders', {
       headers: { Authorization: `Bearer ${token}` },
     }),
 
